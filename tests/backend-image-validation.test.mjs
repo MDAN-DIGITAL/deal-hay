@@ -174,6 +174,67 @@ test("unknown session fields are stripped and malformed storage headers release 
   assert.equal(calls.at(-1).method, "DELETE")
   assert.deepEqual(calls.at(-1).body.tokens, ["staged"])
 })
+test("legacy R2 sessions with an empty header array stay usable for chat and products", async () => {
+  for (const purpose of ["chat", "product"]) {
+    calls.length = 0
+    const key = `staged-images/owner/${purpose}/image.webp`
+    state.response = {
+      uploads: [
+        {
+          token: "reserved",
+          url: `https://account.r2.cloudflarestorage.com/deal-hay-bucket/${key}?X-Amz-SignedHeaders=host&X-Amz-Signature=test`,
+          headers: [],
+          asset_url: `https://account.r2.cloudflarestorage.com/deal-hay-bucket/${key}`,
+        },
+      ],
+    }
+
+    const result = await requestImageUploadsAction(purpose, [
+      { size: 1024, content_type: "image/webp" },
+    ])
+
+    assert.equal(result.success, true)
+    assert.deepEqual(result.data.tokens, ["reserved"])
+    assert.deepEqual(result.data.uploads[0].headers, {})
+    assert.equal(result.data.uploads[0].url, state.response.uploads[0].url)
+    assert.deepEqual(
+      calls.map(({ method }) => method),
+      ["POST"]
+    )
+  }
+})
+test("malformed header arrays and values still reject sessions and release their tokens", async () => {
+  for (const headers of [
+    ["Content-Type", "image/webp"],
+    [{ "Content-Type": "image/webp" }],
+    null,
+    { "Content-Type": ["image/webp"] },
+    { "Content-Type": 123 },
+  ]) {
+    calls.length = 0
+    state.response = {
+      uploads: [
+        {
+          token: "reserved",
+          url: "https://storage.example.test/key?signature=abc",
+          headers,
+          asset_url: imageUrl,
+        },
+      ],
+    }
+
+    const result = await requestImageUploadsAction("chat", [
+      { size: 1024, content_type: "image/webp" },
+    ])
+
+    assert.equal(result.success, false)
+    assert.deepEqual(
+      calls.map(({ method }) => method),
+      ["POST", "DELETE"]
+    )
+    assert.deepEqual(calls.at(-1).body.tokens, ["reserved"])
+  }
+})
 test("missing sessions release the entire reservation batch", async () => {
   state.response = {
     uploads: [

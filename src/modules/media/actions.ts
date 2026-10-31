@@ -8,7 +8,11 @@ import type { ActionState } from "@/types/forms"
 const sessionSchema = z.object({
   token: z.string().min(1).max(2048),
   url: z.url(),
-  headers: z.record(z.string(), z.string()),
+  headers: z.preprocess(
+    // Older API responses encoded an empty PHP header map as [] instead of {}.
+    (value) => (Array.isArray(value) && value.length === 0 ? {} : value),
+    z.record(z.string(), z.string())
+  ),
   asset_url: z.url().max(2048),
   expires_at: z.string().optional(),
 })
