@@ -38,6 +38,10 @@ const { startSpeedtestAction } = await import(
     "@/config/env": mocks,
     "@/lib/auth": mocks,
     "@/lib/auth-redirect": transpile("../src/lib/auth-redirect.ts", {}),
+    "@/modules/diagnostics/lib/speedtest": transpile(
+      "../src/modules/diagnostics/lib/speedtest.ts",
+      { "@/config/env": mocks }
+    ),
     zod: import.meta.resolve("zod"),
   })
 )
@@ -75,12 +79,14 @@ test("exchanges the private account token for a scoped grant without a second pr
     {
       method: "POST",
       path: "/diagnostics/speedtest/session",
+      body: { target: "backend" },
       token: state.token,
     },
   ])
   assert.deepEqual(result, {
     success: true,
     data: {
+      target: "backend",
       token: state.response.token,
       endpointUrl: "https://api.example.test/api/diagnostics/speedtest",
       expiresAt: state.response.expires_at,
@@ -89,6 +95,87 @@ test("exchanges the private account token for a scoped grant without a second pr
   })
   assert.ok(!JSON.stringify(result).includes(state.token))
   assert.ok(result.data.endpointUrl.startsWith("https://api.example.test/"))
+})
+
+test("exchanges a separate WSS grant and probes only its validated public endpoint", async () => {
+  state.response = {
+    ...state.response,
+    target: "wss",
+    endpoint_url: "https://wss.example.test/diagnostics/speedtest",
+  }
+  const result = await startSpeedtestAction("wss")
+  assert.deepEqual(state.calls, [
+    { cookie: "dealhay_access_token" },
+    {
+      method: "POST",
+      path: "/diagnostics/speedtest/session",
+      body: { target: "wss" },
+      token: state.token,
+    },
+  ])
+  assert.equal(result.success, true)
+  assert.equal(result.data.target, "wss")
+  assert.equal(result.data.token, state.response.token)
+  assert.equal(result.data.endpointUrl, state.response.endpoint_url)
+  assert.ok(!JSON.stringify(result).includes(state.token))
+})
+
+test("allows local HTTP WSS probes without requiring a frontend WSS environment variable", async () => {
+  for (const origin of [
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://[::1]:8080",
+  ]) {
+    state.response = {
+      ...state.response,
+      target: "wss",
+      endpoint_url: `${origin}/diagnostics/speedtest`,
+    }
+    const result = await startSpeedtestAction("wss")
+    assert.equal(result.success, true)
+    assert.equal(result.data.endpointUrl, state.response.endpoint_url)
+  }
+})
+
+test("rejects WSS grants with unsafe URLs, unexpected target identities or missing endpoints", async () => {
+  const original = {
+    ...state.response,
+    target: "wss",
+    endpoint_url: "https://wss.example.test/diagnostics/speedtest",
+  }
+  for (const mutation of [
+    { target: undefined },
+    { target: "backend" },
+    { target: "unknown" },
+    { endpoint_url: undefined },
+    { endpoint_url: "http://wss.example.test/diagnostics/speedtest" },
+    { endpoint_url: "wss://wss.example.test/diagnostics/speedtest" },
+    {
+      endpoint_url:
+        "https://user:secret@wss.example.test/diagnostics/speedtest",
+    },
+    {
+      endpoint_url:
+        "https://wss.example.test/diagnostics/speedtest?token=secret",
+    },
+    { endpoint_url: "https://wss.example.test/diagnostics/speedtest#probe" },
+    { endpoint_url: "https://wss.example.test/diagnostics/speedtest?" },
+    { endpoint_url: "https://wss.example.test/diagnostics/speedtest#" },
+    { endpoint_url: "https://wss.example.test/internal/events" },
+    { endpoint_url: "https://wss.example.test/diagnostics/speedtest/" },
+    { token: state.token },
+  ]) {
+    state.response = { ...original, ...mutation }
+    const result = await startSpeedtestAction("wss")
+    assert.equal(result.success, false)
+    assert.ok(!JSON.stringify(result).includes("secret"))
+    assert.ok(!JSON.stringify(result).includes(state.token))
+  }
+})
+
+test("rejects unknown requested targets before exchanging any account credentials", async () => {
+  assert.equal((await startSpeedtestAction("other")).success, false)
+  assert.deepEqual(state.calls, [])
 })
 
 test("guests redirect to sign-in and expired account tokens are cleared", async () => {
@@ -142,6 +229,8 @@ test("rejects malformed grants, account tokens, and endpoints outside the fixed 
     { expires_at: "tomorrow" },
     { endpoint_path: "https://untrusted.example.test/upload" },
     { endpoint_path: "/auth/me" },
+    { endpoint_url: "https://untrusted.example.test/diagnostics/speedtest" },
+    { target: "wss" },
     { limits: { ...state.response.limits, max_upload_bytes: -1 } },
   ]) {
     const original = state.response

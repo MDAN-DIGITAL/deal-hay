@@ -35,7 +35,7 @@ const reactUrl = moduleUrl(`
   export function useEffect(effect, dependencies) { return globalThis.__speedtestHook.current.useEffect(effect, dependencies) }
 `)
 const actionUrl = moduleUrl(`
-  export function startSpeedtestAction() { return globalThis.__speedtestHook.enqueueSession() }
+  export function startSpeedtestAction(target) { return globalThis.__speedtestHook.enqueueSession(target) }
 `)
 const controlledEngineUrl = moduleUrl(`
   export { initialSpeedtestState } from ${JSON.stringify(engineUrl)}
@@ -58,12 +58,16 @@ function deferred() {
   })
   return { promise, resolve, reject }
 }
-function grant(name = "first") {
+function grant(name = "first", target = "backend") {
   return {
     success: true,
     data: {
       token: name,
-      endpointUrl: "https://api.example.test/api/diagnostics/speedtest",
+      target,
+      endpointUrl:
+        target === "backend"
+          ? "https://api.example.test/api/diagnostics/speedtest"
+          : "https://wss.example.test/diagnostics/speedtest",
     },
   }
 }
@@ -76,8 +80,8 @@ function mount(t) {
   const measurements = []
   const context = {
     current: null,
-    enqueueSession() {
-      const next = deferred()
+    enqueueSession(target) {
+      const next = { ...deferred(), target }
       sessions.push(next)
       return next.promise
     },
@@ -138,6 +142,9 @@ function mount(t) {
       this.effects.forEach((effect) => effect?.cleanup?.())
     },
     get state() {
+      return this.slots[0].backend
+    },
+    get states() {
       return this.slots[0]
     },
     get result() {
@@ -151,7 +158,7 @@ function mount(t) {
   return screen
 }
 
-test("double clicks issue one session and one measurement across rerenders", async (t) => {
+test("double clicks start one sequential Backend and WSS run across rerenders", async (t) => {
   const screen = mount(t)
   const initialStart = screen.result.start
   initialStart()
@@ -174,10 +181,31 @@ test("double clicks issue one session and one measurement across rerenders", asy
   screen.measurements[0].update(completed)
   screen.measurements[0].resolve(completed)
   await settle()
-  assert.equal(screen.result.running, false)
+  assert.equal(screen.result.running, true)
   assert.equal(screen.state.phase, "complete")
+  assert.deepEqual(
+    screen.sessions.map(({ target }) => target),
+    ["backend", "wss"]
+  )
+  assert.equal(
+    screen.measurements.length,
+    1,
+    "WSS waits for its own fresh grant"
+  )
+  screen.sessions[1].resolve(grant("second", "wss"))
+  await settle()
+  assert.equal(screen.measurements.length, 2)
+  const wssCompleted = { ...completed, pingMs: 8, downloadMbps: 80 }
+  screen.measurements[1].update(wssCompleted)
+  screen.measurements[1].resolve(wssCompleted)
+  await settle()
+  assert.equal(screen.result.running, false)
+  assert.equal(screen.states.backend.pingMs, 12)
+  assert.equal(screen.states.wss.pingMs, 8)
+  assert.equal(screen.states.wss.serverName, "DealHay WSS")
   screen.result.start()
-  assert.equal(screen.sessions.length, 2)
+  assert.equal(screen.sessions.length, 3)
+  assert.equal(screen.states.wss.pingMs, null)
 })
 
 test("cancel aborts the active measurement and keeps partial results while ignoring late updates", async (t) => {
@@ -315,13 +343,17 @@ for (const kind of ["rejected grant", "transport failure"]) {
       screen.state.error,
       kind === "rejected grant" ? /Please wait/ : /Network unavailable/
     )
+    assert.equal(screen.result.running, true)
+    assert.equal(screen.sessions[1].target, "wss")
+    screen.sessions[1].resolve({ success: false, message: "WSS unavailable" })
+    await settle()
     assert.equal(screen.result.running, false)
     assert.equal(screen.measurements.length, 0)
     screen.result.start()
-    assert.equal(screen.sessions.length, 2)
+    assert.equal(screen.sessions.length, 3)
     assert.equal(screen.state.phase, "connecting")
     assert.equal(screen.state.error, null)
-    screen.sessions[1].resolve(grant("retry"))
+    screen.sessions[2].resolve(grant("retry"))
     await settle()
     assert.equal(screen.measurements.length, 1)
     assert.equal(screen.measurements[0].session.token, "retry")
@@ -345,8 +377,82 @@ test("a failed measurement preserves the collected values until a new run begins
   assert.equal(screen.state.phase, "error")
   assert.equal(screen.state.downloadMbps, 56)
   assert.equal(screen.state.pingMs, 11)
+  screen.sessions[1].resolve({ success: false, message: "WSS unavailable" })
+  await settle()
   screen.result.start()
   assert.equal(screen.state.phase, "connecting")
   assert.equal(screen.state.downloadMbps, null)
   assert.equal(screen.state.pingMs, null)
+})
+
+test("a Backend failure still measures WSS and keeps both independent results", async (t) => {
+  const screen = mount(t)
+  screen.result.start()
+  screen.sessions[0].resolve({ success: false, message: "Backend unavailable" })
+  await settle()
+  assert.equal(screen.states.backend.phase, "error")
+  assert.equal(screen.result.activeTarget, "wss")
+  screen.sessions[1].resolve(grant("wss", "wss"))
+  await settle()
+  const completed = { ...initialSpeedtestState(), phase: "complete", pingMs: 9 }
+  screen.measurements[0].resolve(completed)
+  await settle()
+  assert.equal(screen.result.running, false)
+  assert.equal(screen.states.wss.phase, "complete")
+  assert.equal(screen.states.wss.pingMs, 9)
+  assert.equal(screen.states.backend.error, "Backend unavailable")
+})
+
+test("cancelling while WSS connects preserves the completed Backend and ignores its late grant", async (t) => {
+  const screen = mount(t)
+  screen.result.start()
+  screen.sessions[0].resolve(grant())
+  await settle()
+  const completed = {
+    ...initialSpeedtestState(),
+    phase: "complete",
+    pingMs: 15,
+  }
+  screen.measurements[0].resolve(completed)
+  await settle()
+  const backend = screen.states.backend
+  screen.result.cancel()
+  assert.equal(screen.result.running, false)
+  assert.equal(screen.states.backend, backend)
+  assert.equal(screen.states.wss.phase, "cancelled")
+  screen.sessions[1].resolve(grant("late-wss", "wss"))
+  await settle()
+  assert.equal(screen.measurements.length, 1)
+  assert.equal(screen.states.backend, backend)
+})
+
+test("a WSS transfer failure keeps Backend results and does not mix measured values", async (t) => {
+  const screen = mount(t)
+  screen.result.start()
+  screen.sessions[0].resolve(grant())
+  await settle()
+  screen.measurements[0].resolve({
+    ...initialSpeedtestState(),
+    phase: "complete",
+    pingMs: 12,
+    downloadMbps: 90,
+  })
+  await settle()
+  screen.sessions[1].resolve(grant("wss", "wss"))
+  await settle()
+  const wss = screen.measurements[1]
+  wss.update({
+    ...initialSpeedtestState(),
+    phase: "upload",
+    pingMs: 30,
+    downloadMbps: 25,
+  })
+  wss.reject(new Error("WSS upload failed"))
+  await settle()
+  assert.equal(screen.result.running, false)
+  assert.equal(screen.states.backend.phase, "complete")
+  assert.equal(screen.states.backend.downloadMbps, 90)
+  assert.equal(screen.states.wss.phase, "error")
+  assert.equal(screen.states.wss.downloadMbps, 25)
+  assert.equal(screen.states.wss.pingMs, 30)
 })

@@ -37,7 +37,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useSpeedtest } from "@/modules/diagnostics/hooks/use-speedtest"
-import type { SpeedtestPhase, SpeedtestState } from "@/types/speedtest"
+import type {
+  SpeedtestPhase,
+  SpeedtestState,
+  SpeedtestTarget,
+} from "@/types/speedtest"
+
+const serverLabels = { backend: "DealHay Backend", wss: "DealHay WSS" } as const
 
 const steps = [
   { phase: "connecting", label: "Kết nối", icon: GlobeIcon },
@@ -273,7 +279,7 @@ function SpeedGauge({
       </p>
       {showStart ? (
         <p className="mt-2 text-center text-xs text-muted-foreground">
-          Tối đa khoảng 40 MiB dữ liệu / lượt đo
+          Đo cả hai máy chủ · Tối đa khoảng 80 MiB / lượt
         </p>
       ) : null}
     </div>
@@ -407,7 +413,12 @@ function ThroughputChart({ samples }: { samples: SpeedtestState["samples"] }) {
 }
 
 export function DiagnosticsClient() {
-  const { state, start, cancel, running } = useSpeedtest()
+  const { states, activeTarget, start, cancel, running } = useSpeedtest()
+  const [selectedTarget, setSelectedTarget] =
+    useState<SpeedtestTarget>("backend")
+  const displayedTarget = activeTarget ?? selectedTarget
+  const state = states[displayedTarget]
+  const serverName = serverLabels[displayedTarget]
   const { phase } = state
   const progress = Math.min(100, Math.max(0, state.progress))
   const hasAttempt = phase !== "idle"
@@ -420,8 +431,79 @@ export function DiagnosticsClient() {
       <div className="mx-auto w-full max-w-6xl space-y-6">
         <PageHeader
           title="Đo tốc độ kết nối"
-          description="Đo ping, tốc độ tải xuống và tải lên từ thiết bị của bạn đến máy chủ DealHay."
+          description="Đo lần lượt kết nối từ thiết bị của bạn tới DealHay Backend và DealHay WSS."
         />
+
+        <div
+          aria-label="Kết quả theo máy chủ"
+          className="grid gap-4 sm:grid-cols-2"
+        >
+          {(["backend", "wss"] as const).map((target) => {
+            const result = states[target]
+            return (
+              <button
+                key={target}
+                type="button"
+                disabled={running}
+                aria-pressed={displayedTarget === target}
+                onClick={() => setSelectedTarget(target)}
+                className={cn(
+                  "min-w-0 rounded-xl border bg-card p-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait",
+                  displayedTarget === target &&
+                    "border-primary/50 ring-1 ring-primary/20"
+                )}
+              >
+                <span className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 font-medium">
+                    <ServerIcon aria-hidden="true" className="size-4" />
+                    {serverLabels[target]}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-xs text-muted-foreground",
+                      result.phase === "error" && "text-destructive"
+                    )}
+                  >
+                    {result.phase === "idle"
+                      ? running
+                        ? "Đang chờ"
+                        : "Chưa đo"
+                      : phaseLabels[result.phase]}
+                  </span>
+                </span>
+                <span className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+                  {[
+                    ["Ping", result.pingMs, "ms"],
+                    ["Jitter", result.jitterMs, "ms"],
+                    ["Tải xuống", result.downloadMbps, "Mbps"],
+                    ["Tải lên", result.uploadMbps, "Mbps"],
+                  ].map(([label, value, unit]) => (
+                    <span key={String(label)}>
+                      <span className="block text-xs text-muted-foreground">
+                        {label}
+                      </span>
+                      <span className="mt-1 block font-semibold tabular-nums">
+                        {number(typeof value === "number" ? value : null)}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {unit}
+                        </span>
+                      </span>
+                    </span>
+                  ))}
+                </span>
+                {result.error ? (
+                  <span className="mt-3 block text-xs text-destructive">
+                    {result.error}
+                  </span>
+                ) : null}
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Đo Backend trước, sau đó đo WSS. Chọn một máy chủ để xem chi tiết sau
+          khi lượt đo kết thúc.
+        </p>
 
         <Card className="gap-0 py-0">
           <CardHeader className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
@@ -431,10 +513,12 @@ export function DiagnosticsClient() {
                   aria-hidden="true"
                   className="size-4 text-primary"
                 />
-                Kết nối của bạn với DealHay
+                Kết nối tới {serverName}
               </CardTitle>
               <CardDescription className="mt-1">
-                Đo tốc độ truy cập DealHay trên đường truyền bạn đang sử dụng
+                {running
+                  ? `Đang đo ${serverName}`
+                  : `Kết quả riêng của ${serverName}`}
               </CardDescription>
             </div>
             <Badge
@@ -563,9 +647,7 @@ export function DiagnosticsClient() {
                       />
                       Ping
                       <MetricHelp label="ping">
-                        Trung vị thời gian khứ hồi của các yêu cầu HTTP từ trình
-                        duyệt qua website đến DealHay Backend. Giá trị thấp hơn
-                        cho biết phản hồi nhanh hơn.
+                        {`Trung vị thời gian khứ hồi của các yêu cầu HTTP từ trình duyệt trực tiếp đến ${serverName}. Giá trị thấp hơn cho biết phản hồi nhanh hơn.`}
                       </MetricHelp>
                     </dt>
                     <dd className="mt-1 text-xl font-semibold tabular-nums">
@@ -662,7 +744,7 @@ export function DiagnosticsClient() {
               <span className="min-w-0 break-all">
                 Máy chủ:{" "}
                 <span className="font-medium text-foreground">
-                  DealHay Backend
+                  {serverName}
                 </span>
               </span>
             </p>
@@ -673,7 +755,7 @@ export function DiagnosticsClient() {
                 truyền
               </p>
             ) : (
-              <p>Trình duyệt → DealHay → DealHay Backend</p>
+              <p>Trình duyệt → {serverName}</p>
             )}
           </div>
         </Card>
@@ -688,16 +770,16 @@ export function DiagnosticsClient() {
               id="speedtest-data-note"
               className="text-xs leading-6 text-muted-foreground"
             >
-              Mỗi lượt đo dùng tối đa khoảng 40 MiB dữ liệu. Lưu ý dung lượng
-              nếu bạn đang dùng mạng di động. Chỉ bắt đầu truyền dữ liệu khi bạn
-              nhấn Bắt đầu hoặc Đo lại.
+              Mỗi lượt đo cả hai máy chủ dùng tối đa khoảng 80 MiB dữ liệu. Lưu
+              ý dung lượng nếu bạn đang dùng mạng di động. Chỉ bắt đầu truyền dữ
+              liệu khi bạn nhấn Bắt đầu hoặc Đo lại.
             </p>
           </div>
           <p className="text-xs leading-6 text-muted-foreground">
             Kết quả phản ánh đường truyền đến DealHay tại thời điểm đo. Ping là
-            thời gian khứ hồi của yêu cầu HTTP qua website đến DealHay Backend.
-            Tốc độ bao gồm thời gian máy chủ phản hồi và truyền dữ liệu, có thể
-            thay đổi theo Wi-Fi, thiết bị, mạng và tải máy chủ.
+            thời gian khứ hồi của yêu cầu HTTP trực tiếp đến từng máy chủ. Tốc
+            độ bao gồm thời gian máy chủ phản hồi và truyền dữ liệu, có thể thay
+            đổi theo Wi-Fi, thiết bị, mạng và tải máy chủ.
           </p>
         </div>
       </div>

@@ -1,11 +1,44 @@
 import { env } from "@/config/env"
-import type { SpeedtestSession, SpeedtestState } from "@/types/speedtest"
+import type {
+  SpeedtestSession,
+  SpeedtestState,
+  SpeedtestTarget,
+} from "@/types/speedtest"
 
 const KIB = 1024
 const MIB = 1024 * KIB
 const PING_SAMPLES = 7
 const TRANSFER_SAMPLES = 6
 const REQUEST_TIMEOUT_MS = 15_000
+
+export function speedtestEndpointUrl(
+  target: SpeedtestTarget,
+  value: string
+): string {
+  const invalid = () => new Error("Địa chỉ máy chủ đo không hợp lệ.")
+  if (target === "backend") {
+    if (value !== `${env.API_URL}/diagnostics/speedtest`) throw invalid()
+    return value
+  }
+  if (target !== "wss") throw invalid()
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    throw invalid()
+  }
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+  if (
+    (url.protocol !== "https:" && !(url.protocol === "http:" && local)) ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    url.href !== `${url.origin}/diagnostics/speedtest`
+  )
+    throw invalid()
+  return url.href
+}
 
 export function initialSpeedtestState(): SpeedtestState {
   return {
@@ -78,11 +111,13 @@ export async function measureSpeedtest(
   const now = dependencies.now ?? (() => performance.now())
   const payload = dependencies.payload ?? randomPayload
   const startedAt = now()
-  if (session.endpointUrl !== `${env.API_URL}/diagnostics/speedtest`)
-    throw new Error("Địa chỉ máy chủ đo không hợp lệ.")
+  const target = session.target === undefined ? "backend" : session.target
+  const endpointUrl = speedtestEndpointUrl(target, session.endpointUrl)
+  if (!/^[a-zA-Z0-9]{64}$/.test(session.token))
+    throw new Error("Phiên đo không hợp lệ. Vui lòng bắt đầu đo lại.")
   let state: SpeedtestState = {
     ...initialSpeedtestState(),
-    serverName: "DealHay Backend",
+    serverName: target === "wss" ? "DealHay WSS" : "DealHay Backend",
   }
   let requests = 0
   const emit = (update: Partial<SpeedtestState>) => {
@@ -112,8 +147,8 @@ export async function measureSpeedtest(
       state.transferredBytes + bytes > session.limits.max_session_bytes
     )
       throw new Error("Lượt đo đã đạt giới hạn dữ liệu. Vui lòng đo lại.")
-    // Use only the configured API endpoint; browsers apply its CORS policy.
-    const url = `${session.endpointUrl}/${path}`
+    // Probe the validated target directly; never forward an account token.
+    const url = `${endpointUrl}/${path}`
     const controller = new AbortController()
     const cancel = () => controller.abort()
     signal.addEventListener("abort", cancel, { once: true })

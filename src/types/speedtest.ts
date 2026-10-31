@@ -10,6 +10,8 @@ export type SpeedtestPhase =
 
 export type SpeedSample = { elapsedMs: number; mbps: number }
 
+export type SpeedtestTarget = "backend" | "wss"
+
 export type SpeedtestState = {
   phase: SpeedtestPhase
   progress: number
@@ -19,7 +21,7 @@ export type SpeedtestState = {
   uploadMbps: number | null
   liveMbps: number | null
   samples: { download: SpeedSample[]; upload: SpeedSample[] }
-  serverName: "DealHay Backend" | null
+  serverName: "DealHay Backend" | "DealHay WSS" | null
   completedAt: string | null
   elapsedMs: number
   transferredBytes: number
@@ -27,6 +29,7 @@ export type SpeedtestState = {
 }
 
 export type SpeedtestSession = {
+  target?: SpeedtestTarget
   token: string
   endpointUrl: string
   expiresAt: string

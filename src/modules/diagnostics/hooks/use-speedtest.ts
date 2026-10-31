@@ -6,12 +6,19 @@ import {
   initialSpeedtestState,
   measureSpeedtest,
 } from "@/modules/diagnostics/lib/speedtest"
-import type { SpeedtestState } from "@/types/speedtest"
+import type { SpeedtestState, SpeedtestTarget } from "@/types/speedtest"
+
+const targets = ["backend", "wss"] as const
+
+function initialStates(): Record<SpeedtestTarget, SpeedtestState> {
+  return { backend: initialSpeedtestState(), wss: initialSpeedtestState() }
+}
 
 export function useSpeedtest() {
-  const [state, setState] = useState<SpeedtestState>(initialSpeedtestState)
+  const [states, setStates] = useState(initialStates)
   const active = useRef<AbortController | null>(null)
   const mounted = useRef(true)
+  const [activeTarget, setActiveTarget] = useState<SpeedtestTarget | null>(null)
   useEffect(() => {
     mounted.current = true
     return () => {
@@ -22,57 +29,98 @@ export function useSpeedtest() {
   }, [])
 
   function start() {
-    if (active.current) return
+    if (active.current || !mounted.current) return
     const controller = new AbortController()
     active.current = controller
-    const startedAt = performance.now()
     const current = () =>
       mounted.current &&
       active.current === controller &&
       !controller.signal.aborted
-    setState({ ...initialSpeedtestState(), phase: "connecting" })
+    setStates(initialStates())
+    setActiveTarget("backend")
     void (async () => {
       try {
-        const session = await startSpeedtestAction()
-        if (!current()) return
-        if (!session.success) throw new Error(session.message)
-        const setupMs = performance.now() - startedAt
-        await measureSpeedtest(session.data, controller.signal, (next) => {
-          if (current())
-            setState({ ...next, elapsedMs: next.elapsedMs + setupMs })
-        })
-      } catch (error) {
-        if (current())
-          setState((previous) => ({
+        // Run separately so the two transfers do not compete for bandwidth.
+        for (const target of targets) {
+          if (!current()) return
+          const startedAt = performance.now()
+          const serverName =
+            target === "backend" ? "DealHay Backend" : "DealHay WSS"
+          setActiveTarget(target)
+          setStates((previous) => ({
             ...previous,
-            phase: "error",
-            error:
-              error instanceof Error
-                ? error.message
-                : "Không thể đo kết nối. Vui lòng thử lại.",
-            elapsedMs: performance.now() - startedAt,
+            [target]: {
+              ...initialSpeedtestState(),
+              phase: "connecting",
+              serverName,
+            },
           }))
+          try {
+            // Mint each grant immediately before its server is measured.
+            const session = await startSpeedtestAction(target)
+            if (!current()) return
+            if (!session.success) throw new Error(session.message)
+            const setupMs = performance.now() - startedAt
+            const update = (next: SpeedtestState) => {
+              if (current())
+                setStates((previous) => ({
+                  ...previous,
+                  [target]: {
+                    ...next,
+                    serverName,
+                    elapsedMs: next.elapsedMs + setupMs,
+                  },
+                }))
+            }
+            update(
+              await measureSpeedtest(session.data, controller.signal, update)
+            )
+          } catch (error) {
+            if (current())
+              setStates((previous) => ({
+                ...previous,
+                [target]: {
+                  ...previous[target],
+                  phase: "error",
+                  liveMbps: null,
+                  error:
+                    error instanceof Error
+                      ? error.message
+                      : "Không thể đo kết nối. Vui lòng thử lại.",
+                  elapsedMs: performance.now() - startedAt,
+                },
+              }))
+          }
+        }
       } finally {
-        if (active.current === controller) active.current = null
+        if (active.current === controller) {
+          active.current = null
+          if (mounted.current) setActiveTarget(null)
+        }
       }
     })()
   }
 
   function cancel() {
-    active.current?.abort()
+    if (!active.current) return
+    active.current.abort()
     active.current = null
-    setState((previous) => ({
-      ...previous,
-      phase: "cancelled",
-      error: null,
-      liveMbps: null,
+    setActiveTarget(null)
+    const cancelled = (state: SpeedtestState): SpeedtestState =>
+      ["complete", "error"].includes(state.phase)
+        ? state
+        : { ...state, phase: "cancelled", error: null, liveMbps: null }
+    setStates((previous) => ({
+      backend: cancelled(previous.backend),
+      wss: cancelled(previous.wss),
     }))
   }
 
   return {
-    state,
+    states,
+    activeTarget,
     start,
     cancel,
-    running: ["connecting", "ping", "download", "upload"].includes(state.phase),
+    running: activeTarget !== null,
   }
 }

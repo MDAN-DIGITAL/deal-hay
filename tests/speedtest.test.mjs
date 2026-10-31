@@ -59,9 +59,7 @@ function harness({
     payload: (size) => new Uint8Array(size).fill(127),
     async fetch(url, options) {
       assert.equal(typeof url, "string")
-      assert.ok(
-        url.startsWith("https://api.example.test/api/diagnostics/speedtest/")
-      )
+      assert.ok(url.startsWith(`${grant.endpointUrl}/`))
       url = new URL(url, "https://www.example.test")
       const phase = url.pathname.split("/").at(-1)
       const bytes =
@@ -232,6 +230,87 @@ test("caps adaptive transfer sizes and total data even on an extremely fast conn
   assert.ok(h.transfers.download.every((sample) => sample.bytes <= 4 * MIB))
   assert.ok(h.transfers.upload.every((sample) => sample.bytes <= 2 * MIB))
   assert.ok(result.transferredBytes <= 36 * MIB)
+})
+
+test("measures the WSS host directly with its own grant and separate server identity", async () => {
+  const grant = {
+    ...session(),
+    target: "wss",
+    token: "w".repeat(64),
+    endpointUrl: "https://wss.example.test/diagnostics/speedtest",
+  }
+  const h = harness({ grant })
+  const result = await h.run()
+  assert.equal(result.phase, "complete")
+  assert.equal(result.serverName, "DealHay WSS")
+  assert.equal(result.pingMs, 40)
+  assert.equal(h.calls.length, 20)
+  for (const { url, options, phase } of h.calls) {
+    assert.equal(url.origin, "https://wss.example.test")
+    assert.equal(url.pathname, `/diagnostics/speedtest/${phase}`)
+    assert.equal(options.headers.Authorization, `Bearer ${grant.token}`)
+    assert.equal(options.credentials, "omit")
+    assert.equal(options.redirect, "error")
+    assert.equal(url.search, "")
+  }
+  assert.ok(result.downloadMbps > 0)
+  assert.ok(result.uploadMbps > 0)
+  assert.ok(result.transferredBytes <= 36 * MIB)
+})
+
+test("allows HTTP WSS probes only on loopback development hosts", async () => {
+  for (const origin of [
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://[::1]:8080",
+  ]) {
+    const grant = {
+      ...session(),
+      target: "wss",
+      endpointUrl: `${origin}/diagnostics/speedtest`,
+    }
+    assert.equal((await harness({ grant }).run()).serverName, "DealHay WSS")
+  }
+})
+
+test("rejects unsafe WSS probe endpoints before making any network request", async () => {
+  for (const endpointUrl of [
+    "file:///diagnostics/speedtest",
+    "http://wss.example.test/diagnostics/speedtest",
+    "wss://wss.example.test/diagnostics/speedtest",
+    "https://user:secret@wss.example.test/diagnostics/speedtest",
+    "https://wss.example.test/diagnostics/speedtest?target=evil",
+    "https://wss.example.test/diagnostics/speedtest#bad",
+    "https://wss.example.test/diagnostics/speedtest?",
+    "https://wss.example.test/diagnostics/speedtest#",
+    "https://wss.example.test/diagnostics/speedtest/",
+    "https://wss.example.test/internal/events",
+  ]) {
+    const h = harness({ grant: { ...session(), target: "wss", endpointUrl } })
+    await assert.rejects(h.run(), /Địa chỉ máy chủ/)
+    assert.equal(h.calls.length, 0)
+  }
+})
+
+test("rejects account tokens and malformed target identities before probing either server", async () => {
+  for (const target of ["backend", "wss"]) {
+    const h = harness({
+      grant: {
+        ...session(),
+        target,
+        token: "123|private-account-token",
+        endpointUrl:
+          target === "wss"
+            ? "https://wss.example.test/diagnostics/speedtest"
+            : session().endpointUrl,
+      },
+    })
+    await assert.rejects(h.run(), /Phiên đo không hợp lệ/)
+    assert.equal(h.calls.length, 0)
+  }
+  const unknown = harness({ grant: { ...session(), target: "other" } })
+  await assert.rejects(unknown.run(), /Địa chỉ máy chủ/)
+  assert.equal(unknown.calls.length, 0)
 })
 
 test("high RTT grows transfer packets instead of collapsing into a 64 KiB speed ceiling", async () => {

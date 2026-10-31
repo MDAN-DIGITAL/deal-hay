@@ -28,7 +28,7 @@ API phải cho phép origin frontend trong CORS; WSS phải cho phép cùng orig
 - `SessionProvider`/`AuthGuard`: lấy user từ API. Token lưu trong `sessionStorage`, giữ qua reload cùng tab và được xóa khi đăng xuất hoặc API trả 401 cho phiên hiện tại. Token không được ghi vào cookie hoặc URL. Phiên gắn với tab; dữ liệu phân quyền luôn do API xác nhận.
 - Socket.IO dùng ticket ngắn hạn riêng, tự đổi ticket/reconnect và khôi phục subscriptions. API tiếp tục lưu tin nhắn và phát sự kiện sang WSS.
 - Ảnh được resize/nén WebP trong browser và upload trực tiếp lên storage bằng URL có thời hạn. File chat riêng tư được tải từ API với bearer token và hiển thị bằng object URL, thu hồi khi unmount.
-- Speedtest đổi bearer token lấy grant giới hạn, rồi đo trực tiếp tới API. Frontend không chuyển tiếp lưu lượng đo.
+- Speedtest đo lần lượt DealHay Backend và DealHay WSS, hiển thị ping/jitter/download/upload riêng cho từng máy chủ. API cấp grant ngắn hạn ngay trước mỗi lượt; browser truyền dữ liệu trực tiếp tới máy chủ được đo. URL WSS lấy từ cấu hình API, không cần thêm biến Vercel. Một máy chủ lỗi vẫn tiếp tục đo bên còn lại; tối đa khoảng 80 MiB cho hai máy chủ.
 
 ## Kiểm tra
 
