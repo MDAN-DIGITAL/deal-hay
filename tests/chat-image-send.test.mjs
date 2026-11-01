@@ -96,7 +96,10 @@ test("message retries preserve a caller-owned UUID and reject invalid identifier
   assert.equal(sentMessages[1][2], id)
   const invalid = compose("Invalid identifier")
   invalid.set("client_message_id", "forged-value")
-  assert.equal((await sendMessageAction("test-conversation", invalid)).success, false)
+  assert.equal(
+    (await sendMessageAction("test-conversation", invalid)).success,
+    false
+  )
   assert.equal(sentMessages.length, 2)
 })
 
@@ -276,4 +279,41 @@ test("oversized images are rejected before contacting the chat API", async () =>
   assert.equal(state.success, false)
   assert.ok(state.errors.attachment.length)
   assert.equal(sentMessages.length, 0)
+})
+
+test("admin tags can invite help without a caption and preserve selected admin identities", async () => {
+  const formData = compose()
+  formData.append("mention_admin_ids", "admin-1")
+  formData.append("mention_admin_ids", "admin-2")
+  const state = await sendMessageAction("test-conversation", formData)
+  assert.equal(state.success, true)
+  assert.deepEqual(sentMessages[0][1].getAll("mention_admin_ids"), [
+    "admin-1",
+    "admin-2",
+  ])
+})
+
+test("the composer accepts fifty images in one selection and rejects selections over fifty", async () => {
+  const { sendMessageSchema } = await import(schemaUrl)
+  const attachments = Array.from(
+    { length: 50 },
+    (_, index) =>
+      new File([`image-${index}`], `${index}.png`, { type: "image/png" })
+  )
+  assert.equal(
+    sendMessageSchema.safeParse({
+      body: "",
+      attachments,
+      mention_admin_ids: [],
+    }).success,
+    true
+  )
+  assert.equal(
+    sendMessageSchema.safeParse({
+      body: "",
+      attachments: [...attachments, attachments[0]],
+      mention_admin_ids: [],
+    }).success,
+    false
+  )
 })

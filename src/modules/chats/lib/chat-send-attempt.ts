@@ -3,6 +3,7 @@ export type ChatSendDraft = {
   body: string
   attachment?: File
   replyToId?: string
+  mentionAdminIds?: string[]
 }
 export type ChatSendAttempt = ChatSendDraft & {
   clientMessageId: string
@@ -20,7 +21,9 @@ export function chatSendAttempt(
     previous.conversationSlug === draft.conversationSlug &&
     previous.body === body &&
     previous.attachment === draft.attachment &&
-    previous.replyToId === draft.replyToId
+    previous.replyToId === draft.replyToId &&
+    (previous.mentionAdminIds ?? []).join(",") ===
+      (draft.mentionAdminIds ?? []).join(",")
     ? previous
     : { ...draft, body, clientMessageId: crypto.randomUUID() }
 }
@@ -36,6 +39,8 @@ export async function prepareChatSendAttempt(
   if (attempt.body) input.set("body", attempt.body)
   if (attempt.replyToId) input.set("reply_to_id", attempt.replyToId)
   if (attempt.attachment) input.set("attachment", attempt.attachment)
+  for (const id of attempt.mentionAdminIds ?? [])
+    input.append("mention_admin_ids", id)
   attempt.preparing = prepare(input)
     .then((payload) => {
       payload.set("client_message_id", attempt.clientMessageId)
@@ -46,4 +51,23 @@ export async function prepareChatSendAttempt(
       attempt.preparing = undefined
     })
   return attempt.preparing
+}
+
+/** Each file keeps its own identity so retrying a partially sent batch is safe. */
+export function chatSendAttempts(
+  previous: ChatSendAttempt[],
+  draft: Omit<ChatSendDraft, "attachment"> & { attachments: File[] }
+): ChatSendAttempt[] {
+  const files: (File | undefined)[] = draft.attachments.length
+    ? draft.attachments
+    : [undefined]
+  return files.map((attachment, index) =>
+    chatSendAttempt(previous[index] ?? null, {
+      conversationSlug: draft.conversationSlug,
+      body: index === 0 ? draft.body : "",
+      attachment,
+      replyToId: index === 0 ? draft.replyToId : undefined,
+      mentionAdminIds: index === 0 ? draft.mentionAdminIds : [],
+    })
+  )
 }

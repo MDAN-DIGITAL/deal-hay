@@ -56,7 +56,7 @@ export async function requestImageUploadsAction(
           .number()
           .int()
           .min(1)
-          .max((purpose === "product" ? 512 : 20) * 1024),
+          .max(20 * 1024),
         content_type: z.literal("image/webp"),
         filename: z.string().min(1).max(255).optional(),
       })

@@ -770,9 +770,9 @@ export function DiagnosticsClient() {
               id="speedtest-data-note"
               className="text-xs leading-6 text-muted-foreground"
             >
-              Mỗi lượt đo cả hai máy chủ dùng tối đa khoảng 80 MiB dữ liệu. Lưu
-              ý dung lượng nếu bạn đang dùng mạng di động. Chỉ bắt đầu truyền dữ
-              liệu khi bạn nhấn Bắt đầu hoặc Đo lại.
+              Lượt đo dùng nhiều luồng để đo hết băng thông khả dụng, không giới
+              hạn tổng dữ liệu. Lưu ý dung lượng nếu bạn đang dùng mạng di động.
+              Chỉ bắt đầu truyền dữ liệu khi bạn nhấn Bắt đầu hoặc Đo lại.
             </p>
           </div>
           <p className="text-xs leading-6 text-muted-foreground">

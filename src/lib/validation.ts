@@ -4,7 +4,7 @@ export const phoneNumberRegex = /^(\+84|0)[3-9]\d{8}$/
 export const strongPasswordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).+$/
 
-export const IMAGE_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
+export const IMAGE_OUTPUT_MAX_BYTES = 20 * 1024
 export const CHAT_FILE_UPLOAD_MAX_BYTES = 3 * 1024 * 1024
 const imageMimeTypes = new Set([
   "image/jpeg",
@@ -52,12 +52,6 @@ export function imageFileSchema(message: string) {
         message: "Ảnh phải có định dạng JPG, PNG, GIF, WEBP, AVIF hoặc BMP.",
       })
     }
-    if (file.size > IMAGE_UPLOAD_MAX_BYTES) {
-      context.addIssue({
-        code: "custom",
-        message: "Mỗi ảnh không được vượt quá 10 MB.",
-      })
-    }
   })
 }
 
@@ -70,15 +64,10 @@ export function chatAttachmentFileSchema(message: string) {
       })
     }
     const isImage = imageMimeTypes.has(file.type)
-    const maxBytes = isImage
-      ? IMAGE_UPLOAD_MAX_BYTES
-      : CHAT_FILE_UPLOAD_MAX_BYTES
-    if (file.size > maxBytes) {
+    if (!isImage && file.size > CHAT_FILE_UPLOAD_MAX_BYTES) {
       context.addIssue({
         code: "custom",
-        message: isImage
-          ? "Ảnh đính kèm không được vượt quá 10 MB."
-          : "Tệp đính kèm không được vượt quá 3 MB.",
+        message: "Tệp đính kèm không được vượt quá 3 MB.",
       })
     }
   })

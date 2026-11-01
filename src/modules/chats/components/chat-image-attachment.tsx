@@ -1,10 +1,18 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react"
 import { FileIcon, PaperclipIcon } from "lucide-react"
 import { toast } from "sonner"
 import { ImagePreview } from "@/components/image-preview"
 import { Button } from "@/components/ui/button"
+import { createChatAttachmentCache } from "@/modules/chats/lib/chat-attachment-cache"
+import type { ChatMessage } from "@/types/chat"
 import { getWssSession, clearWssSession } from "@/lib/wss-session"
 
 async function loadAttachment(messageId: string, signal?: AbortSignal) {
@@ -28,6 +36,44 @@ async function loadAttachment(messageId: string, signal?: AbortSignal) {
   return response.blob()
 }
 
+const AttachmentCacheContext = createContext<ReturnType<
+  typeof createChatAttachmentCache
+> | null>(null)
+
+export function ChatAttachmentProvider({
+  messages,
+  children,
+}: {
+  messages: Iterable<ChatMessage>
+  children: ReactNode
+}) {
+  const [cache] = useState(() => createChatAttachmentCache(loadAttachment))
+  useEffect(() => () => cache.clear(), [cache])
+  useEffect(() => {
+    let stopped = false
+    const images = Array.from(messages).filter(
+      (message) => message.attachment?.type === "image"
+    )
+    let index = 0
+    const preload = async () => {
+      while (!stopped && index < images.length) {
+        const message = images[index++]
+        await cache.get(message.id).catch(() => {})
+      }
+    }
+    for (let worker = 0; worker < Math.min(4, images.length); worker++)
+      void preload()
+    return () => {
+      stopped = true
+    }
+  }, [cache, messages])
+  return (
+    <AttachmentCacheContext.Provider value={cache}>
+      {children}
+    </AttachmentCacheContext.Provider>
+  )
+}
+
 export function ChatImageAttachment({
   messageId,
   name,
@@ -35,22 +81,35 @@ export function ChatImageAttachment({
   messageId: string
   name: string
 }) {
-  const [image, setImage] = useState<{ id: string; url: string } | null>(null)
+  const cache = useContext(AttachmentCacheContext)
+  const [image, setImage] = useState<{ id: string; url: string } | null>(() => {
+    const cached = cache?.peek(messageId)
+    return cached ? { id: messageId, url: cached.url } : null
+  })
   useEffect(() => {
     const controller = new AbortController()
     let objectUrl: string | undefined
-    void loadAttachment(messageId, controller.signal)
-      .then((blob) => {
-        if (controller.signal.aborted) return
-        objectUrl = URL.createObjectURL(blob)
-        setImage({ id: messageId, url: objectUrl })
+    const request = cache
+      ? cache.get(messageId)
+      : loadAttachment(messageId, controller.signal).then((blob) => ({
+          blob,
+          url: URL.createObjectURL(blob),
+        }))
+    void request
+      .then(({ url }) => {
+        if (controller.signal.aborted) {
+          if (!cache) URL.revokeObjectURL(url)
+          return
+        }
+        if (!cache) objectUrl = url
+        setImage({ id: messageId, url })
       })
       .catch(() => {})
     return () => {
       controller.abort()
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [messageId])
+  }, [cache, messageId])
   if (!image || image.id !== messageId)
     return <p className="p-2 text-xs text-muted-foreground">Ảnh đính kèm</p>
   return (
@@ -73,12 +132,15 @@ export function DownloadAttachment({
   name: string
   image: boolean
 }) {
+  const cache = useContext(AttachmentCacheContext)
   const [loading, setLoading] = useState(false)
   const download = async () => {
     if (loading) return
     setLoading(true)
     try {
-      const blob = await loadAttachment(messageId)
+      const blob = cache
+        ? (await cache.get(messageId)).blob
+        : await loadAttachment(messageId)
       const objectUrl = URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.href = objectUrl

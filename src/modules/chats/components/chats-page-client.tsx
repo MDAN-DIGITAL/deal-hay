@@ -27,16 +27,20 @@ import {
   markConversationReadAction,
   synchronizeChatsAction,
 } from "@/modules/chats/actions"
+import { ChatAttachmentProvider } from "@/modules/chats/components/chat-image-attachment"
 import { ChatComposer } from "@/modules/chats/components/chat-composer"
 import { ChatConversationList } from "@/modules/chats/components/chat-conversation-list"
 import { ChatMessageList } from "@/modules/chats/components/chat-message-list"
+import type { ChatScrollPosition } from "@/modules/chats/lib/chat-scroll"
 import { useChatRealtime } from "@/modules/chats/hooks/use-chat-realtime"
 import {
   createChatState,
-  mergeMessages,
+  receiveChatHistory,
+  markChatConversationRead,
   receiveChatMessage,
   receiveReadReceipt,
   reconcileChatState,
+  selectChatConversation,
 } from "@/modules/chats/lib/chat-state"
 import type {
   ChatMessage,
@@ -45,27 +49,11 @@ import type {
   SelectedConversation,
 } from "@/types/chat"
 
-function RealtimeStatusBadge({
-  status,
-  latencyMs,
-  pingTimedOut,
-}: {
-  status: ConnectionStatus
-  latencyMs: number | null
-  pingTimedOut: boolean
-}) {
+function RealtimeStatusBadge({ status }: { status: ConnectionStatus }) {
   if (status === "connected") {
     return (
-      <Badge
-        title="Độ trễ khứ hồi tới máy chủ tin nhắn"
-        variant={pingTimedOut ? "outline" : "secondary"}
-      >
-        <WifiIcon /> Trực tiếp ·{" "}
-        {latencyMs !== null
-          ? `Ping ${latencyMs} ms`
-          : pingTimedOut
-            ? "Ping quá hạn"
-            : "Đang đo ping…"}
+      <Badge variant="secondary">
+        <WifiIcon /> Trực tiếp
       </Badge>
     )
   }
@@ -87,36 +75,89 @@ export function ChatsPageClient({
   conversations,
   selectedConversation,
   currentUserId,
+  conversationSnapshots = [],
+  admins = [],
 }: {
   conversations: ConversationSummary[]
   selectedConversation: SelectedConversation | null
   currentUserId: string
+  conversationSnapshots?: SelectedConversation[]
+  admins?: { id: string; name: string }[]
 }) {
   const [state, setState] = useState(() =>
-    createChatState({ conversations, selectedConversation })
+    createChatState(
+      {
+        conversations,
+        selectedConversation,
+        conversationSnapshots,
+        admins,
+      },
+      currentUserId
+    )
   )
+  const scrollPositions = useRef(new Map<string, ChatScrollPosition>())
+  const getScrollPosition = useCallback(
+    (slug: string) => scrollPositions.current.get(slug),
+    []
+  )
+  const saveScrollPosition = useCallback(
+    (slug: string, position: ChatScrollPosition) => {
+      scrollPositions.current.set(slug, position)
+    },
+    []
+  )
+  const [openedConversationSlugs, setOpenedConversationSlugs] = useState(
+    () => new Set(selectedConversation ? [selectedConversation.slug] : [])
+  )
+  useEffect(() => {
+    const restoreSelection = () => {
+      const path = window.location.pathname
+      const slug = path.startsWith("/chats/")
+        ? decodeURIComponent(path.slice(7))
+        : undefined
+      setState((current) => selectChatConversation(current, slug))
+      if (slug)
+        setOpenedConversationSlugs((current) => new Set([...current, slug]))
+    }
+    window.addEventListener("popstate", restoreSelection)
+    return () => window.removeEventListener("popstate", restoreSelection)
+  }, [])
+
+  const selectConversation = useCallback(
+    (slug?: string) => {
+      setState((current) => selectChatConversation(current, slug))
+      const conversation = state.conversations.find(
+        (item) => item.slug === slug
+      )
+      if (conversation)
+        setOpenedConversationSlugs(
+          (current) => new Set([...current, conversation.slug])
+        )
+      window.history.pushState(
+        null,
+        "",
+        slug ? `/chats/${encodeURIComponent(slug)}` : "/chats"
+      )
+    },
+    [state.conversations]
+  )
+
   const conversationItems = state.conversations
   const activeConversation = state.selectedConversation
   const [, startReadTransition] = useTransition()
   const [synchronizationFailed, setSynchronizationFailed] = useState(false)
-  const [replyDraft, setReplyDraft] = useState<{
-    conversationId: string
-    reply: ChatReply
-  } | null>(null)
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, ChatReply>>({})
   const { synchronizeUnreadCounts, heartbeatIntervalSeconds } = useRealtime()
   const socketIdRef = useRef<string | undefined>(undefined)
   const mounted = useRef(true)
   const synchronization = useRef<Promise<void> | null>(null)
   const synchronizeAgain = useRef(false)
   const conversationRevisions = useRef(new Map<string, number>())
+  const messageRevisions = useRef(new Map<string, number>())
   const conversationId = activeConversation?.id
   const conversationSlug = activeConversation?.slug
-  const replyTo =
-    replyDraft && replyDraft.conversationId === conversationId
-      ? replyDraft.reply
-      : null
   const markAsReadRef = useRef<() => void>(() => {})
-  const reading = useRef(false)
+  const reading = useRef(new Set<string>())
 
   useEffect(() => {
     mounted.current = true
@@ -132,9 +173,7 @@ export function ChatsPageClient({
       while (synchronizeAgain.current && mounted.current) {
         synchronizeAgain.current = false
         const revisions = new Map(conversationRevisions.current)
-        const snapshot = await synchronizeChatsAction(
-          selectedConversation?.slug
-        )
+        const snapshot = await synchronizeChatsAction()
         if (!mounted.current) return
         if (!snapshot) {
           setSynchronizationFailed(true)
@@ -159,38 +198,42 @@ export function ChatsPageClient({
     })().finally(() => {
       synchronization.current = null
     })
-  }, [selectedConversation?.slug, synchronizeUnreadCounts])
+  }, [synchronizeUnreadCounts])
 
   const markAsRead = useCallback(
     (showConfirmation = false, socketId?: string) => {
-      if (!conversationId || !conversationSlug || reading.current) return
-      reading.current = true
-      const revision = conversationRevisions.current.get(conversationId)
+      if (
+        !conversationId ||
+        !conversationSlug ||
+        reading.current.has(conversationId)
+      )
+        return
+      reading.current.add(conversationId)
+      const revision = messageRevisions.current.get(conversationId)
       startReadTransition(async () => {
         const result = await markConversationReadAction(
           conversationSlug,
           socketId
         )
-        reading.current = false
+        reading.current.delete(conversationId)
         if (!mounted.current) return
         if (!result.success) {
           if (showConfirmation) toast.error(result.message)
           return
         }
-        if (revision === conversationRevisions.current.get(conversationId)) {
-          conversationRevisions.current.set(conversationId, (revision ?? 0) + 1)
-          setState((current) => ({
-            ...current,
-            conversations: current.conversations.map((conversation) =>
-              conversation.id === conversationId
-                ? { ...conversation, unread_count: 0 }
-                : conversation
-            ),
-            selectedConversation:
-              current.selectedConversation?.id === conversationId
-                ? { ...current.selectedConversation, unread_count: 0 }
-                : current.selectedConversation,
-          }))
+        if (revision === messageRevisions.current.get(conversationId)) {
+          conversationRevisions.current.set(
+            conversationId,
+            (conversationRevisions.current.get(conversationId) ?? 0) + 1
+          )
+          setState((current) =>
+            markChatConversationRead(
+              current,
+              conversationId,
+              currentUserId,
+              new Date().toISOString()
+            )
+          )
         } else {
           synchronize()
         }
@@ -198,7 +241,13 @@ export function ChatsPageClient({
         if (showConfirmation) toast.success(result.message)
       })
     },
-    [conversationId, conversationSlug, synchronize, synchronizeUnreadCounts]
+    [
+      conversationId,
+      conversationSlug,
+      currentUserId,
+      synchronize,
+      synchronizeUnreadCounts,
+    ]
   )
 
   useEffect(() => {
@@ -207,6 +256,10 @@ export function ChatsPageClient({
 
   const handleIncomingMessage = useCallback(
     (message: ChatMessage) => {
+      messageRevisions.current.set(
+        message.conversation_id,
+        (messageRevisions.current.get(message.conversation_id) ?? 0) + 1
+      )
       const revisions = conversationRevisions.current
       revisions.set(
         message.conversation_id,
@@ -240,9 +293,9 @@ export function ChatsPageClient({
         (revisions.get(event.conversation_id) ?? 0) + 1
       )
       setState((current) => receiveReadReceipt(current, event, currentUserId))
-      if (event.reader_id === currentUserId) synchronize()
+      if (event.reader_id === currentUserId) void synchronizeUnreadCounts()
     },
-    [currentUserId, synchronize]
+    [currentUserId, synchronizeUnreadCounts]
   )
 
   const handlePresenceChange = useCallback((isOnline: boolean) => {
@@ -256,6 +309,16 @@ export function ChatsPageClient({
           ...selected,
           counterpart: { ...selected.counterpart, is_online: isOnline },
         },
+        conversationCache: new Map([
+          ...current.conversationCache,
+          [
+            selected.id,
+            {
+              ...selected,
+              counterpart: { ...selected.counterpart, is_online: isOnline },
+            },
+          ],
+        ]),
         conversations: current.conversations.map((conversation) =>
           conversation.id === selected.id
             ? {
@@ -271,16 +334,15 @@ export function ChatsPageClient({
     })
   }, [])
 
-  const { socketId, status, reconnect, latencyMs, pingTimedOut } =
-    useChatRealtime({
-      currentUserId,
-      selectedConversationId: activeConversation?.id,
-      counterpartId: activeConversation?.counterpart.id,
-      onMessage: handleIncomingMessage,
-      onMessagesRead: handleMessagesRead,
-      onPresenceChange: handlePresenceChange,
-      onReconnect: synchronize,
-    })
+  const { socketId, status, reconnect } = useChatRealtime({
+    currentUserId,
+    selectedConversationId: activeConversation?.id,
+    counterpartId: activeConversation?.counterpart.id,
+    onMessage: handleIncomingMessage,
+    onMessagesRead: handleMessagesRead,
+    onPresenceChange: handlePresenceChange,
+    onReconnect: synchronize,
+  })
 
   useEffect(() => {
     socketIdRef.current = socketId
@@ -288,18 +350,23 @@ export function ChatsPageClient({
 
   const handleSent = useCallback(
     (message: ChatMessage, submittedReplyId?: string | null) => {
+      messageRevisions.current.set(
+        message.conversation_id,
+        (messageRevisions.current.get(message.conversation_id) ?? 0) + 1
+      )
       const revisions = conversationRevisions.current
       revisions.set(
         message.conversation_id,
         (revisions.get(message.conversation_id) ?? 0) + 1
       )
       setState((current) => receiveChatMessage(current, message, currentUserId))
-      setReplyDraft((current) =>
-        current?.conversationId === message.conversation_id &&
-        current.reply.id === submittedReplyId
-          ? null
-          : current
-      )
+      setReplyDrafts((current) => {
+        if (current[message.conversation_id]?.id !== submittedReplyId)
+          return current
+        const next = { ...current }
+        delete next[message.conversation_id]
+        return next
+      })
     },
     [currentUserId]
   )
@@ -307,9 +374,9 @@ export function ChatsPageClient({
   const handleReply = useCallback(
     (message: ChatMessage) => {
       if (message.conversation_id !== conversationId) return
-      setReplyDraft({
-        conversationId: message.conversation_id,
-        reply: {
+      setReplyDrafts((current) => ({
+        ...current,
+        [message.conversation_id]: {
           id: message.id,
           body: message.body,
           sender: message.sender,
@@ -321,36 +388,17 @@ export function ChatsPageClient({
             : null,
           product: message.product ? { name: message.product.name } : null,
         },
-      })
+      }))
     },
     [conversationId]
   )
 
-  const handleOlderMessages = useCallback((history: ChatHistoryResponse) => {
-    setState((current) => {
-      const selected = current.selectedConversation
-      if (!selected) return current
-      return {
-        ...current,
-        selectedConversation: {
-          ...selected,
-          messages: mergeMessages(selected.messages, history.messages),
-          messages_pagination: {
-            has_more: history.has_more,
-            next_cursor: history.next_cursor,
-          },
-        },
-        messageIds: new Set([
-          ...current.messageIds,
-          ...history.messages.map(({ id }) => id),
-        ]),
-        knownMessages: new Map([
-          ...current.knownMessages,
-          ...history.messages.map((message) => [message.id, message] as const),
-        ]),
-      }
-    })
-  }, [])
+  const handleOlderMessages = useCallback(
+    (id: string, history: ChatHistoryResponse) => {
+      setState((current) => receiveChatHistory(current, id, history))
+    },
+    []
+  )
 
   useEffect(() => {
     const pulse = () => {
@@ -401,109 +449,150 @@ export function ChatsPageClient({
   }, [])
 
   return (
-    <div className="fixed inset-x-0 top-16 bottom-0 z-30 overflow-hidden bg-background lg:top-24">
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5 lg:gap-6 lg:px-8 lg:py-6">
-        <PageHeader
-          title="Tin nhắn"
-          description="Trao đổi trực tiếp với cửa hàng và nhận phản hồi ngay khi có tin nhắn mới."
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <RealtimeStatusBadge
-                latencyMs={latencyMs}
-                pingTimedOut={pingTimedOut}
-                status={status}
-              />
-              {(status === "failed" || status === "disconnected") && (
-                <Button variant="outline" size="sm" onClick={reconnect}>
-                  Kết nối lại
-                </Button>
-              )}
-              {status === "connected" && synchronizationFailed && (
-                <Button variant="outline" size="sm" onClick={synchronize}>
-                  Đồng bộ lại
-                </Button>
-              )}
-            </div>
-          }
-        />
+    <ChatAttachmentProvider messages={state.knownMessages.values()}>
+      <div className="fixed inset-x-0 top-16 bottom-0 z-30 overflow-hidden bg-background lg:top-24">
+        <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col gap-0 px-0 py-0 sm:gap-3 sm:px-4 sm:py-3 lg:gap-6 lg:px-8 lg:py-6">
+          <div
+            className={
+              activeConversation ? "hidden lg:block" : "px-4 py-3 sm:p-0"
+            }
+          >
+            <PageHeader
+              title="Tin nhắn"
+              description="Trao đổi trực tiếp với cửa hàng và nhận phản hồi ngay khi có tin nhắn mới."
+              actions={
+                <div className="flex flex-wrap items-center gap-2">
+                  <RealtimeStatusBadge status={status} />
+                  {(status === "failed" || status === "disconnected") && (
+                    <Button variant="outline" size="sm" onClick={reconnect}>
+                      Kết nối lại
+                    </Button>
+                  )}
+                  {status === "connected" && synchronizationFailed && (
+                    <Button variant="outline" size="sm" onClick={synchronize}>
+                      Đồng bộ lại
+                    </Button>
+                  )}
+                </div>
+              }
+            />
+          </div>
+          <Card className="min-h-0 flex-1 gap-0 overflow-hidden rounded-none border-x-0 border-b-0 py-0 sm:rounded-xl sm:border">
+            <div className="grid h-full min-h-0 overflow-hidden lg:grid-cols-[340px_minmax(0,1fr)]">
+              <aside
+                className={`${activeConversation ? "hidden lg:flex" : "flex"} min-h-0 flex-col overflow-hidden border-r`}
+              >
+                <ChatConversationList
+                  conversations={conversationItems}
+                  selectedConversationId={activeConversation?.id}
+                  onSelect={selectConversation}
+                />
+              </aside>
 
-        <Card className="min-h-0 flex-1 gap-0 overflow-hidden py-0">
-          <div className="grid h-full min-h-0 overflow-hidden lg:grid-cols-[340px_minmax(0,1fr)]">
-            <aside
-              className={`${activeConversation ? "hidden lg:flex" : "flex"} min-h-0 flex-col overflow-hidden border-r`}
-            >
-              <ChatConversationList
-                conversations={conversationItems}
-                selectedConversationId={activeConversation?.id}
-              />
-            </aside>
-
-            <section
-              className={`${activeConversation ? "flex" : "hidden lg:flex"} min-h-0 flex-col overflow-hidden`}
-            >
-              {activeConversation ? (
-                <>
-                  <div className="flex shrink-0 items-center justify-between gap-3 border-b px-3 py-3 sm:px-4">
-                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                      <Link
-                        href="/chats"
-                        className={buttonVariants({
-                          className: "lg:hidden",
-                          size: "icon-sm",
-                          variant: "ghost",
-                        })}
-                      >
-                        <ArrowLeftIcon />
-                        <span className="sr-only">Quay lại danh sách</span>
-                      </Link>
-                      <UserAvatar
-                        name={activeConversation.counterpart.name}
-                        size="lg"
-                        src={activeConversation.counterpart.avatar_url}
-                      />
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {activeConversation.counterpart.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {activeConversation.counterpart.is_online
-                            ? "Đang hoạt động"
-                            : "Không trực tuyến"}
-                        </p>
+              <section
+                className={`${activeConversation ? "flex" : "hidden lg:flex"} min-h-0 flex-col overflow-hidden`}
+              >
+                {activeConversation ? (
+                  <>
+                    <div className="flex shrink-0 items-center justify-between gap-3 border-b px-3 py-3 sm:px-4">
+                      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                        <Link
+                          href="/chats"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            selectConversation()
+                          }}
+                          className={buttonVariants({
+                            className: "lg:hidden",
+                            size: "icon-sm",
+                            variant: "ghost",
+                          })}
+                        >
+                          <ArrowLeftIcon />
+                          <span className="sr-only">Quay lại danh sách</span>
+                        </Link>
+                        <UserAvatar
+                          name={activeConversation.counterpart.name}
+                          size="lg"
+                          src={activeConversation.counterpart.avatar_url}
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">
+                            {activeConversation.counterpart.name}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {activeConversation.counterpart.is_online
+                              ? "Đang hoạt động"
+                              : "Không trực tuyến"}
+                            {activeConversation.participants?.some(
+                              (person) => person.is_admin
+                            )
+                              ? ` · Admin: ${activeConversation.participants
+                                  .filter((person) => person.is_admin)
+                                  .map((person) => person.name)
+                                  .join(", ")}`
+                              : ""}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <ChatMessageList
-                    key={`messages-${activeConversation.id}`}
-                    conversationSlug={activeConversation.slug}
-                    currentUserId={currentUserId}
-                    messages={activeConversation.messages}
-                    pagination={activeConversation.messages_pagination}
-                    onOlderMessages={handleOlderMessages}
-                    onReply={handleReply}
-                  />
-                  <ChatComposer
-                    key={activeConversation.id}
-                    conversationSlug={activeConversation.slug}
-                    replyTo={replyTo}
-                    socketId={socketId}
-                    onCancelReply={() => setReplyDraft(null)}
-                    onSent={handleSent}
-                  />
-                </>
-              ) : (
-                <CardContent className="flex h-full items-center justify-center p-6">
-                  <EmptyState
-                    title="Chọn một cuộc trò chuyện"
-                    description="Nội dung trao đổi với người bán hoặc khách hàng sẽ hiển thị tại đây."
-                  />
-                </CardContent>
-              )}
-            </section>
-          </div>
-        </Card>
+                    <ChatMessageList
+                      key={`messages-${activeConversation.id}`}
+                      conversationSlug={activeConversation.slug}
+                      currentUserId={currentUserId}
+                      getScrollPosition={getScrollPosition}
+                      onScrollPositionChange={saveScrollPosition}
+                      messages={activeConversation.messages}
+                      pagination={activeConversation.messages_pagination}
+                      onOlderMessages={(history) =>
+                        handleOlderMessages(activeConversation.id, history)
+                      }
+                      onReply={handleReply}
+                    />
+                  </>
+                ) : (
+                  <CardContent className="flex h-full items-center justify-center p-6">
+                    <EmptyState
+                      title="Chọn một cuộc trò chuyện"
+                      description="Nội dung trao đổi với người bán hoặc khách hàng sẽ hiển thị tại đây."
+                    />
+                  </CardContent>
+                )}
+                {[...openedConversationSlugs].map((slug) => {
+                  const conversation = [
+                    ...state.conversationCache.values(),
+                  ].find((item) => item.slug === slug)
+                  if (!conversation) return null
+                  const id = conversation.id
+                  return (
+                    <div
+                      key={id}
+                      hidden={activeConversation?.id !== id}
+                      className="shrink-0"
+                    >
+                      <ChatComposer
+                        admins={state.admins ?? admins}
+                        conversationSlug={conversation.slug}
+                        replyTo={replyDrafts[id] ?? null}
+                        socketId={socketId}
+                        onCancelReply={() =>
+                          setReplyDrafts((current) => {
+                            const next = { ...current }
+                            delete next[id]
+                            return next
+                          })
+                        }
+                        onSent={handleSent}
+                      />
+                    </div>
+                  )
+                })}
+              </section>
+            </div>
+          </Card>
+        </div>
       </div>
-    </div>
+    </ChatAttachmentProvider>
   )
 }

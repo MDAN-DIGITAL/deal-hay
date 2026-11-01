@@ -11,15 +11,18 @@ export async function getChats(
   conversationSlug?: string,
   limit?: number
 ): Promise<ChatsResponse> {
-  const [data, history] = await Promise.all([
-    wssFetch<ChatsResponse>({ path: chatRoutes.list }),
-    conversationSlug
-      ? getChatHistory(conversationSlug, undefined, limit)
-      : null,
-  ])
+  const data = await wssFetch<ChatsResponse>({ path: chatRoutes.list })
+  const cached = data.conversationSnapshots?.find(
+    ({ slug }) => slug === conversationSlug
+  )
+  if (cached || !conversationSlug)
+    return { ...data, selectedConversation: cached ?? null }
   const conversation = data.conversations.find(
     ({ slug }) => slug === conversationSlug
   )
+  const history = conversation
+    ? await getChatHistory(conversationSlug, undefined, limit)
+    : null
   return {
     ...data,
     selectedConversation:

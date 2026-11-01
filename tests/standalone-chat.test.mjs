@@ -231,3 +231,28 @@ test("logout revokes only the WSS-owned session then clears its local cache", as
   )
   assert.equal(await sessions.cachedWssSession(), null)
 })
+
+test("the chat page preloads all conversations in one snapshot request", async (t) => {
+  await sessions.getWssSession()
+  const selected = {
+    id: "conversation",
+    slug: "shop-customer",
+    counterpart: { id: "peer" },
+    messages: [{ id: "all-history" }],
+    messages_pagination: { has_more: false, next_cursor: null },
+  }
+  const calls = []
+  t.mock.method(globalThis, "fetch", async (url) => {
+    calls.push(url)
+    return Response.json({
+      conversations: [selected],
+      selectedConversation: null,
+      conversationSnapshots: [selected],
+      admins: [{ id: "admin", name: "Support" }],
+    })
+  })
+  const result = await queries.getChats("shop-customer", 50)
+  assert.equal(calls.length, 1)
+  assert.deepEqual(result.selectedConversation, selected)
+  assert.deepEqual(result.admins, [{ id: "admin", name: "Support" }])
+})

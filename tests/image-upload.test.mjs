@@ -167,21 +167,24 @@ test("avatar is center-cropped to a square without stretching", async () => {
     [500, 0, 3000, 3000, 0, 0, 640, 640]
   )
 })
-test("quality and dimensions decrease until review/chat output fits 20 KiB", async () => {
-  state.bytes = (width, height, quality) => Math.ceil(width * height * quality)
-  const output = await prepareBrowserImage(original(), "review")
-  assert.ok(output.size <= 20 * 1024)
-  assert.ok(state.qualities.includes(0.44))
-  assert.ok(state.draws.length > 1)
-  assert.equal(state.closed, 1)
+test("all image purposes decrease quality and dimensions until output fits 20 KiB", async () => {
+  for (const purpose of ["product", "avatar", "review", "chat"]) {
+    state.bytes = (width, height, quality) =>
+      Math.ceil(width * height * quality)
+    const output = await prepareBrowserImage(original(), purpose)
+    assert.ok(output.size <= 20 * 1024)
+    assert.ok(state.qualities.includes(0.44))
+  }
+  assert.ok(state.draws.length > 4)
+  assert.equal(state.closed, 4)
 })
 test("unsupported WebP encoding fails and releases the decoded bitmap", async () => {
   state.mime = "image/png"
   await assert.rejects(prepareBrowserImage(original(), "avatar"), /WebP/)
   assert.equal(state.closed, 1)
 })
-test("huge decoded dimensions are rejected before a canvas draw", async () => {
-  state.width = 50000
+test("invalid decoded dimensions are rejected before a canvas draw", async () => {
+  state.width = Infinity
   await assert.rejects(prepareBrowserImage(original(), "product"), /Kích thước/)
   assert.equal(state.draws.length, 0)
   assert.equal(state.closed, 1)
@@ -271,19 +274,29 @@ test("failed storage upload discards every reservation and reports the original 
   })
   assert.deepEqual(grants.discarded, [["batch-0-token-0"]])
 })
-test("invalid or oversized source images fail before storage reservations", async () => {
-  for (const file of [
-    new File(["svg"], "bad.svg", { type: "image/svg+xml" }),
-    new File([new Uint8Array(10 * 1024 * 1024 + 1)], "big.png", {
-      type: "image/png",
-    }),
-  ]) {
-    const form = new FormData()
-    form.set("image", file)
-    await assert.rejects(prepareImageUploads(form, "product"))
-  }
+test("invalid source formats fail before storage reservations", async () => {
+  const form = new FormData()
+  form.set("image", new File(["svg"], "bad.svg", { type: "image/svg+xml" }))
+  await assert.rejects(prepareImageUploads(form, "product"))
   assert.equal(grants.batches.length, 0)
   assert.equal(state.uploads.length, 0)
+})
+test("large originals are accepted and only the compressed image is uploaded", async () => {
+  const form = new FormData()
+  form.set(
+    "image",
+    new File([new Uint8Array(25 * 1024 * 1024)], "big.png", {
+      type: "image/png",
+    })
+  )
+  state.width = 12000
+  state.height = 8000
+  state.bytes = (width, height, quality) => Math.ceil(width * height * quality)
+  await prepareImageUploads(form, "product")
+  assert.equal(state.uploads.length, 1)
+  assert.ok(state.uploads[0].body.size <= 20 * 1024)
+  assert.ok(state.draws[0].at(-2) <= 1280)
+  assert.ok(state.draws[0].at(-1) <= 1280)
 })
 test("decode failures never send original bytes or request upload credentials", async () => {
   state.decodeError = true

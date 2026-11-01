@@ -9,6 +9,7 @@ const messageFields = {
     z.string().trim().max(2000, "Tin nhắn không được vượt quá 2.000 ký tự."),
     z.literal(""),
   ]),
+  mention_admin_ids: z.array(z.string().min(1).max(128)).max(20).optional(),
   reply_to_id: z
     .string()
     .uuid("Tin nhắn được trả lời không hợp lệ.")
@@ -16,10 +17,20 @@ const messageFields = {
 }
 
 function requireMessageContent(
-  value: { body: string; attachment?: unknown },
+  value: {
+    body: string
+    attachment?: unknown
+    attachments?: unknown[]
+    mention_admin_ids?: string[]
+  },
   context: z.RefinementCtx
 ) {
-  if (!value.body && !value.attachment) {
+  if (
+    !value.body &&
+    !value.attachment &&
+    !value.attachments?.length &&
+    !value.mention_admin_ids?.length
+  ) {
     context.addIssue({
       code: "custom",
       path: ["body"],
@@ -31,9 +42,9 @@ function requireMessageContent(
 export const sendMessageSchema = z
   .object({
     ...messageFields,
-    attachment: chatAttachmentFileSchema(
-      "Tệp đính kèm không hợp lệ."
-    ).optional(),
+    attachments: z
+      .array(chatAttachmentFileSchema("Tệp đính kèm không hợp lệ."))
+      .max(50, "Mỗi lần được gửi tối đa 50 tệp."),
   })
   .superRefine(requireMessageContent)
 

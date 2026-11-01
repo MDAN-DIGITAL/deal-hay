@@ -145,7 +145,7 @@ test("camera batches larger than one request remain valid for staged uploads", (
   assert.equal(parsed.success, true)
 })
 
-test("source image preparation still rejects files above 10 MB and galleries above 50 images", () => {
+test("source images above 10 MB are accepted for compression while galleries remain limited to 50 images", () => {
   const oversized = new File(
     [new Uint8Array(10 * 1024 * 1024 + 1)],
     "large.jpg",
@@ -153,7 +153,7 @@ test("source image preparation still rejects files above 10 MB and galleries abo
   )
   assert.equal(
     createProductSchema.safeParse(productDraft({ image: oversized })).success,
-    false
+    true
   )
   const image = productDraft().image
   assert.equal(

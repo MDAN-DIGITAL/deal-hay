@@ -32,7 +32,7 @@ const session = () => ({
   limits: {
     max_download_bytes: 4 * MIB,
     max_upload_bytes: 2 * MIB,
-    max_session_bytes: 64 * MIB,
+    max_session_bytes: Number.MAX_SAFE_INTEGER,
     max_requests: 64,
   },
 })
@@ -43,6 +43,7 @@ function harness({
   fast = false,
   latency,
   linkMbps = 100,
+  streams = 1,
 } = {}) {
   let time = 0
   const calls = []
@@ -55,6 +56,7 @@ function harness({
   let pingIndex = 0
   const controller = new AbortController()
   const deps = {
+    streams,
     now: () => time,
     payload: (size) => new Uint8Array(size).fill(127),
     async fetch(url, options) {
@@ -222,7 +224,7 @@ test("measures the browser API path with a discarded warmup and weighted full-bo
   }
 })
 
-test("caps adaptive transfer sizes and total data even on an extremely fast connection", async () => {
+test("honors per-buffer server limits on an extremely fast connection", async () => {
   const h = harness({ fast: true })
   const result = await h.run()
   assert.ok(h.transfers.download.some((sample) => sample.bytes === 4 * MIB))
@@ -483,4 +485,108 @@ test("rejects invalid endpoint addresses and invalid server transfer limits", as
     grant.limits.max_download_bytes = max_download_bytes
     await assert.rejects(harness({ grant }).run(), /Giới hạn dữ liệu/)
   }
+})
+
+test("uses four concurrent streams and expands beyond the former 4/2 MiB and 64 MiB caps", async () => {
+  const grant = session()
+  grant.limits.max_download_bytes = 16 * MIB
+  grant.limits.max_upload_bytes = 16 * MIB
+  const h = harness({ grant, fast: true, streams: 4 })
+  const result = await h.run()
+  assert.equal(h.calls.length, 56)
+  assert.ok(h.transfers.download.some((sample) => sample.bytes > 4 * MIB))
+  assert.ok(h.transfers.upload.some((sample) => sample.bytes > 2 * MIB))
+  assert.ok(result.transferredBytes > 64 * MIB)
+  assert.equal(
+    result.transferredBytes,
+    h.calls.reduce((sum, call) => sum + call.bytes, 0)
+  )
+  assert.ok(
+    h.updates.every(
+      (update, index) =>
+        index === 0 || update.progress >= h.updates[index - 1].progress
+    )
+  )
+})
+
+test("saturates four simultaneous streams and divides aggregate bytes by wall time", async () => {
+  const grant = session()
+  let time = 0
+  let active = 0
+  let peak = 0
+  const totals = { download: 0, upload: 0 }
+  const result = await measureSpeedtest(
+    grant,
+    new AbortController().signal,
+    () => {},
+    {
+      now: () => time,
+      payload: (size) => new Uint8Array(size),
+      async fetch(url, options) {
+        const phase = url.split("/").at(-1)
+        if (phase === "ping") {
+          time += 10
+          return new Response(null, { status: 204 })
+        }
+        const bytes =
+          phase === "download"
+            ? Number(options.headers["X-Speedtest-Bytes"])
+            : options.body.byteLength
+        const started = time
+        peak = Math.max(peak, ++active)
+        await new Promise((resolve) => setImmediate(resolve))
+        time = Math.max(time, started + 100)
+        const finish = () => {
+          active--
+          totals[phase] += bytes
+        }
+        return {
+          ok: true,
+          headers: new Headers({ "Content-Type": "application/octet-stream" }),
+          arrayBuffer: async () => {
+            finish()
+            return new ArrayBuffer(bytes)
+          },
+          json: async () => {
+            finish()
+            return { received_bytes: bytes }
+          },
+        }
+      },
+    }
+  )
+  assert.equal(peak, 4)
+  assert.equal(active, 0)
+  assert.equal(result.downloadMbps, throughputMbps(totals.download, 600))
+  assert.equal(result.uploadMbps, throughputMbps(totals.upload, 600))
+  assert.equal(result.transferredBytes, totals.download + totals.upload)
+})
+
+test("a failed stream aborts the other parallel requests before reporting an error", async () => {
+  let time = 0
+  let started = 0
+  let cancelled = 0
+  await assert.rejects(
+    measureSpeedtest(session(), new AbortController().signal, () => {}, {
+      now: () => ++time,
+      payload: (size) => new Uint8Array(size),
+      async fetch(url, options) {
+        if (url.endsWith("/ping")) return new Response(null, { status: 204 })
+        if (++started === 1) return new Response("failed")
+        return new Promise((_resolve, reject) =>
+          options.signal.addEventListener(
+            "abort",
+            () => {
+              cancelled++
+              reject(new DOMException("Aborted", "AbortError"))
+            },
+            { once: true }
+          )
+        )
+      },
+    }),
+    /Phản hồi tải xuống không hợp lệ/
+  )
+  assert.equal(started, 4)
+  assert.equal(cancelled, 3)
 })

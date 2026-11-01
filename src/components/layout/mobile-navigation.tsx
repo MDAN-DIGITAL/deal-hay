@@ -15,6 +15,7 @@ import {
   UserRoundIcon,
 } from "lucide-react"
 
+import { ServerPing } from "@/components/layout/server-ping"
 import { SignOutButton } from "@/components/layout/sign-out-button"
 import { NotificationSoundToggle } from "@/components/layout/notification-sound-toggle"
 import { UnreadCountBadge } from "@/components/layout/unread-count-badge"
@@ -34,7 +35,6 @@ import type { User } from "@/types/auth"
 
 const publicItems = [
   { href: "/", label: "Khám phá sản phẩm", icon: HouseIcon },
-  { href: "/diagnostics", label: "Độ trễ", icon: ActivityIcon },
   {
     href: "/chats",
     label: "Tin nhắn",
@@ -78,6 +78,7 @@ export function MobileNavigation({ user }: { user: User | null }) {
             />
             <div className="min-w-0">
               <p className="truncate font-medium">{user.full_name}</p>
+              <ServerPing active={open} />
               <p className="truncate text-xs text-muted-foreground">
                 {user.email}
               </p>
@@ -135,16 +136,28 @@ export function MobileNavigation({ user }: { user: User | null }) {
             </Link>
           ) : null}
           {user?.role === "administrator" ? (
-            <Link
-              onNavigate={() => setOpen(false)}
-              href="/admin/users"
-              className={buttonVariants({
-                className: "justify-start",
-                variant: "ghost",
-              })}
-            >
-              <LayoutDashboardIcon /> Trung tâm quản trị
-            </Link>
+            <>
+              <Link
+                onNavigate={() => setOpen(false)}
+                href="/diagnostics"
+                className={buttonVariants({
+                  className: "justify-start",
+                  variant: "ghost",
+                })}
+              >
+                <ActivityIcon /> Đo tốc độ máy chủ
+              </Link>
+              <Link
+                onNavigate={() => setOpen(false)}
+                href="/admin/users"
+                className={buttonVariants({
+                  className: "justify-start",
+                  variant: "ghost",
+                })}
+              >
+                <LayoutDashboardIcon /> Trung tâm quản trị
+              </Link>
+            </>
           ) : null}
         </nav>
 

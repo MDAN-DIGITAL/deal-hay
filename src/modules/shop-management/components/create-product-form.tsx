@@ -463,8 +463,8 @@ export function CreateProductForm({
                     />
                   </FormControl>
                   <FormDescription>
-                    Đã chọn {value.length}/50 ảnh bổ sung. Mỗi ảnh tối đa 10 MB.
-                    Ảnh được nén trên thiết bị trước khi tải lên.
+                    Đã chọn {value.length}/50 ảnh bổ sung. Ảnh tự động nén còn
+                    tối đa 20 KB. Ảnh được nén trên thiết bị trước khi tải lên.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

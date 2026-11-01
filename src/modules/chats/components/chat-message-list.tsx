@@ -1,7 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { Fragment, useEffect, useRef, useState, useTransition } from "react"
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react"
 import {
   CheckCheckIcon,
   CheckIcon,
@@ -36,6 +43,11 @@ import {
   DownloadAttachment,
 } from "@/modules/chats/components/chat-image-attachment"
 import { ChatReplyPreview } from "@/modules/chats/components/chat-reply-preview"
+import {
+  CHAT_MESSAGE_RENDER_WINDOW,
+  initialChatMessageStart,
+  type ChatScrollPosition,
+} from "@/modules/chats/lib/chat-scroll"
 import type { ChatHistoryResponse } from "@/api/chats/types"
 import type { ChatMessage } from "@/types/chat"
 
@@ -74,6 +86,8 @@ export function ChatMessageList({
   pagination,
   onOlderMessages,
   onReply,
+  getScrollPosition,
+  onScrollPositionChange,
 }: {
   conversationSlug: string
   currentUserId: string
@@ -81,6 +95,8 @@ export function ChatMessageList({
   pagination: { has_more: boolean; next_cursor: string | null }
   onOlderMessages: (history: ChatHistoryResponse) => void
   onReply: (message: ChatMessage) => void
+  getScrollPosition: (slug: string) => ChatScrollPosition | undefined
+  onScrollPositionChange: (slug: string, position: ChatScrollPosition) => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -91,6 +107,53 @@ export function ChatMessageList({
   const messageElements = useRef(new Map<string, HTMLDivElement>())
   const highlightTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastMessageId = messages.at(-1)?.id
+  const [firstRenderedMessageId, setFirstRenderedMessageId] = useState(() =>
+    initialChatMessageStart(messages, getScrollPosition(conversationSlug))
+  )
+  const startIndex = Math.max(
+    0,
+    messages.findIndex(({ id }) => id === firstRenderedMessageId)
+  )
+  const visibleMessages = messages.slice(startIndex)
+  const firstRenderedIdRef = useRef(firstRenderedMessageId)
+  const atBottomRef = useRef(true)
+  const previousLastMessageId = useRef(lastMessageId)
+  useLayoutEffect(() => {
+    firstRenderedIdRef.current = firstRenderedMessageId
+  }, [firstRenderedMessageId])
+  useLayoutEffect(() => {
+    const viewport = containerRef.current?.querySelector<HTMLElement>(
+      '[data-slot="scroll-area-viewport"]'
+    )
+    if (!viewport) return
+    const saved = getScrollPosition(conversationSlug)
+    atBottomRef.current = saved?.atBottom ?? true
+    viewport.scrollTop =
+      saved && !saved.atBottom ? saved.scrollTop : viewport.scrollHeight
+    const remember = () => {
+      atBottomRef.current =
+        viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop < 80
+      onScrollPositionChange(conversationSlug, {
+        scrollTop: viewport.scrollTop,
+        atBottom: atBottomRef.current,
+        firstRenderedMessageId: firstRenderedIdRef.current,
+      })
+    }
+    viewport.addEventListener("scroll", remember, { passive: true })
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            if (atBottomRef.current) viewport.scrollTop = viewport.scrollHeight
+          })
+    if (viewport.firstElementChild)
+      observer?.observe(viewport.firstElementChild)
+    return () => {
+      remember()
+      viewport.removeEventListener("scroll", remember)
+      observer?.disconnect()
+    }
+  }, [conversationSlug, getScrollPosition, onScrollPositionChange])
 
   useEffect(
     () => () => {
@@ -99,7 +162,7 @@ export function ChatMessageList({
     []
   )
 
-  const jumpToMessage = (id: string) => {
+  const highlightMessage = (id: string) => {
     const element = messageElements.current.get(id)
     if (!element) {
       toast.info(
@@ -122,21 +185,49 @@ export function ChatMessageList({
     }, 2000)
   }
 
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      bottomRef.current?.scrollIntoView({ block: "end" })
-    })
-    return () => window.cancelAnimationFrame(frame)
-  }, [conversationSlug, lastMessageId])
+  const jumpToMessage = (id: string) => {
+    const index = messages.findIndex((message) => message.id === id)
+    if (index >= 0 && index < startIndex) {
+      setFirstRenderedMessageId(messages[Math.max(0, index - 10)].id)
+      window.requestAnimationFrame(() =>
+        window.requestAnimationFrame(() => highlightMessage(id))
+      )
+      return
+    }
+    highlightMessage(id)
+  }
+
+  useLayoutEffect(() => {
+    if (
+      previousLastMessageId.current !== lastMessageId &&
+      (atBottomRef.current || messages.at(-1)?.sender.id === currentUserId)
+    ) {
+      const viewport = containerRef.current?.querySelector<HTMLElement>(
+        '[data-slot="scroll-area-viewport"]'
+      )
+      if (viewport) viewport.scrollTop = viewport.scrollHeight
+    }
+    previousLastMessageId.current = lastMessageId
+  }, [lastMessageId, currentUserId, messages])
 
   const loadOlder = () => {
-    if (!pagination.next_cursor) return
-
     const viewport = containerRef.current?.querySelector<HTMLElement>(
       '[data-slot="scroll-area-viewport"]'
     )
     const previousHeight = viewport?.scrollHeight ?? 0
     const previousTop = viewport?.scrollTop ?? 0
+    if (startIndex > 0) {
+      setFirstRenderedMessageId(
+        messages[Math.max(0, startIndex - CHAT_MESSAGE_RENDER_WINDOW)].id
+      )
+      window.requestAnimationFrame(() => {
+        if (viewport)
+          viewport.scrollTop =
+            previousTop + (viewport.scrollHeight - previousHeight)
+      })
+      return
+    }
+    if (!pagination.next_cursor) return
 
     startLoadingOlder(async () => {
       const state = await loadChatHistoryAction(
@@ -149,6 +240,8 @@ export function ChatMessageList({
       }
 
       onOlderMessages(state.data)
+      if (state.data.messages[0])
+        setFirstRenderedMessageId(state.data.messages[0].id)
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => {
           if (viewport) {
@@ -167,7 +260,7 @@ export function ChatMessageList({
     >
       <ScrollArea className="h-full min-h-0">
         <MessageGroup className="mx-auto w-full max-w-4xl gap-0 px-3 py-4 sm:px-6">
-          {pagination.has_more ? (
+          {startIndex > 0 || pagination.has_more ? (
             <Button
               className="self-center"
               disabled={isLoadingOlder}
@@ -189,11 +282,11 @@ export function ChatMessageList({
             />
           ) : null}
 
-          {messages.map((message, index) => {
+          {visibleMessages.map((message, index) => {
             const fromCurrentUser = message.sender.id === currentUserId
             const replyTo = message.reply_to
-            const previous = messages[index - 1]
-            const next = messages[index + 1]
+            const previous = visibleMessages[index - 1]
+            const next = visibleMessages[index + 1]
             const continuesPrevious = continuesGroup(previous, message)
             const continuesNext = next ? continuesGroup(message, next) : false
             const day = messageDay(message)
@@ -328,6 +421,13 @@ export function ChatMessageList({
                           </div>
                         ) : null}
 
+                        {message.mentions?.length ? (
+                          <div className="flex flex-wrap gap-1 px-3.5 pt-2 text-xs font-medium">
+                            {message.mentions.map((admin) => (
+                              <span key={admin.id}>@{admin.name}</span>
+                            ))}
+                          </div>
+                        ) : null}
                         {showBody ? (
                           <div className="px-3.5 py-2 text-sm leading-relaxed wrap-break-word whitespace-pre-wrap">
                             {message.body}

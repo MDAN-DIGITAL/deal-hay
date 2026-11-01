@@ -25,9 +25,11 @@ import type { ConversationSummary } from "@/types/chat"
 export function ChatConversationList({
   conversations,
   selectedConversationId,
+  onSelect,
 }: {
   conversations: ConversationSummary[]
   selectedConversationId?: string
+  onSelect: (slug: string) => void
 }) {
   const [query, setQuery] = useState("")
   const filteredConversations = useMemo(() => {
@@ -71,7 +73,23 @@ export function ChatConversationList({
             return (
               <Item
                 key={conversation.id}
-                render={<Link href={`/chats/${conversation.slug}`} />}
+                render={
+                  <Link
+                    href={`/chats/${conversation.slug}`}
+                    onClick={(event) => {
+                      if (
+                        event.button !== 0 ||
+                        event.metaKey ||
+                        event.ctrlKey ||
+                        event.shiftKey ||
+                        event.altKey
+                      )
+                        return
+                      event.preventDefault()
+                      onSelect(conversation.slug)
+                    }}
+                  />
+                }
                 variant={selected ? "muted" : "default"}
               >
                 <ItemMedia>

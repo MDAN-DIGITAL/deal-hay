@@ -37,6 +37,7 @@ export type ChatMessage = {
   conversation_id: string
   body: string
   read_at: string | null
+  viewer_read_at?: string | null
   attachment: ChatAttachment | null
   product: ProductReference | null
   reply_to?: ChatReply | null
@@ -48,6 +49,7 @@ export type ChatMessage = {
   created_at: string | null
   client_message_id?: string | null
   replayed?: boolean
+  mentions?: { id: string; name: string }[]
 }
 
 export type ConversationSummary = {
@@ -60,6 +62,7 @@ export type ConversationSummary = {
     is_online: boolean
     is_shop: boolean
   }
+  participants?: { id: string; name: string; is_admin: boolean }[]
   last_message: string | null
   unread_count: number
   updated_at: string | null

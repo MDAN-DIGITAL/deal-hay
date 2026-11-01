@@ -45,26 +45,13 @@ export async function synchronizeChatsAction(
   conversationSlug?: string
 ): Promise<ChatsResponse | null> {
   try {
-    const [data, history] = await Promise.all([
-      getChats(),
-      conversationSlug ? getChatHistory(conversationSlug, undefined, 50) : null,
-    ])
-    const conversation = data.conversations.find(
-      ({ slug }) => slug === conversationSlug
-    )
+    const data = await getChats()
     return {
-      conversations: data.conversations,
+      ...data,
       selectedConversation:
-        conversation && history
-          ? {
-              ...conversation,
-              messages: history.messages,
-              messages_pagination: {
-                has_more: history.has_more,
-                next_cursor: history.next_cursor,
-              },
-            }
-          : null,
+        data.conversationSnapshots?.find(
+          ({ slug }) => slug === conversationSlug
+        ) ?? null,
     }
   } catch {
     return null
@@ -106,6 +93,7 @@ export async function sendMessageAction(
     body: formData.get("body") ?? "",
     reply_to_id: formData.get("reply_to_id") || undefined,
     attachment: formData.get("attachment") || undefined,
+    mention_admin_ids: formData.getAll("mention_admin_ids"),
   })
 
   if (!parsed.success) {
@@ -126,6 +114,8 @@ export async function sendMessageAction(
   if (parsed.data.attachment) {
     payload.set("attachment", parsed.data.attachment)
   }
+  for (const id of parsed.data.mention_admin_ids ?? [])
+    payload.append("mention_admin_ids", id)
   if (parsed.data.reply_to_id) {
     payload.set("reply_to_id", parsed.data.reply_to_id)
   }

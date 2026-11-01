@@ -123,7 +123,7 @@ test("URL references reject temporary signatures, credentials, data URLs and ins
 })
 test("upload session requests contain only prepared WebP descriptors bounded for each purpose", async () => {
   for (const [purpose, size] of [
-    ["product", 512 * 1024],
+    ["product", 20 * 1024],
     ["avatar", 20 * 1024],
     ["review", 20 * 1024],
     ["chat", 20 * 1024],

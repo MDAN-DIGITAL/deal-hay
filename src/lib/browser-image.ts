@@ -1,8 +1,7 @@
-import { imageFileSchema } from "@/lib/validation"
+import { IMAGE_OUTPUT_MAX_BYTES, imageFileSchema } from "@/lib/validation"
 import type { ImagePurpose } from "@/types/media"
 
-export const imageOutputMaxBytes = (purpose: ImagePurpose) =>
-  (purpose === "product" ? 512 : 20) * 1024
+export const imageOutputMaxBytes = () => IMAGE_OUTPUT_MAX_BYTES
 
 // Draw into a fresh canvas so the encoded image carries no source metadata.
 // Browsers apply EXIF orientation while decoding with imageOrientation.
@@ -47,9 +46,8 @@ export async function prepareBrowserImage(
     if (
       width < 1 ||
       height < 1 ||
-      width * height > 40_000_000 ||
-      width > 32768 ||
-      height > 32768
+      !Number.isFinite(width) ||
+      !Number.isFinite(height)
     ) {
       throw new Error("Kích thước ảnh quá lớn hoặc không hợp lệ.")
     }
@@ -64,8 +62,8 @@ export async function prepareBrowserImage(
     const scale = Math.min(1, maxEdge / Math.max(sourceWidth, sourceHeight))
     let targetWidth = Math.max(1, Math.round(sourceWidth * scale))
     let targetHeight = Math.max(1, Math.round(sourceHeight * scale))
-    const maxBytes = imageOutputMaxBytes(purpose)
-    for (let resize = 0; resize < 12; resize++) {
+    const maxBytes = imageOutputMaxBytes()
+    while (true) {
       targetCanvas.width = targetWidth
       targetCanvas.height = targetHeight
       const context = targetCanvas.getContext("2d")
@@ -83,7 +81,7 @@ export async function prepareBrowserImage(
         targetWidth,
         targetHeight
       )
-      for (const quality of [0.86, 0.72, 0.58, 0.44]) {
+      for (const quality of [0.86, 0.72, 0.58, 0.44, 0.3, 0.16]) {
         const blob = await new Promise<Blob>((resolve, reject) => {
           targetCanvas.toBlob(
             (output) =>
@@ -107,7 +105,7 @@ export async function prepareBrowserImage(
           )
         }
       }
-      if (targetWidth <= 64 && targetHeight <= 64) break
+      if (targetWidth === 1 && targetHeight === 1) break
       targetWidth = Math.max(1, Math.floor(targetWidth * 0.75))
       targetHeight = Math.max(1, Math.floor(targetHeight * 0.75))
     }

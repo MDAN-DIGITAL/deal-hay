@@ -9,6 +9,9 @@ const KIB = 1024
 const MIB = 1024 * KIB
 const PING_SAMPLES = 7
 const TRANSFER_SAMPLES = 6
+const PARALLEL_STREAMS = 4
+// Each reusable buffer is bounded for browser memory; transfers have no rate cap.
+const BUFFER_BYTES = 64 * MIB
 const REQUEST_TIMEOUT_MS = 15_000
 
 export function speedtestEndpointUrl(
@@ -99,14 +102,20 @@ type SpeedtestDependencies = {
   fetch?: typeof fetch
   now?: () => number
   payload?: (size: number) => Uint8Array<ArrayBuffer>
+  streams?: number
 }
 
 export async function measureSpeedtest(
   session: SpeedtestSession,
-  signal: AbortSignal,
+  parentSignal: AbortSignal,
   onUpdate: (state: SpeedtestState) => void,
   dependencies: SpeedtestDependencies = {}
 ): Promise<SpeedtestState> {
+  const failure = new AbortController()
+  const signal = AbortSignal.any([parentSignal, failure.signal])
+  const streams = dependencies.streams ?? PARALLEL_STREAMS
+  if (!Number.isInteger(streams) || streams < 1 || streams > PARALLEL_STREAMS)
+    throw new Error("Số luồng đo không hợp lệ.")
   const request = dependencies.fetch ?? fetch
   const now = dependencies.now ?? (() => performance.now())
   const payload = dependencies.payload ?? randomPayload
@@ -120,13 +129,14 @@ export async function measureSpeedtest(
     serverName: target === "wss" ? "DealHay WSS" : "DealHay Backend",
   }
   let requests = 0
+  let reservedBytes = 0
   const emit = (update: Partial<SpeedtestState>) => {
     if (signal.aborted) throw abortError()
     state = { ...state, ...update, elapsedMs: now() - startedAt }
     onUpdate(state)
   }
-  const maxDownload = Math.min(4 * MIB, session.limits.max_download_bytes)
-  const maxUpload = Math.min(2 * MIB, session.limits.max_upload_bytes)
+  const maxDownload = Math.min(BUFFER_BYTES, session.limits.max_download_bytes)
+  const maxUpload = Math.min(BUFFER_BYTES, session.limits.max_upload_bytes)
   if (
     !Number.isSafeInteger(maxDownload) ||
     maxDownload < 1 ||
@@ -144,9 +154,10 @@ export async function measureSpeedtest(
     if (signal.aborted) throw abortError()
     if (
       ++requests > session.limits.max_requests ||
-      state.transferredBytes + bytes > session.limits.max_session_bytes
+      reservedBytes + bytes > session.limits.max_session_bytes
     )
       throw new Error("Lượt đo đã đạt giới hạn dữ liệu. Vui lòng đo lại.")
+    reservedBytes += bytes
     // Probe the validated target directly; never forward an account token.
     const url = `${endpointUrl}/${path}`
     const controller = new AbortController()
@@ -233,66 +244,101 @@ export async function measureSpeedtest(
       const phaseStart = phase === "download" ? 25 : 65
       const phaseSpan = phase === "download" ? 40 : 35
       const completedBytes = state.transferredBytes
-      const result = await probe(
-        phase,
-        size,
-        uploadData?.subarray(0, size),
-        async (response, start) => {
-          if (phase === "upload") {
-            const acknowledgement: unknown = await response.json()
-            if (
-              !acknowledgement ||
-              typeof acknowledgement !== "object" ||
-              !("received_bytes" in acknowledgement) ||
-              acknowledgement.received_bytes !== size
-            )
-              throw new Error(
-                "Máy chủ chưa xác nhận đủ dữ liệu tải lên. Vui lòng đo lại."
-              )
-            return size
-          }
-          if (
-            !response.headers
-              .get("Content-Type")
-              ?.toLowerCase()
-              .includes("application/octet-stream")
-          )
-            throw new Error("Phản hồi tải xuống không hợp lệ.")
-          let received = 0
-          let lastUpdate = start
-          if (response.body) {
-            const reader = response.body.getReader()
-            try {
-              for (;;) {
-                const part = await reader.read()
-                if (part.done) break
-                received += part.value.byteLength
-                if (received > size) {
-                  await reader.cancel()
-                  throw new Error("Dữ liệu đo vượt quá kích thước đã yêu cầu.")
-                }
-                const instant = now()
-                if (instant - lastUpdate >= 100) {
-                  lastUpdate = instant
-                  emit({
-                    liveMbps: throughputMbps(received, instant - start),
-                    transferredBytes: completedBytes + received,
-                    progress:
-                      phaseStart +
-                      ((index + received / size) / TRANSFER_SAMPLES) *
-                        phaseSpan,
-                  })
-                }
+      const batchStartedAt = now()
+      const receivedByStream = Array(streams).fill(0) as number[]
+      const results = await Promise.all(
+        Array.from({ length: streams }, async (_, stream) =>
+          probe(
+            phase,
+            size,
+            uploadData?.subarray(0, size),
+            async (response, start) => {
+              if (phase === "upload") {
+                const acknowledgement: unknown = await response.json()
+                if (
+                  !acknowledgement ||
+                  typeof acknowledgement !== "object" ||
+                  !("received_bytes" in acknowledgement) ||
+                  acknowledgement.received_bytes !== size
+                )
+                  throw new Error(
+                    "Máy chủ chưa xác nhận đủ dữ liệu tải lên. Vui lòng đo lại."
+                  )
+                return size
               }
-            } finally {
-              reader.releaseLock()
+              if (
+                !response.headers
+                  .get("Content-Type")
+                  ?.toLowerCase()
+                  .includes("application/octet-stream")
+              )
+                throw new Error("Phản hồi tải xuống không hợp lệ.")
+              let received = 0
+              let lastUpdate = start
+              if (response.body) {
+                const reader = response.body.getReader()
+                try {
+                  for (;;) {
+                    const part = await reader.read()
+                    if (part.done) break
+                    received += part.value.byteLength
+                    receivedByStream[stream] = received
+                    if (received > size) {
+                      await reader.cancel()
+                      throw new Error(
+                        "Dữ liệu đo vượt quá kích thước đã yêu cầu."
+                      )
+                    }
+                    const instant = now()
+                    if (instant - lastUpdate >= 100) {
+                      lastUpdate = instant
+                      emit({
+                        liveMbps: throughputMbps(
+                          receivedByStream.reduce(
+                            (sum, value) => sum + value,
+                            0
+                          ),
+                          instant - batchStartedAt
+                        ),
+                        transferredBytes:
+                          completedBytes +
+                          receivedByStream.reduce(
+                            (sum, value) => sum + value,
+                            0
+                          ),
+                        progress:
+                          phaseStart +
+                          ((index +
+                            receivedByStream.reduce(
+                              (sum, value) => sum + value,
+                              0
+                            ) /
+                              (size * streams)) /
+                            TRANSFER_SAMPLES) *
+                            phaseSpan,
+                      })
+                    }
+                  }
+                } finally {
+                  reader.releaseLock()
+                }
+              } else received = (await response.arrayBuffer()).byteLength
+              if (received !== size)
+                throw new Error(
+                  "Dữ liệu tải xuống chưa đầy đủ. Vui lòng đo lại."
+                )
+              return received
             }
-          } else received = (await response.arrayBuffer()).byteLength
-          if (received !== size)
-            throw new Error("Dữ liệu tải xuống chưa đầy đủ. Vui lòng đo lại.")
-          return received
-        }
-      )
+          )
+        )
+      ).catch((error) => {
+        failure.abort()
+        throw error
+      })
+      const result = {
+        value: results.reduce((sum, sample) => sum + sample.value, 0),
+        durationMs: now() - batchStartedAt,
+      }
       if (result.durationMs <= 0)
         throw new Error(
           "Chưa lấy được thời gian truyền dữ liệu. Vui lòng đo lại."
@@ -321,7 +367,13 @@ export async function measureSpeedtest(
       // actual bytes/full elapsed time for the displayed effective HTTP speed.
       const targetMs = Math.min(6000, Math.max(2000, (state.pingMs ?? 0) * 3))
       const desired =
-        Math.ceil((size * targetMs) / result.durationMs / (64 * KIB)) * 64 * KIB
+        Math.ceil(
+          (size * targetMs) /
+            Math.max(...results.map((sample) => sample.durationMs)) /
+            (64 * KIB)
+        ) *
+        64 *
+        KIB
       size = Math.min(
         maxSize,
         Math.max(Math.min(64 * KIB, maxSize), Math.min(size * 4, desired))

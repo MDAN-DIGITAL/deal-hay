@@ -1,8 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import {
   BadgeCheckIcon,
+  ChevronDownIcon,
   BellIcon,
   MessageCircleIcon,
   ShieldCheckIcon,
@@ -12,6 +14,17 @@ import {
 } from "lucide-react"
 
 import { useSession } from "@/components/session-provider"
+import { ServerPing } from "@/components/layout/server-ping"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
 import { MobileNavigation } from "@/components/layout/mobile-navigation"
 import { NotificationSoundToggle } from "@/components/layout/notification-sound-toggle"
 import { SignOutButton } from "@/components/layout/sign-out-button"
@@ -23,7 +36,6 @@ import { UserAvatar } from "@/components/user-avatar"
 
 const navigation = [
   { href: "/", label: "Khám phá" },
-  { href: "/diagnostics", label: "Độ trễ" },
   { href: "/chats", label: "Tin nhắn", unreadKey: "messages" },
   {
     href: "/notifications",
@@ -34,6 +46,7 @@ const navigation = [
 
 export function SiteHeader() {
   const { user } = useSession()
+  const [accountOpen, setAccountOpen] = useState(false)
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
@@ -113,21 +126,39 @@ export function SiteHeader() {
           {user ? (
             <>
               <NotificationSoundToggle />
-              <Link
-                href="/profile"
-                className={buttonVariants({
-                  className: "h-10 gap-2",
-                  variant: "ghost",
-                })}
-              >
-                <UserAvatar
-                  className="size-7"
-                  name={user.full_name}
-                  size="sm"
-                  src={user.avatar_url}
-                />
-                <span className="max-w-32 truncate">{user.full_name}</span>
-              </Link>
+              <DropdownMenu onOpenChange={setAccountOpen}>
+                <DropdownMenuTrigger
+                  render={<Button className="h-10 gap-2" variant="ghost" />}
+                >
+                  <UserAvatar
+                    className="size-7"
+                    name={user.full_name}
+                    size="sm"
+                    src={user.avatar_url}
+                  />
+                  <span className="max-w-32 truncate">{user.full_name}</span>
+                  <ChevronDownIcon className="size-3.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="space-y-1 text-sm">
+                      <span className="block truncate text-foreground">
+                        {user.full_name}
+                      </span>
+                      <ServerPing active={accountOpen} />
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem render={<Link href="/profile" />}>
+                      Hồ sơ cá nhân
+                    </DropdownMenuItem>
+                    {user.role === "administrator" ? (
+                      <DropdownMenuItem render={<Link href="/diagnostics" />}>
+                        Đo tốc độ máy chủ
+                      </DropdownMenuItem>
+                    ) : null}
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <SignOutButton />
             </>
           ) : (

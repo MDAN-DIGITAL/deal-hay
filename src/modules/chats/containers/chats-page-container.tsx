@@ -12,14 +12,16 @@ export function ChatsPageContainer({
   currentUserId: string
 }) {
   const { data: data, error } = useApiQuery(
-    JSON.stringify(["chats", conversationSlug]),
+    JSON.stringify(["chats", currentUserId]),
     () => getChats(conversationSlug, 50)
   )
   if (!data) return <QueryPlaceholder error={error} />
 
   return (
     <ChatsPageClient
-      key={data.selectedConversation?.id ?? "list"}
+      key={currentUserId}
+      admins={data.admins}
+      conversationSnapshots={data.conversationSnapshots}
       conversations={data.conversations}
       currentUserId={currentUserId}
       selectedConversation={data.selectedConversation}

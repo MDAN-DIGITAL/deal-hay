@@ -21,6 +21,9 @@ const {
   receiveChatMessage,
   receiveReadReceipt,
   reconcileChatState,
+  selectChatConversation,
+  receiveChatHistory,
+  markChatConversationRead,
 } = await import(
   `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`
 )
@@ -313,4 +316,284 @@ test("a reconnect snapshot without overlap uses its fresh cursor so the missing 
     freshPagination
   )
   assert.equal(state.conversations[0].last_message, fresh[1].body)
+})
+
+test("switching people reads every preloaded history immediately and retains updates received while inactive", () => {
+  const second = summary({
+    id: "conversation-2",
+    slug: "second-person",
+    unread_count: 0,
+  })
+  const firstMessage = message("first", 1)
+  const secondMessage = message("second", 2, { conversation_id: second.id })
+  let state = createChatState({
+    ...snapshot({ messages: [firstMessage], otherConversations: [second] }),
+    conversationSnapshots: [
+      {
+        ...summary(),
+        messages: [firstMessage],
+        messages_pagination: { has_more: false, next_cursor: null },
+      },
+      {
+        ...second,
+        messages: [secondMessage],
+        messages_pagination: { has_more: false, next_cursor: null },
+      },
+    ],
+  })
+  state = selectChatConversation(state, second.slug)
+  assert.deepEqual(
+    state.selectedConversation.messages.map(({ id }) => id),
+    ["second"]
+  )
+  state = receiveChatMessage(state, message("first-new", 3), currentUserId)
+  state = selectChatConversation(state, summary().slug)
+  assert.deepEqual(
+    state.selectedConversation.messages.map(({ id }) => id),
+    ["first", "first-new"]
+  )
+  assert.equal(state.selectedConversation.unread_count, 1)
+  state = selectChatConversation(state)
+  assert.equal(state.selectedConversation, null)
+  assert.equal(state.conversationCache.size, 2)
+})
+
+test("read receipts update an inactive preloaded conversation before it is opened", () => {
+  const first = message("unopened", 1)
+  let state = createChatState({
+    conversations: [summary({ unread_count: 1, updated_at: first.created_at })],
+    selectedConversation: null,
+    conversationSnapshots: [
+      {
+        ...summary({ unread_count: 1, updated_at: first.created_at }),
+        messages: [first],
+        messages_pagination: { has_more: false, next_cursor: null },
+      },
+    ],
+  })
+  const event = receipt([first])
+  state = receiveReadReceipt(state, event, currentUserId)
+  state = selectChatConversation(state, summary().slug)
+  assert.equal(state.selectedConversation.messages[0].read_at, event.read_at)
+  assert.equal(state.selectedConversation.unread_count, 0)
+})
+
+test("reconnect refreshes all cached histories without switching the person the user is chatting with", () => {
+  const second = summary({ id: "conversation-2", slug: "second-person" })
+  let state = createChatState({
+    conversations: [summary(), second],
+    selectedConversation: null,
+    conversationSnapshots: [
+      {
+        ...summary(),
+        messages: [],
+        messages_pagination: { has_more: false, next_cursor: null },
+      },
+      {
+        ...second,
+        messages: [],
+        messages_pagination: { has_more: false, next_cursor: null },
+      },
+    ],
+  })
+  state = selectChatConversation(state, second.slug)
+  const incoming = message("recovered", 4)
+  state = reconcileChatState(state, {
+    conversations: [
+      summary({ updated_at: incoming.created_at, unread_count: 1 }),
+      second,
+    ],
+    selectedConversation: null,
+    conversationSnapshots: [
+      {
+        ...summary({ updated_at: incoming.created_at, unread_count: 1 }),
+        messages: [incoming],
+        messages_pagination: { has_more: false, next_cursor: null },
+      },
+      {
+        ...second,
+        messages: [],
+        messages_pagination: { has_more: false, next_cursor: null },
+      },
+    ],
+  })
+  assert.equal(state.selectedConversation.id, second.id)
+  assert.deepEqual(
+    selectChatConversation(
+      state,
+      summary().slug
+    ).selectedConversation.messages.map(({ id }) => id),
+    ["recovered"]
+  )
+})
+
+test("tagged admins appear as conversation participants immediately without a page refresh", () => {
+  const initial = createChatState(snapshot())
+  const state = receiveChatMessage(
+    initial,
+    message("tagged", 2, { mentions: [{ id: "admin", name: "Support" }] }),
+    currentUserId
+  )
+  assert.deepEqual(state.conversations[0].participants, [
+    { id: "admin", name: "Support", is_admin: true },
+  ])
+  assert.deepEqual(
+    state.selectedConversation.participants,
+    state.conversations[0].participants
+  )
+  assert.deepEqual(
+    selectChatConversation(state, summary().slug).selectedConversation
+      .participants,
+    state.conversations[0].participants
+  )
+})
+
+test("a history response arriving after changing people updates only its original conversation", () => {
+  const second = summary({ id: "second", slug: "second" })
+  let state = createChatState({
+    ...snapshot(),
+    conversations: [summary(), second],
+    conversationSnapshots: [
+      {
+        ...second,
+        messages: [],
+        messages_pagination: { has_more: false, next_cursor: null },
+      },
+    ],
+  })
+  state = selectChatConversation(state, second.slug)
+  state = receiveChatHistory(state, conversationId, {
+    messages: [message("older", 1)],
+    has_more: false,
+    next_cursor: null,
+  })
+  assert.equal(state.selectedConversation.id, second.id)
+  assert.deepEqual(state.selectedConversation.messages, [])
+  assert.deepEqual(
+    selectChatConversation(
+      state,
+      summary().slug
+    ).selectedConversation.messages.map(({ id }) => id),
+    ["older"]
+  )
+})
+
+test("an admin's receipt arriving before an incoming message does not clear the viewer's unread count", () => {
+  const incoming = message("admin-read-first", 1)
+  const adminReceipt = receipt([incoming], {
+    readerId: "third-participant-admin",
+  })
+  let state = receiveReadReceipt(
+    createChatState(snapshot()),
+    adminReceipt,
+    currentUserId
+  )
+  state = receiveChatMessage(state, incoming, currentUserId)
+  assert.equal(state.conversations[0].unread_count, 1)
+  assert.equal(
+    state.selectedConversation.messages[0].read_at,
+    adminReceipt.read_at
+  )
+  assert.equal(state.selectedConversation.messages[0].viewer_read_at, null)
+})
+
+test("a viewer's delayed receipt decrements only their read messages after an admin already read them", () => {
+  const first = message("first-read-by-admin", 1)
+  const second = message("newer-unread", 2)
+  let state = receiveChatMessage(
+    createChatState(snapshot()),
+    first,
+    currentUserId
+  )
+  state = receiveChatMessage(state, second, currentUserId)
+  state = receiveReadReceipt(
+    state,
+    receipt([first], { readerId: "admin", throughMinute: 1 }),
+    currentUserId
+  )
+  state = receiveReadReceipt(
+    state,
+    receipt([first], { throughMinute: 1 }),
+    currentUserId
+  )
+  assert.equal(state.conversations[0].unread_count, 1)
+  assert.equal(state.selectedConversation.messages[1].viewer_read_at, undefined)
+})
+
+test("viewer-specific unread metadata survives an admin's read receipt and reconnect", () => {
+  const first = message("viewer-unread", 1, {
+    read_at: timestamp(2),
+    viewer_read_at: null,
+  })
+  let state = createChatState(
+    snapshot({
+      messages: [first],
+      conversation: summary({ unread_count: 1, updated_at: timestamp(1) }),
+    }),
+    currentUserId
+  )
+  state = receiveReadReceipt(
+    state,
+    receipt([first], { readerId: "admin" }),
+    currentUserId
+  )
+  state = reconcileChatState(
+    state,
+    snapshot({
+      messages: [first],
+      conversation: summary({ unread_count: 1, updated_at: timestamp(1) }),
+    })
+  )
+  assert.equal(state.conversations[0].unread_count, 1)
+  assert.equal(state.selectedConversation.messages[0].viewer_read_at, null)
+})
+
+test("HTTP read success records the viewer's state even when websocket receipts arrive later", () => {
+  const first = message("http-read", 1, { viewer_read_at: null })
+  let state = createChatState(
+    snapshot({
+      messages: [first],
+      conversation: summary({ unread_count: 1, updated_at: timestamp(1) }),
+    }),
+    currentUserId
+  )
+  state = markChatConversationRead(
+    state,
+    conversationId,
+    currentUserId,
+    timestamp(2)
+  )
+  state = receiveChatMessage(
+    state,
+    message("after-http-read", 3),
+    currentUserId
+  )
+  state = receiveReadReceipt(
+    state,
+    receipt([first], { throughMinute: 1 }),
+    currentUserId
+  )
+  assert.equal(state.conversations[0].unread_count, 1)
+  assert.equal(
+    state.selectedConversation.messages[0].viewer_read_at,
+    timestamp(2)
+  )
+})
+
+test("an authoritative snapshot removes conversations whose invited-admin membership was revoked", () => {
+  const loaded = message("private-old-thread", 1)
+  const initial = createChatState(
+    snapshot({ messages: [loaded] }),
+    currentUserId
+  )
+  const state = reconcileChatState(initial, {
+    conversations: [],
+    selectedConversation: null,
+    conversationSnapshots: [],
+    admins: [],
+  })
+  assert.equal(state.selectedConversation, null)
+  assert.equal(state.conversations.length, 0)
+  assert.equal(state.conversationCache.size, 0)
+  assert.equal(state.knownMessages.size, 0)
 })

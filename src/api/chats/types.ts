@@ -7,6 +7,8 @@ import type {
 export type ChatsResponse = {
   conversations: ConversationSummary[]
   selectedConversation: SelectedConversation | null
+  conversationSnapshots?: SelectedConversation[]
+  admins?: { id: string; name: string }[]
 }
 
 export type ChatHistoryResponse = {

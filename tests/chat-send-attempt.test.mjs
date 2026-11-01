@@ -15,9 +15,10 @@ const source = ts.transpileModule(
     },
   }
 ).outputText
-const { chatSendAttempt, prepareChatSendAttempt } = await import(
-  `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
-)
+const { chatSendAttempt, prepareChatSendAttempt, chatSendAttempts } =
+  await import(
+    `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
+  )
 
 test("an unchanged draft keeps its identifier until confirmed success or an actual payload change", () => {
   const attachment = new File(["image"], "image.webp", { type: "image/webp" })
@@ -123,4 +124,93 @@ test("failed upload preparation is retried without changing the message identity
     async (payload) => payload
   )
   assert.equal(retried.get("client_message_id"), attempt.clientMessageId)
+})
+
+test("multiple photos keep separate identifiers and a partially sent batch resumes only unsent photos", async () => {
+  const files = [
+    new File(["a"], "a.webp"),
+    new File(["b"], "b.webp"),
+    new File(["c"], "c.webp"),
+  ]
+  const draft = {
+    conversationSlug: "thread",
+    body: "Caption",
+    attachments: files,
+    replyToId: "original",
+    mentionAdminIds: ["admin"],
+  }
+  const attempts = chatSendAttempts([], draft)
+  assert.equal(
+    new Set(attempts.map(({ clientMessageId }) => clientMessageId)).size,
+    3
+  )
+  assert.equal(attempts[0].body, "Caption")
+  assert.deepEqual(attempts[0].mentionAdminIds, ["admin"])
+  assert.equal(attempts[0].replyToId, "original")
+  assert.equal(attempts[1].body, "")
+  assert.equal(attempts[1].replyToId, undefined)
+  assert.deepEqual(attempts[1].mentionAdminIds, [])
+  const resumed = chatSendAttempts(attempts.slice(1), {
+    conversationSlug: "thread",
+    body: "",
+    attachments: files.slice(1),
+    mentionAdminIds: [],
+  })
+  assert.equal(resumed[0], attempts[1])
+  assert.equal(resumed[1], attempts[2])
+  const payload = await prepareChatSendAttempt(
+    attempts[0],
+    async (form) => form
+  )
+  assert.deepEqual(payload.getAll("mention_admin_ids"), ["admin"])
+})
+
+test("changing only the tagged admin creates a new idempotency identity", () => {
+  const draft = {
+    conversationSlug: "thread",
+    body: "Help",
+    mentionAdminIds: ["first-admin"],
+  }
+  const first = chatSendAttempt(null, draft)
+  const second = chatSendAttempt(first, {
+    ...draft,
+    mentionAdminIds: ["second-admin"],
+  })
+  assert.notEqual(first.clientMessageId, second.clientMessageId)
+})
+
+test("a fifty-photo selection prepares fifty distinct stable attempts without losing captions or admin tags", async () => {
+  const files = Array.from(
+    { length: 50 },
+    (_, index) =>
+      new File([`image-${index}`], `${index}.webp`, { type: "image/webp" })
+  )
+  const draft = {
+    conversationSlug: "thread",
+    body: "50 ảnh",
+    attachments: files,
+    mentionAdminIds: ["admin"],
+  }
+  const first = chatSendAttempts([], draft)
+  const retry = chatSendAttempts(first, draft)
+  assert.equal(first.length, 50)
+  assert.equal(
+    new Set(first.map(({ clientMessageId }) => clientMessageId)).size,
+    50
+  )
+  assert.ok(retry.every((attempt, index) => attempt === first[index]))
+  assert.equal(first.filter(({ body }) => body).length, 1)
+  assert.equal(
+    first.filter(({ mentionAdminIds }) => mentionAdminIds.length).length,
+    1
+  )
+  let preparedFiles = 0
+  for (const attempt of first) {
+    await prepareChatSendAttempt(attempt, async (payload) => {
+      assert.equal(payload.getAll("attachment").length, 1)
+      assert.equal(payload.get("attachment"), files[preparedFiles++])
+      return payload
+    })
+  }
+  assert.equal(preparedFiles, 50)
 })

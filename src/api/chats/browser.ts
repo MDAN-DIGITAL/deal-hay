@@ -47,6 +47,9 @@ export async function sendChatMessage(
         ? { reply_to_id: String(body.get("reply_to_id")) }
         : {}),
       ...(reference ? { attachment: String(reference) } : {}),
+      ...(body.getAll("mention_admin_ids").length
+        ? { mention_admin_ids: body.getAll("mention_admin_ids").map(String) }
+        : {}),
     },
     headers: {
       "Idempotency-Key": idempotencyKey,
