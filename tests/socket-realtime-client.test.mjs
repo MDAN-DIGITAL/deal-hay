@@ -59,6 +59,35 @@ const makeClient = (loader) => {
   return client
 }
 
+test("a rejected local session renews its credential while a transport outage keeps the cached session", async () => {
+  const requests = []
+  makeClient(async (force) => {
+    requests.push(force)
+    return {
+      token: "local-session",
+      url: origin,
+      expires_at: Math.floor(Date.now() / 1000) + 86400,
+    }
+  })
+  await flush()
+  const socket = state.sockets[0]
+  socket.connected = false
+  socket.receive("connect_error", new Error("Network unavailable"))
+  socket.connect()
+  await flush()
+  assert.deepEqual(requests, [false, false])
+  socket.connected = false
+  socket.receive("connect_error", { data: { code: "UNAUTHENTICATED" } })
+  socket.connect()
+  await flush()
+  assert.deepEqual(requests, [false, false, true])
+  socket.receive("session:expired")
+  socket.connected = false
+  socket.connect()
+  await flush()
+  assert.equal(requests.at(-1), true)
+})
+
 test("Socket.IO uses scoped ticket auth, authorizes subscriptions and dispatches existing business events", async () => {
   let fetched = 0,
     subscribed = 0

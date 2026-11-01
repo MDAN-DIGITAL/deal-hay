@@ -120,7 +120,7 @@ class SocketChannel implements RealtimePresenceChannel {
 
 export function createSocketRealtimeClient(
   origin: string,
-  loadSession: () => Promise<Session>
+  loadSession: (force?: boolean) => Promise<Session>
 ): RealtimeClient {
   const endpoint = new URL(origin)
   if (
@@ -144,6 +144,7 @@ export function createSocketRealtimeClient(
   let retryTimer: ReturnType<typeof setTimeout> | undefined
   let retryDelay = 1000
   let currentExpiry = 0
+  let renewRejectedSession = false
   const changes = new Set<(status: ConnectionStatus) => void>()
   const channels = new Map<string, SocketChannel>()
   const update = (next: ConnectionStatus) => {
@@ -158,7 +159,9 @@ export function createSocketRealtimeClient(
     reconnectionDelayMax: 15_000,
     timeout: 20_000,
     auth: (done) => {
-      void loadSession()
+      const force = renewRejectedSession
+      renewRejectedSession = false
+      void loadSession(force)
         .then((session) => {
           if (disposed) return
           if (
@@ -203,8 +206,9 @@ export function createSocketRealtimeClient(
     // Expired tickets are server disconnects; obtain a fresh ticket on connect.
     if (reason === "io server disconnect") socket.connect()
   })
-  socket.on("connect_error", () => {
+  socket.on("connect_error", (error: Error & { data?: { code?: string } }) => {
     if (disposed) return
+    if (error?.data?.code === "UNAUTHENTICATED") renewRejectedSession = true
     update("failed")
     // Namespace authentication failures do not trigger Socket.IO reconnects.
     if (retryTimer) return
@@ -215,6 +219,9 @@ export function createSocketRealtimeClient(
       socket.connect()
     }, retryDelay)
     retryDelay = Math.min(retryDelay * 2, 15_000)
+  })
+  socket.on("session:expired", () => {
+    renewRejectedSession = true
   })
   socket.io.on("reconnect_attempt", () =>
     update(everConnected ? "reconnecting" : "connecting")

@@ -273,7 +273,7 @@ export async function prepareImageUploads(
       )
     }
   } catch (error) {
-    await discardProductImageUploadsAction(stagedTokens)
+    await discardProductImageUploadsAction(stagedTokens, purpose)
     throw error
   }
 

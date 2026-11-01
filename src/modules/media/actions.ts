@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import { apiFetch, ApiError } from "@/api/client"
+import { wssFetch } from "@/api/wss-client"
 import { storageUploadUrl } from "@/lib/storage-upload"
 import type { ImagePurpose, ImageUploadSession } from "@/types/media"
 import type { ActionState } from "@/types/forms"
@@ -17,13 +18,19 @@ const sessionSchema = z.object({
   expires_at: z.string().optional(),
 })
 
-export async function discardProductImageUploadsAction(tokens: string[]) {
+export async function discardProductImageUploadsAction(
+  tokens: string[],
+  purpose: ImagePurpose = "product"
+) {
   const parsed = z.array(z.string().min(1).max(2048)).max(51).safeParse(tokens)
   if (!parsed.success || parsed.data.length === 0) return
   try {
-    await apiFetch({
+    await (purpose === "chat" ? wssFetch : apiFetch)({
       method: "DELETE",
-      path: "/private/uploads/images/staged",
+      path:
+        purpose === "chat"
+          ? "/chat-uploads/staged"
+          : "/private/uploads/images/staged",
       body: { tokens: parsed.data },
     })
   } catch {
@@ -62,9 +69,10 @@ export async function requestImageUploadsAction(
   }
   let tokens: string[] = []
   try {
-    const response = await apiFetch({
+    const response = await (purpose === "chat" ? wssFetch : apiFetch)({
       method: "POST",
-      path: "/private/uploads/images",
+      path:
+        purpose === "chat" ? "/chat-uploads/images" : "/private/uploads/images",
       body: { purpose, uploads: parsed.data },
     })
     // Retain tokens even if another response field is malformed so reservations
@@ -95,7 +103,7 @@ export async function requestImageUploadsAction(
       data: { tokens, uploads: data.uploads },
     }
   } catch (error) {
-    await discardProductImageUploadsAction(tokens)
+    await discardProductImageUploadsAction(tokens, purpose)
     return error instanceof ApiError
       ? { success: false, message: error.message, errors: error.errors }
       : {

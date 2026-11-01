@@ -16,7 +16,10 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import type { RealtimeConfig } from "@/api/chats/types"
-import { refreshUnreadCountsAction } from "@/modules/chats/actions"
+import {
+  refreshUnreadCountsAction,
+  refreshNotificationCountAction,
+} from "@/modules/chats/actions"
 import {
   loadRealtimeConfigAction,
   loadSocketSessionAction,
@@ -89,6 +92,7 @@ export function RealtimeProvider({
   const mounted = useRef(false)
   const unreadRefreshRequested = useRef(false)
   const unreadSynchronization = useRef<Promise<void> | null>(null)
+  const notificationRevision = useRef(0)
   const setUnreadCounts = useCallback<Dispatch<SetStateAction<UnreadCounts>>>(
     (nextCounts) => {
       unreadRevision.current += 1
@@ -97,6 +101,16 @@ export function RealtimeProvider({
     []
   )
   const synchronizeUnreadCounts = useCallback((): Promise<void> => {
+    // Business notification refresh must never block WSS-owned chat counts.
+    const notificationRequest = ++notificationRevision.current
+    void refreshNotificationCountAction().then((count) => {
+      if (
+        mounted.current &&
+        notificationRevision.current === notificationRequest &&
+        count !== null
+      )
+        setUnreadCounts((previous) => ({ ...previous, notifications: count }))
+    })
     unreadRevision.current += 1
     unreadRefreshRequested.current = true
     if (unreadSynchronization.current) return unreadSynchronization.current
@@ -114,7 +128,8 @@ export function RealtimeProvider({
             unreadRefreshRequested.current = true
             continue
           }
-          if (counts) setUnreadCounts(counts)
+          if (counts)
+            setUnreadCounts((previous) => ({ ...previous, ...counts }))
         }
       } catch {
         // Keep the current counters when an individual synchronization fails.

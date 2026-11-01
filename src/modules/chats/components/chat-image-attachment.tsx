@@ -5,17 +5,15 @@ import { FileIcon, PaperclipIcon } from "lucide-react"
 import { toast } from "sonner"
 import { ImagePreview } from "@/components/image-preview"
 import { Button } from "@/components/ui/button"
-import { env } from "@/config/env"
-import { getAccessToken } from "@/lib/session"
+import { getWssSession, clearWssSession } from "@/lib/wss-session"
 
 async function loadAttachment(messageId: string, signal?: AbortSignal) {
-  const token = getAccessToken()
-  if (!token) throw new Error("Vui lòng đăng nhập lại.")
+  const session = await getWssSession()
   const response = await fetch(
-    `${env.API_URL}/messages/attachments/${encodeURIComponent(messageId)}`,
+    `${session.url}/chat-attachments/${encodeURIComponent(messageId)}`,
     {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${session.token}`,
         Accept: "application/octet-stream",
       },
       credentials: "omit",
@@ -23,7 +21,10 @@ async function loadAttachment(messageId: string, signal?: AbortSignal) {
       signal,
     }
   )
-  if (!response.ok) throw new Error("Không thể tải tệp đính kèm.")
+  if (!response.ok) {
+    if (response.status === 401) clearWssSession(session.token)
+    throw new Error("Không thể tải tệp đính kèm.")
+  }
   return response.blob()
 }
 

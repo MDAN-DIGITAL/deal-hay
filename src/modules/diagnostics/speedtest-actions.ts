@@ -2,6 +2,7 @@ import { getAccessToken } from "@/lib/session"
 import { z } from "zod"
 import { env } from "@/config/env"
 import { ApiError, apiFetch } from "@/api/client"
+import { wssFetch } from "@/api/wss-client"
 import { clearAuthSession } from "@/lib/auth"
 import { getAuthPageHref } from "@/lib/auth-redirect"
 import { speedtestEndpointUrl } from "@/modules/diagnostics/lib/speedtest"
@@ -35,12 +36,18 @@ export async function startSpeedtestAction(
   }
   try {
     const response = grantSchema.parse(
-      await apiFetch({
-        method: "POST",
-        path: "/diagnostics/speedtest/session",
-        body: { target },
-        token,
-      })
+      await (target === "wss"
+        ? wssFetch({
+            method: "POST",
+            path: "/diagnostics/speedtest/session",
+          })
+        : apiFetch({
+            method: "POST",
+            path: "/diagnostics/speedtest/session",
+            body: { target },
+            token,
+            signal: AbortSignal.timeout(10_000),
+          }))
     )
     if (
       (response.target !== undefined && response.target !== target) ||
@@ -65,6 +72,12 @@ export async function startSpeedtestAction(
     }
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
+      if (target === "wss")
+        return {
+          success: false,
+          message:
+            "Phiên WSS đã hết hạn hoặc bị thu hồi. Vui lòng kết nối lại rồi đo lại.",
+        }
       const currentToken = getAccessToken()
       if (currentToken && currentToken !== token) {
         return {

@@ -1,6 +1,12 @@
 "use client"
 
-import { useEffect, useRef, useTransition, type ClipboardEvent } from "react"
+import {
+  useEffect,
+  useRef,
+  useTransition,
+  type ClipboardEvent,
+  type FormEvent,
+} from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { LoaderCircleIcon, PaperclipIcon, SendIcon } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
@@ -21,12 +27,7 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group"
-import {
-  appendOptionalFile,
-  appendOptionalString,
-  applyServerErrors,
-  runUploadAction,
-} from "@/lib/form-utils"
+import { applyServerErrors, runUploadAction } from "@/lib/form-utils"
 import {
   CHAT_ATTACHMENT_ACCEPT,
   chatAttachmentFileSchema,
@@ -34,6 +35,12 @@ import {
 import { ImageUploadProgress } from "@/components/image-upload-progress"
 import { useImageUpload } from "@/hooks/use-image-upload"
 import { sendMessageAction } from "@/modules/chats/actions"
+import {
+  chatSendAttempt,
+  prepareChatSendAttempt,
+  type ChatSendAttempt,
+} from "@/modules/chats/lib/chat-send-attempt"
+import { uploadChatFile } from "@/lib/chat-upload"
 import { ChatEmojiPicker } from "@/modules/chats/components/chat-emoji-picker"
 import { ChatReplyPreview } from "@/modules/chats/components/chat-reply-preview"
 import {
@@ -59,6 +66,7 @@ export function ChatComposer({
   const { prepareUploads, uploadProgress } = useImageUpload()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const attemptRef = useRef<ChatSendAttempt | null>(null)
   const form = useForm<SendMessageValues>({
     resolver: zodResolver(sendMessageSchema),
     defaultValues: { body: "", attachment: undefined },
@@ -125,31 +133,45 @@ export function ChatComposer({
     })
   }
 
-  const onSubmit = form.handleSubmit((values) => {
-    const formData = new FormData()
-    appendOptionalString(formData, "body", values.body)
-    appendOptionalFile(formData, "attachment", values.attachment)
-    if (replyTo) formData.set("reply_to_id", replyTo.id)
-    if (socketId) formData.set("socket_id", socketId)
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    void form.handleSubmit((values) => {
+      const attempt = chatSendAttempt(attemptRef.current, {
+        conversationSlug,
+        body: values.body,
+        attachment: values.attachment,
+        replyToId: replyTo?.id,
+      })
+      attemptRef.current = attempt
 
-    startTransition(async () => {
-      const state = await runUploadAction(async () =>
-        sendMessageAction(
-          conversationSlug,
-          await prepareUploads(formData, "chat")
-        )
-      )
-      const hasFieldErrors = applyServerErrors(state.errors, form.setError)
+      startTransition(async () => {
+        const state = await runUploadAction(async () => {
+          const payload = await prepareChatSendAttempt(
+            attempt,
+            async (input) => {
+              const prepared = await prepareUploads(input, "chat")
+              const file = prepared.get("attachment")
+              if (file instanceof File)
+                prepared.set("attachment", await uploadChatFile(file))
+              return prepared
+            }
+          )
+          if (socketId) payload.set("socket_id", socketId)
+          else payload.delete("socket_id")
+          return sendMessageAction(conversationSlug, payload)
+        })
+        const hasFieldErrors = applyServerErrors(state.errors, form.setError)
 
-      if (state.success && state.data) {
-        onSent(state.data, replyTo?.id ?? null)
-        form.reset({ body: "", attachment: undefined })
-        return
-      }
+        if (state.success && state.data) {
+          if (attemptRef.current === attempt) attemptRef.current = null
+          onSent(state.data, replyTo?.id ?? null)
+          form.reset({ body: "", attachment: undefined })
+          return
+        }
 
-      if (!hasFieldErrors && state.message) toast.error(state.message)
-    })
-  })
+        if (!hasFieldErrors && state.message) toast.error(state.message)
+      })
+    })(event)
+  }
 
   return (
     <Form {...form}>

@@ -26,9 +26,9 @@ API phải cho phép origin frontend trong CORS; WSS phải cho phép cùng orig
 - `src/modules`: UI và request handlers chạy trên browser; schema phía client hỗ trợ nhập liệu, API vẫn kiểm tra lại.
 - `useApiQuery`: tải dữ liệu trên browser, xử lý loading/lỗi/retry, bỏ kết quả request đã cũ và cập nhật sau mutation.
 - `SessionProvider`/`AuthGuard`: lấy user từ API. Token lưu trong `sessionStorage`, giữ qua reload cùng tab và được xóa khi đăng xuất hoặc API trả 401 cho phiên hiện tại. Token không được ghi vào cookie hoặc URL. Phiên gắn với tab; dữ liệu phân quyền luôn do API xác nhận.
-- Socket.IO dùng ticket ngắn hạn riêng, tự đổi ticket/reconnect và khôi phục subscriptions. API tiếp tục lưu tin nhắn và phát sự kiện sang WSS.
-- Ảnh được resize/nén WebP trong browser và upload trực tiếp lên storage bằng URL có thời hạn. File chat riêng tư được tải từ API với bearer token và hiển thị bằng object URL, thu hồi khi unmount.
-- Speedtest đo lần lượt DealHay Backend và DealHay WSS, hiển thị ping/jitter/download/upload riêng cho từng máy chủ. API cấp grant ngắn hạn ngay trước mỗi lượt; browser truyền dữ liệu trực tiếp tới máy chủ được đo. URL WSS lấy từ cấu hình API, không cần thêm biến Vercel. Một máy chủ lỗi vẫn tiếp tục đo bên còn lại; tối đa khoảng 80 MiB cho hai máy chủ.
+- Socket.IO và HTTP chat dùng phiên opaque do WSS lưu/xác thực trong SQLite. API bootstrap danh tính và dữ liệu chat ban đầu; FE giữ phiên WSS tối đa 24 giờ trong `sessionStorage`, gắn với phiên đăng nhập của tab. Reconnect, gửi tin, tải lịch sử, đánh dấu đã đọc và presence đi thẳng tới WSS, tiếp tục hoạt động khi API mất kết nối. Đăng nhập mới/cấp lại phiên hết hạn và mở cuộc trò chuyện từ nghiệp vụ sản phẩm vẫn cần API.
+- Ảnh được resize/nén WebP trong browser và upload trực tiếp lên storage bằng URL có thời hạn. WSS cấp phiên upload ảnh/tệp chat và phục vụ attachment bằng credential WSS; file riêng tư hiển thị bằng object URL, thu hồi khi unmount. Các ảnh sản phẩm/avatar/review vẫn dùng API chính.
+- Speedtest đo lần lượt DealHay Backend và DealHay WSS, hiển thị ping/jitter/download/upload riêng cho từng máy chủ. Mỗi máy chủ cấp grant ngay trước lượt đo của mình; với phiên WSS đã lưu, trang chat và diagnostics vẫn mở được khi API lỗi, nhưng không cấp quyền trang nghiệp vụ/quản trị. Browser truyền dữ liệu trực tiếp tới máy chủ được đo; không cần thêm biến Vercel. Một máy chủ lỗi vẫn tiếp tục đo bên còn lại; tối đa khoảng 80 MiB cho hai máy chủ.
 
 ## Kiểm tra
 

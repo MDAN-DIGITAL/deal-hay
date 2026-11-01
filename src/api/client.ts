@@ -15,6 +15,7 @@ export type ApiRequestOptions = {
   headers?: HeadersInit
   token?: string | null
   cache?: RequestCache
+  signal?: AbortSignal
 }
 
 type ApiErrorPayload = {
@@ -59,6 +60,7 @@ export async function apiFetch<T>({
   headers,
   token,
   cache = "no-store",
+  signal,
 }: ApiRequestOptions): Promise<T> {
   const resolvedToken = token === undefined ? getAccessToken() : token
   const requestHeaders = new Headers(headers)
@@ -94,6 +96,7 @@ export async function apiFetch<T>({
     cache,
     redirect: "error",
     credentials: "omit",
+    signal,
   })
 
   const contentType = response.headers.get("content-type") ?? ""

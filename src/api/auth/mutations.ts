@@ -1,5 +1,6 @@
 import { apiFetch } from "@/api/client"
 import { authRoutes } from "@/api/auth/routes"
+import { revokeWssSession } from "@/lib/wss-session"
 import type {
   ForgotPasswordPayload,
   LoginPayload,
@@ -38,6 +39,7 @@ export function resetPassword(
   })
 }
 
-export function logout(): Promise<LogoutResponse> {
+export async function logout(): Promise<LogoutResponse> {
+  await revokeWssSession().catch(() => {})
   return apiFetch({ method: "POST", path: authRoutes.logout })
 }

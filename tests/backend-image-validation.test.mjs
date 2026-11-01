@@ -43,12 +43,14 @@ export const updateAvatar=async(...args)=>{calls.push(args);return{message:'Save
 export const updatePassword=()=>{}; export const updateProfile=()=>{}; export const updateShop=()=>{}; export const createShopOwnerUpgrade=()=>{}
 export const profileRoutes={avatar:'/private/me/avatar',shopAvatar:'/private/shop/avatar'}
 export async function apiFetch(request){calls.push(request);if(request.method==='DELETE')return{};return state.response ?? {uploads:request.body.uploads.map((_,i)=>({token:'token-'+i,url:'https://storage.example.test/key-'+i+'?signature=abc',headers:{'Content-Type':'image/webp'},asset_url:'https://media.example.test/key-'+i+'.webp'}))}}
+export const wssFetch=apiFetch
 `)
 const { calls, state } = await import(api)
 const actions = await import(
   module("../src/modules/profile/actions.ts", {
     "@/lib/query-cache": api,
     "@/api/client": api,
+    "@/api/wss-client": api,
     "@/api/profile/mutations": api,
     "@/api/profile/routes": api,
     "@/modules/profile/schemas/profile": profileSchema,
@@ -58,6 +60,7 @@ const { requestImageUploadsAction } = await import(
   module("../src/modules/media/actions.ts", {
     zod: import.meta.resolve("zod"),
     "@/api/client": api,
+    "@/api/wss-client": api,
     "@/lib/storage-upload": module("../src/lib/storage-upload.ts"),
   })
 )
@@ -131,6 +134,10 @@ test("upload session requests contain only prepared WebP descriptors bounded for
     const result = await requestImageUploadsAction(purpose, uploads)
     assert.equal(result.success, true)
     assert.deepEqual(calls.at(-1).body, { purpose, uploads })
+    assert.equal(
+      calls.at(-1).path,
+      purpose === "chat" ? "/chat-uploads/images" : "/private/uploads/images"
+    )
     assert.deepEqual(result.data.tokens, ["token-0"])
     assert.equal(
       (

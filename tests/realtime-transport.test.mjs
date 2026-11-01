@@ -42,6 +42,23 @@ function reset() {
   globalThis.__directTransport = { token: "account-token", clears: 0 }
 }
 
+test("API requests forward an abort signal so a stalled Backend cannot block the WSS test", async (t) => {
+  reset()
+  const signal = new AbortController().signal
+  t.mock.method(globalThis, "fetch", async (_url, options) => {
+    assert.equal(options.signal, signal)
+    return Response.json({ ok: true })
+  })
+  assert.deepEqual(
+    await apiFetch({
+      method: "POST",
+      path: "/diagnostics/speedtest/session",
+      signal,
+    }),
+    { ok: true }
+  )
+})
+
 test("chat, presence and session requests run concurrently directly against API", async (t) => {
   reset()
   const pending = []

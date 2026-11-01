@@ -1,27 +1,20 @@
-import { liveApiFetch } from "@/api/live-client"
+import { wssFetch } from "@/api/wss-client"
+import { uploadChatFile } from "@/lib/chat-upload"
 import { chatRoutes } from "@/api/chats/routes"
 import type {
   ChatHistoryResponse,
   ChatsResponse,
   PresenceHeartbeatResponse,
 } from "@/api/chats/types"
-import type { MeResponse } from "@/api/auth/types"
 import type { ChatMessage } from "@/types/chat"
 import type { SessionUser } from "@/types/auth"
 
 export async function getCurrentSession(): Promise<SessionUser> {
-  const response = await liveApiFetch<MeResponse>("/auth/me")
-  return {
-    user: response.data,
-    unreadCounts: {
-      messages: response.meta.unread_messages_count,
-      notifications: response.meta.unread_notifications_count,
-    },
-  }
+  return wssFetch<SessionUser>({ path: "/auth/me" })
 }
 
 export function getChats(): Promise<ChatsResponse> {
-  return liveApiFetch(chatRoutes.list)
+  return wssFetch({ path: chatRoutes.list })
 }
 
 export function getChatHistory(
@@ -29,20 +22,32 @@ export function getChatHistory(
   cursor?: string,
   limit?: number
 ): Promise<ChatHistoryResponse> {
-  return liveApiFetch(chatRoutes.history(encodeURIComponent(slug)), {
+  return wssFetch({
+    path: chatRoutes.history(encodeURIComponent(slug)),
     searchParams: { cursor, limit },
   })
 }
 
-export function sendChatMessage(
+export async function sendChatMessage(
   slug: string,
   body: FormData,
   idempotencyKey: string,
   socketId?: string
 ): Promise<ChatMessage> {
-  return liveApiFetch(chatRoutes.send(encodeURIComponent(slug)), {
+  const attachment = body.get("attachment")
+  const reference =
+    attachment instanceof File ? await uploadChatFile(attachment) : attachment
+  return wssFetch({
+    path: chatRoutes.send(encodeURIComponent(slug)),
     method: "POST",
-    body,
+    body: {
+      client_message_id: idempotencyKey,
+      ...(body.get("body") ? { body: String(body.get("body")) } : {}),
+      ...(body.get("reply_to_id")
+        ? { reply_to_id: String(body.get("reply_to_id")) }
+        : {}),
+      ...(reference ? { attachment: String(reference) } : {}),
+    },
     headers: {
       "Idempotency-Key": idempotencyKey,
       ...(socketId ? { "X-Socket-ID": socketId } : {}),
@@ -54,7 +59,8 @@ export function markConversationRead(
   slug: string,
   socketId?: string
 ): Promise<{ ok: boolean }> {
-  return liveApiFetch(chatRoutes.read(encodeURIComponent(slug)), {
+  return wssFetch({
+    path: chatRoutes.read(encodeURIComponent(slug)),
     method: "PATCH",
     headers: socketId ? { "X-Socket-ID": socketId } : undefined,
   })
@@ -63,7 +69,8 @@ export function markConversationRead(
 export function recordPresenceHeartbeat(
   conversationId?: string
 ): Promise<PresenceHeartbeatResponse> {
-  return liveApiFetch(chatRoutes.presence, {
+  return wssFetch({
+    path: chatRoutes.presence,
     method: "POST",
     body: { conversation_id: conversationId ?? null },
   })

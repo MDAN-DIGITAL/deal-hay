@@ -12,16 +12,30 @@ import type { UnreadCounts } from "@/types/auth"
 import type { ActionState } from "@/types/forms"
 import { sendMessageUploadSchema } from "@/modules/chats/schemas/chats"
 import type { ChatMessage } from "@/types/chat"
+import { getCurrentSession as getAccountSession } from "@/api/auth/queries"
 
 export type SendMessageActionState = ActionState & { data?: ChatMessage }
 export type ChatHistoryActionState = ActionState & {
   data?: ChatHistoryResponse
 }
 
-export async function refreshUnreadCountsAction(): Promise<UnreadCounts | null> {
+export async function refreshUnreadCountsAction(): Promise<
+  | (Pick<UnreadCounts, "messages"> &
+      Partial<Pick<UnreadCounts, "notifications">>)
+  | null
+> {
   try {
     const session = await getCurrentSession()
-    return session.user ? session.unreadCounts : null
+    return session.user ? { messages: session.unreadCounts.messages } : null
+  } catch {
+    return null
+  }
+}
+
+export async function refreshNotificationCountAction(): Promise<number | null> {
+  try {
+    const session = await getAccountSession()
+    return session.user ? session.unreadCounts.notifications : null
   } catch {
     return null
   }
@@ -88,6 +102,7 @@ export async function sendMessageAction(
   formData: FormData
 ): Promise<SendMessageActionState> {
   const parsed = sendMessageUploadSchema.safeParse({
+    client_message_id: formData.get("client_message_id") ?? undefined,
     body: formData.get("body") ?? "",
     reply_to_id: formData.get("reply_to_id") || undefined,
     attachment: formData.get("attachment") || undefined,
@@ -102,7 +117,9 @@ export async function sendMessageAction(
   }
 
   const payload = new FormData()
-  payload.set("client_message_id", crypto.randomUUID())
+  const clientMessageId = parsed.data.client_message_id ?? crypto.randomUUID()
+  payload.set("client_message_id", clientMessageId)
+  formData.set("client_message_id", clientMessageId)
   if (parsed.data.body && parsed.data.body !== "") {
     payload.set("body", parsed.data.body)
   }

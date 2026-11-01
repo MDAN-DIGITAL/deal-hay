@@ -35,24 +35,26 @@ const schemaUrl = transpileModule("../src/modules/chats/schemas/chats.ts", {
 const apiUrl = moduleUrl(`
   export class LiveApiError extends Error {}
   export const sentMessages = []
+  export const authQueries = {count:0,session:null}
   export async function sendChatMessage(...args) {
     sentMessages.push(args)
     return { id: "sent-message", attachment: { type: "image" } }
   }
-  export function getCurrentSession() { throw new Error("Unexpected auth query") }
+  export function getCurrentSession() {authQueries.count++;if(authQueries.session)return Promise.resolve(authQueries.session);throw new Error("Unexpected auth query") }
   export function markConversationRead() { throw new Error("Unexpected read mutation") }
   export function recordPresenceHeartbeat() { throw new Error("Unexpected heartbeat") }
   export function getChatHistory() { throw new Error("Unexpected history query") }
   export function getChats() { throw new Error("Unexpected chats query") }
 `)
-const { sendMessageAction } = await import(
+const { sendMessageAction, refreshUnreadCountsAction } = await import(
   transpileModule("../src/modules/chats/actions.ts", {
     "@/api/live-client": apiUrl,
     "@/api/chats/browser": apiUrl,
+    "@/api/auth/queries": apiUrl,
     "@/modules/chats/schemas/chats": schemaUrl,
   })
 )
-const { sentMessages } = await import(apiUrl)
+const { sentMessages, authQueries } = await import(apiUrl)
 const { appendOptionalFile, appendOptionalString } = await import(
   transpileModule("../src/lib/form-utils.ts")
 )
@@ -71,6 +73,31 @@ function image() {
 
 test.beforeEach(() => {
   sentMessages.length = 0
+  authQueries.count = 0
+  authQueries.session = null
+})
+
+test("chat unread refresh uses WSS counts without waiting for a second API session lookup", async () => {
+  authQueries.session = {
+    user: { id: "user" },
+    unreadCounts: { messages: 7, notifications: 0 },
+  }
+  assert.deepEqual(await refreshUnreadCountsAction(), { messages: 7 })
+  assert.equal(authQueries.count, 1)
+})
+
+test("message retries preserve a caller-owned UUID and reject invalid identifiers", async () => {
+  const form = compose("Retry this message")
+  const id = "c7e3a481-a449-4e10-b4dd-9109d2205599"
+  form.set("client_message_id", id)
+  await sendMessageAction("test-conversation", form)
+  await sendMessageAction("test-conversation", form)
+  assert.equal(sentMessages[0][2], id)
+  assert.equal(sentMessages[1][2], id)
+  const invalid = compose("Invalid identifier")
+  invalid.set("client_message_id", "forged-value")
+  assert.equal((await sendMessageAction("test-conversation", invalid)).success, false)
+  assert.equal(sentMessages.length, 2)
 })
 
 test("an image without a caption is sent when the composer omits the body field", async () => {

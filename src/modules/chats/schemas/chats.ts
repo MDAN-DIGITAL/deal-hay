@@ -39,6 +39,7 @@ export const sendMessageSchema = z
 
 export const sendMessageUploadSchema = z
   .object({
+    client_message_id: z.uuid("Mã tin nhắn không hợp lệ.").optional(),
     ...messageFields,
     attachment: chatUploadedAttachmentSchema(
       "Tệp đính kèm không hợp lệ."

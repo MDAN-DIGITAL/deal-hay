@@ -28,6 +28,7 @@ const mocks = moduleUrl(`
   export function getAccessToken() { state.calls.push({cookie:"dealhay_access_token"}); return state.token }
   export async function clearAuthSession() { state.calls.push({clearAuthSession:true}); state.token=null }
   export async function apiFetch(options) { state.calls.push(options); if(state.error) { state.beforeReject?.(); throw state.error } return state.response }
+  export async function wssFetch(options) { state.calls.push({transport:'wss',...options}); if(state.error) {state.beforeReject?.();throw state.error}return state.response }
   export const env = { API_URL: "https://api.example.test/api" }
 `)
 const { state, ApiError } = await import(mocks)
@@ -35,6 +36,7 @@ const { startSpeedtestAction } = await import(
   transpile("../src/modules/diagnostics/speedtest-actions.ts", {
     "@/lib/session": mocks,
     "@/api/client": mocks,
+    "@/api/wss-client": mocks,
     "@/config/env": mocks,
     "@/lib/auth": mocks,
     "@/lib/auth-redirect": transpile("../src/lib/auth-redirect.ts", {}),
@@ -81,8 +83,10 @@ test("exchanges the private account token for a scoped grant without a second pr
       path: "/diagnostics/speedtest/session",
       body: { target: "backend" },
       token: state.token,
+      signal: state.calls[1].signal,
     },
   ])
+  assert.ok(state.calls[1].signal instanceof AbortSignal)
   assert.deepEqual(result, {
     success: true,
     data: {
@@ -97,7 +101,7 @@ test("exchanges the private account token for a scoped grant without a second pr
   assert.ok(result.data.endpointUrl.startsWith("https://api.example.test/"))
 })
 
-test("exchanges a separate WSS grant and probes only its validated public endpoint", async () => {
+test("WSS issues its own grant directly without an API credential exchange", async () => {
   state.response = {
     ...state.response,
     target: "wss",
@@ -107,10 +111,9 @@ test("exchanges a separate WSS grant and probes only its validated public endpoi
   assert.deepEqual(state.calls, [
     { cookie: "dealhay_access_token" },
     {
+      transport: "wss",
       method: "POST",
       path: "/diagnostics/speedtest/session",
-      body: { target: "wss" },
-      token: state.token,
     },
   ])
   assert.equal(result.success, true)
@@ -118,6 +121,18 @@ test("exchanges a separate WSS grant and probes only its validated public endpoi
   assert.equal(result.data.token, state.response.token)
   assert.equal(result.data.endpointUrl, state.response.endpoint_url)
   assert.ok(!JSON.stringify(result).includes(state.token))
+})
+
+test("an expired WSS grant cannot clear the API account or redirect it to sign-in", async () => {
+  state.error = new ApiError(401, "Local WSS session revoked")
+  const result = await startSpeedtestAction("wss")
+  assert.equal(result.success, false)
+  assert.match(result.message, /WSS/)
+  assert.equal(state.token, "123|private-account-token")
+  assert.equal(
+    state.calls.some((call) => call.clearAuthSession),
+    false
+  )
 })
 
 test("allows local HTTP WSS probes without requiring a frontend WSS environment variable", async () => {

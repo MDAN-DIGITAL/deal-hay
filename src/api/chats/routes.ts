@@ -1,10 +1,7 @@
 export const chatRoutes = {
-  list: "/messages",
-  detail: (conversationSlug: string) => `/messages/${conversationSlug}`,
-  history: (conversationSlug: string) =>
-    `/messages/${conversationSlug}/history`,
-  send: (conversationSlug: string) => `/messages/${conversationSlug}`,
-  read: (conversationSlug: string) => `/messages/${conversationSlug}/read`,
+  list: "/chats",
+  history: (conversationSlug: string) => `/chats/${conversationSlug}/messages`,
+  send: (conversationSlug: string) => `/chats/${conversationSlug}/messages`,
+  read: (conversationSlug: string) => `/chats/${conversationSlug}/read`,
   presence: "/presence/heartbeat",
-  realtimeConfig: "/realtime/config",
 } as const
