@@ -13,7 +13,7 @@
     "test:ads": "node --test tests/google-advertising.test.mjs tests/google-rewarded-ads.test.mjs tests/shipping-reward-actions.test.mjs tests/shipping-reward-offer.test.mjs",
     "test:admin-login": "node tests/admin-login-verification.test.mjs",
     "test:product-price": "node --test tests/product-display-price.test.mjs src/modules/public/lib/variant-selection.test.mjs",
-    "test:realtime": "node --test tests/realtime-chat-state.test.mjs tests/realtime-transport.test.mjs tests/notification-visibility.test.mjs",
+    "test:realtime": "node --test tests/realtime-chat-state.test.mjs tests/realtime-transport.test.mjs tests/notification-visibility.test.mjs tests/realtime-toast.test.mjs",
     "test:chat-image": "node tests/chat-image-send.test.mjs",
     "test:socketio": "node --test tests/socket-realtime-client.test.mjs",
     "test:inventory": "node --test tests/inventory-labels.test.mjs tests/inventory-camera.test.mjs tests/inventory-scan.test.mjs tests/inventory-unit-actions.test.mjs tests/stocktake-report.test.mjs",

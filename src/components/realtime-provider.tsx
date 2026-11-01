@@ -52,6 +52,39 @@ type ConfigOverride = {
   value: RealtimeConfig | null
 }
 
+function toastPreview(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value.trim()) return undefined
+  const characters = Array.from(value.trim())
+  return characters.length > 160
+    ? `${characters.slice(0, 159).join("")}…`
+    : characters.join("")
+}
+
+function messageToastDescription(payload: object): string {
+  const body = toastPreview("body" in payload ? payload.body : undefined)
+  if (body) return body
+  if (
+    "attachment" in payload &&
+    payload.attachment &&
+    typeof payload.attachment === "object"
+  ) {
+    const type = "type" in payload.attachment ? payload.attachment.type : null
+    if (type === "image") return "Đã gửi một ảnh."
+    if (type === "video") return "Đã gửi một video."
+    return "Đã gửi tệp đính kèm."
+  }
+  if (
+    "product" in payload &&
+    payload.product &&
+    typeof payload.product === "object" &&
+    "name" in payload.product
+  ) {
+    const name = toastPreview(payload.product.name)
+    if (name) return `Sản phẩm: ${name}`
+  }
+  return "Bạn có tin nhắn mới."
+}
+
 export function RealtimeProvider({
   config,
   currentUserId,
@@ -277,7 +310,9 @@ export function RealtimeProvider({
               typeof payload.sender.id !== "string" ||
               payload.sender.id === currentUserId ||
               !("read_at" in payload) ||
-              payload.read_at ||
+              ("viewer_read_at" in payload
+                ? payload.viewer_read_at
+                : payload.read_at) ||
               !rememberEvent(seenMessageIds, payload.id)
             ) {
               return
@@ -288,6 +323,21 @@ export function RealtimeProvider({
               messages: previous.messages + 1,
             }))
             playNotificationSound(`message:${payload.id}`)
+            const senderName = toastPreview(
+              "name" in payload.sender ? payload.sender.name : undefined
+            )
+            toast(
+              senderName ? `Tin nhắn mới từ ${senderName}` : "Tin nhắn mới",
+              {
+                id: `message:${payload.id}`,
+                description: messageToastDescription(payload),
+                duration: 6000,
+                action: {
+                  label: "Xem",
+                  onClick: () => router.push("/chats"),
+                },
+              }
+            )
             void synchronizeUnreadCounts()
           })
           .listen(".messages.read", (payload: unknown) => {
@@ -348,19 +398,21 @@ export function RealtimeProvider({
               notifications: previous.notifications + 1,
             }))
             playNotificationSound(`notification:${payload.id}`)
-            if ("title" in payload && typeof payload.title === "string") {
-              toast(payload.title, {
-                id: payload.id,
-                description:
-                  "body" in payload && typeof payload.body === "string"
-                    ? payload.body
-                    : undefined,
+            toast(
+              toastPreview("title" in payload ? payload.title : undefined) ??
+                "Thông báo mới",
+              {
+                id: `notification:${payload.id}`,
+                description: toastPreview(
+                  "body" in payload ? payload.body : undefined
+                ),
+                duration: 6000,
                 action: {
                   label: "Xem",
                   onClick: () => router.push("/notifications"),
                 },
-              })
-            }
+              }
+            )
             void synchronizeUnreadCounts()
           })
           .listen(".notifications.read", () => void synchronizeUnreadCounts())
