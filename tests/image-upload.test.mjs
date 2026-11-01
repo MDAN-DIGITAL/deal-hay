@@ -33,10 +33,10 @@ export async function requestImageUploadsAction(purpose, uploads) {
   const batch = state.batches.length
   state.batches.push({ purpose, uploads })
   if (state.failure) return { success: false, message: "reservation failed" }
-  const sessions = uploads.map((_, i) => ({ token: 'batch-' + batch + '-token-' + i,
+  const sessions = uploads.map((upload, i) => ({ token: 'batch-' + batch + '-token-' + i,
     url: 'https://storage.example.test/upload/' + i + '?signature=scoped',
-    headers: { 'Content-Type': 'image/webp', 'x-amz-meta-owner': 'owner' },
-    asset_url: 'https://media.example.test/owner/' + purpose + '/' + i + '.webp' }))
+    headers: { 'Content-Type': upload.content_type, 'x-amz-meta-owner': 'owner' },
+    asset_url: 'https://media.example.test/owner/' + purpose + '/' + i + '.' + ({'image/webp':'webp','image/jpeg':'jpg','image/png':'png'}[upload.content_type]) }))
   return { success: true, data: { tokens: sessions.map(s => s.token), uploads: sessions } }
 }
 export async function discardProductImageUploadsAction(tokens) { state.discarded.push(tokens) }
@@ -60,10 +60,13 @@ const state = {
   draws: [],
   qualities: [],
   decodes: [],
+  encodes: [],
+  fills: [],
+  canvases: [],
   uploads: [],
   statuses: [],
   bytes: 1024,
-  mime: "image/webp",
+  encoders: {},
   decodeError: false,
 }
 const original = () =>
@@ -82,22 +85,39 @@ globalThis.createImageBitmap = async (file, options) => {
 globalThis.document = {
   createElement(type) {
     assert.equal(type, "canvas")
-    return {
+    const canvas = {
       width: 0,
       height: 0,
-      getContext: () => ({ drawImage: (...args) => state.draws.push(args) }),
+      getContext: () => ({
+        drawImage: (...args) => state.draws.push(args),
+        fillRect(...args) {
+          state.fills.push({ color: this.fillStyle, args })
+        },
+      }),
       toBlob(callback, mime, quality) {
-        assert.equal(mime, "image/webp")
         state.qualities.push(quality)
+        state.encodes.push({
+          mime,
+          quality,
+          width: this.width,
+          height: this.height,
+        })
+        const encoder = Object.hasOwn(state.encoders, mime)
+          ? state.encoders[mime]
+          : mime
+        if (encoder === "throw") throw new Error("encoder unavailable")
+        if (encoder === null) return queueMicrotask(() => callback(null))
         const bytes =
           typeof state.bytes === "function"
-            ? state.bytes(this.width, this.height, quality)
+            ? state.bytes(this.width, this.height, quality, mime)
             : state.bytes
         queueMicrotask(() =>
-          callback(new Blob([new Uint8Array(bytes)], { type: state.mime }))
+          callback(new Blob([new Uint8Array(bytes)], { type: encoder }))
         )
       },
     }
+    state.canvases.push(canvas)
+    return canvas
   },
 }
 globalThis.XMLHttpRequest = class {
@@ -137,10 +157,13 @@ test.beforeEach(() => {
     draws: [],
     qualities: [],
     decodes: [],
+    encodes: [],
+    fills: [],
+    canvases: [],
     uploads: [],
     statuses: [],
     bytes: 1024,
-    mime: "image/webp",
+    encoders: {},
     decodeError: false,
   })
   Object.assign(grants, { batches: [], discarded: [], failure: false })
@@ -178,10 +201,76 @@ test("all image purposes decrease quality and dimensions until output fits 20 Ki
   assert.ok(state.draws.length > 4)
   assert.equal(state.closed, 4)
 })
-test("unsupported WebP encoding fails and releases the decoded bitmap", async () => {
-  state.mime = "image/png"
-  await assert.rejects(prepareBrowserImage(original(), "avatar"), /WebP/)
+test("Safari PNG responses to WebP requests fall back to a real JPEG with a white background", async () => {
+  state.encoders = { "image/webp": "image/png" }
+  const output = await prepareBrowserImage(original(), "avatar")
+  assert.equal(output.type, "image/jpeg")
+  assert.equal(output.name, "camera.jpg")
+  assert.ok(output.size <= 20 * 1024)
+  assert.deepEqual(
+    state.encodes.map(({ mime }) => mime),
+    ["image/webp", "image/jpeg"]
+  )
+  assert.deepEqual(state.fills, [{ color: "#ffffff", args: [0, 0, 640, 640] }])
   assert.equal(state.closed, 1)
+  assert.equal(state.canvases[0].width, 0)
+  assert.equal(state.canvases[0].height, 0)
+})
+test("JPEG fallback still reduces quality and dimensions to the same 20 KiB cap for every purpose", async () => {
+  for (const purpose of ["product", "avatar", "review", "chat"]) {
+    state.encoders = { "image/webp": "image/png" }
+    state.bytes = (width, height, quality) =>
+      Math.ceil(width * height * quality)
+    const output = await prepareBrowserImage(original(), purpose)
+    assert.equal(output.type, "image/jpeg")
+    assert.ok(output.size <= 20 * 1024)
+  }
+  assert.equal(
+    state.encodes.filter(({ mime }) => mime === "image/webp").length,
+    4
+  )
+  assert.equal(state.closed, 4)
+})
+test("null and throwing WebP encoders both recover through JPEG", async () => {
+  for (const unsupported of [null, "throw"]) {
+    state.encoders = { "image/webp": unsupported }
+    const output = await prepareBrowserImage(original(), "product")
+    assert.equal(output.type, "image/jpeg")
+    assert.equal(output.name, "camera.jpg")
+  }
+  assert.equal(state.closed, 2)
+})
+test("PNG-only browsers retain actual PNG MIME and shrink dimensions until below 20 KiB", async () => {
+  state.encoders = { "image/webp": "image/png", "image/jpeg": "image/png" }
+  state.bytes = (width, height) => width * height * 4
+  const output = await prepareBrowserImage(original(), "review")
+  assert.equal(output.type, "image/png")
+  assert.equal(output.name, "camera.png")
+  assert.ok(output.size <= 20 * 1024)
+  assert.equal(
+    state.encodes.filter(({ mime }) => mime === "image/webp").length,
+    1
+  )
+  assert.equal(
+    state.encodes.filter(({ mime }) => mime === "image/jpeg").length,
+    1
+  )
+  assert.ok(state.encodes.filter(({ mime }) => mime === "image/png").length > 1)
+  assert.equal(state.closed, 1)
+})
+test("unavailable encoders fail without uploading original bytes and release canvas memory", async () => {
+  state.encoders = { "image/webp": null, "image/jpeg": null, "image/png": null }
+  const form = new FormData()
+  form.set("image", original())
+  await assert.rejects(
+    prepareImageUploads(form, "product"),
+    /Không thể nén ảnh/
+  )
+  assert.equal(grants.batches.length, 0)
+  assert.equal(state.uploads.length, 0)
+  assert.equal(state.closed, 1)
+  assert.equal(state.canvases[0].width, 0)
+  assert.equal(state.canvases[0].height, 0)
 })
 test("invalid decoded dimensions are rejected before a canvas draw", async () => {
   state.width = Infinity
@@ -255,6 +344,29 @@ test("avatar, review and chat return canonical URLs after browser processing and
   }
   assert.equal(state.uploads.length, 3)
 })
+test("Safari JPEG fallback travels through reservations and direct PUT with matching MIME and filename", async () => {
+  for (const purpose of ["product", "avatar", "review", "chat"]) {
+    state.encoders = { "image/webp": "image/png" }
+    const field =
+      purpose === "avatar"
+        ? "avatar"
+        : purpose === "chat"
+          ? "attachment"
+          : "image"
+    const form = new FormData()
+    form.set(field, original())
+    const output = await prepareImageUploads(form, purpose)
+    const descriptor = grants.batches.at(-1).uploads[0]
+    assert.equal(descriptor.content_type, "image/jpeg")
+    assert.equal(descriptor.filename, "camera.jpg")
+    assert.ok(descriptor.size <= 20 * 1024)
+    assert.equal(state.uploads.at(-1).headers["Content-Type"], "image/jpeg")
+    assert.equal(state.uploads.at(-1).body.type, "image/jpeg")
+    assert.equal(state.uploads.at(-1).body.name, "camera.jpg")
+    assert.ok([...output.values()].every((value) => typeof value === "string"))
+    if (purpose !== "product") assert.match(output.get(field), /\.jpg$/)
+  }
+})
 test("non-image chat attachments pass through without an image reservation", async () => {
   const file = new File(["Document"], "document.txt", { type: "text/plain" })
   const form = new FormData()
@@ -303,6 +415,53 @@ test("decode failures never send original bytes or request upload credentials", 
   const form = new FormData()
   form.set("avatar", original())
   await assert.rejects(prepareImageUploads(form, "avatar"), /decode failed/)
+  assert.equal(grants.batches.length, 0)
+  assert.equal(state.uploads.length, 0)
+})
+test("WebKit bitmap decode failures recover through the ordinary image decoder and release the object URL", async (t) => {
+  state.decodeError = true
+  const previousImage = globalThis.Image
+  globalThis.Image = class {
+    naturalWidth = state.width
+    naturalHeight = state.height
+    set src(value) {
+      assert.equal(value, "blob:ios-image")
+      queueMicrotask(() => this.onload())
+    }
+  }
+  t.after(() => {
+    globalThis.Image = previousImage
+  })
+  t.mock.method(URL, "createObjectURL", () => "blob:ios-image")
+  const revoked = t.mock.method(URL, "revokeObjectURL", () => {})
+  const output = await prepareBrowserImage(original(), "product")
+  assert.equal(output.type, "image/webp")
+  assert.ok(output.size <= 20 * 1024)
+  assert.equal(revoked.mock.calls.length, 1)
+  assert.equal(revoked.mock.calls[0].arguments[0], "blob:ios-image")
+  assert.equal(state.closed, 0)
+})
+test("failed ordinary image decoding revokes its object URL and never uploads the source", async (t) => {
+  state.decodeError = true
+  const previousImage = globalThis.Image
+  globalThis.Image = class {
+    set src(value) {
+      queueMicrotask(() => this.onerror())
+    }
+  }
+  t.after(() => {
+    globalThis.Image = previousImage
+  })
+  t.mock.method(URL, "createObjectURL", () => "blob:invalid-image")
+  const revoked = t.mock.method(URL, "revokeObjectURL", () => {})
+  const form = new FormData()
+  form.set("image", original())
+  await assert.rejects(
+    prepareImageUploads(form, "product"),
+    /Không thể đọc ảnh/
+  )
+  assert.equal(revoked.mock.calls[0].arguments[0], "blob:invalid-image")
+  assert.equal(state.canvases.length, 0)
   assert.equal(grants.batches.length, 0)
   assert.equal(state.uploads.length, 0)
 })

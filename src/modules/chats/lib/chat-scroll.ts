@@ -8,6 +8,22 @@ export type ChatScrollPosition = {
 
 export const CHAT_MESSAGE_RENDER_WINDOW = 150
 
+/** Reveal an older toast/reply target directly from the already downloaded history. */
+export function chatMessageStartForTarget(
+  messages: ChatMessage[],
+  targetId: string,
+  currentStartId: string | null
+): string | null {
+  const targetIndex = messages.findIndex(({ id }) => id === targetId)
+  const startIndex = Math.max(
+    0,
+    messages.findIndex(({ id }) => id === currentStartId)
+  )
+  return targetIndex >= 0 && targetIndex < startIndex
+    ? messages[Math.max(0, targetIndex - 10)].id
+    : currentStartId
+}
+
 /** Keep all history cached while only mounting a useful initial part of a long thread. */
 export function initialChatMessageStart(
   messages: ChatMessage[],

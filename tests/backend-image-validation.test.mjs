@@ -42,7 +42,7 @@ export const invalidateQueries=()=>{}
 export const updateAvatar=async(...args)=>{calls.push(args);return{message:'Saved'}}
 export const updatePassword=()=>{}; export const updateProfile=()=>{}; export const updateShop=()=>{}; export const createShopOwnerUpgrade=()=>{}
 export const profileRoutes={avatar:'/private/me/avatar',shopAvatar:'/private/shop/avatar'}
-export async function apiFetch(request){calls.push(request);if(request.method==='DELETE')return{};return state.response ?? {uploads:request.body.uploads.map((_,i)=>({token:'token-'+i,url:'https://storage.example.test/key-'+i+'?signature=abc',headers:{'Content-Type':'image/webp'},asset_url:'https://media.example.test/key-'+i+'.webp'}))}}
+export async function apiFetch(request){calls.push(request);if(request.method==='DELETE')return{};return state.response ?? {uploads:request.body.uploads.map((upload,i)=>({token:'token-'+i,url:'https://storage.example.test/key-'+i+'?signature=abc',headers:{'Content-Type':upload.content_type},asset_url:'https://media.example.test/key-'+i+'.'+({'image/webp':'webp','image/jpeg':'jpg','image/png':'png'}[upload.content_type])}))}}
 export const wssFetch=apiFetch
 `)
 const { calls, state } = await import(api)
@@ -121,40 +121,51 @@ test("URL references reject temporary signatures, credentials, data URLs and ins
   ])
     assert.equal(avatarUploadSchema.safeParse({ avatar }).success, false)
 })
-test("upload session requests contain only prepared WebP descriptors bounded for each purpose", async () => {
+test("upload sessions accept WebP and iOS JPEG or PNG fallbacks with the same 20 KiB cap for each purpose", async () => {
   for (const [purpose, size] of [
     ["product", 20 * 1024],
     ["avatar", 20 * 1024],
     ["review", 20 * 1024],
     ["chat", 20 * 1024],
   ]) {
-    const uploads = [
-      { size, content_type: "image/webp", filename: "prepared.webp" },
-    ]
-    const result = await requestImageUploadsAction(purpose, uploads)
-    assert.equal(result.success, true)
-    assert.deepEqual(calls.at(-1).body, { purpose, uploads })
-    assert.equal(
-      calls.at(-1).path,
-      purpose === "chat" ? "/chat-uploads/images" : "/private/uploads/images"
-    )
-    assert.deepEqual(result.data.tokens, ["token-0"])
-    assert.equal(
-      (
-        await requestImageUploadsAction(purpose, [
-          { ...uploads[0], size: size + 1 },
-        ])
-      ).success,
-      false
-    )
-    assert.equal(
-      (
-        await requestImageUploadsAction(purpose, [
-          { ...uploads[0], content_type: "image/jpeg" },
-        ])
-      ).success,
-      false
-    )
+    for (const [mime, extension] of [
+      ["image/webp", "webp"],
+      ["image/jpeg", "jpg"],
+      ["image/png", "png"],
+    ]) {
+      const uploads = [
+        { size, content_type: mime, filename: `prepared.${extension}` },
+      ]
+      const result = await requestImageUploadsAction(purpose, uploads)
+      assert.equal(result.success, true)
+      assert.deepEqual(calls.at(-1).body, { purpose, uploads })
+      assert.equal(
+        calls.at(-1).path,
+        purpose === "chat" ? "/chat-uploads/images" : "/private/uploads/images"
+      )
+      assert.deepEqual(result.data.tokens, ["token-0"])
+      assert.equal(result.data.uploads[0].headers["Content-Type"], mime)
+      assert.match(
+        result.data.uploads[0].asset_url,
+        new RegExp(`\\.${extension}$`)
+      )
+      assert.equal(
+        (
+          await requestImageUploadsAction(purpose, [
+            { ...uploads[0], size: size + 1 },
+          ])
+        ).success,
+        false
+      )
+      assert.equal(
+        (
+          await requestImageUploadsAction(purpose, [
+            { ...uploads[0], content_type: "image/gif" },
+          ])
+        ).success,
+        false
+      )
+    }
   }
 })
 test("unknown session fields are stripped and malformed storage headers release reservations", async () => {

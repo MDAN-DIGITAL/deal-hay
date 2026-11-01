@@ -45,6 +45,7 @@ import {
 import { ChatReplyPreview } from "@/modules/chats/components/chat-reply-preview"
 import {
   CHAT_MESSAGE_RENDER_WINDOW,
+  chatMessageStartForTarget,
   initialChatMessageStart,
   type ChatScrollPosition,
 } from "@/modules/chats/lib/chat-scroll"
@@ -88,6 +89,7 @@ export function ChatMessageList({
   onReply,
   getScrollPosition,
   onScrollPositionChange,
+  focusMessage,
 }: {
   conversationSlug: string
   currentUserId: string
@@ -97,6 +99,7 @@ export function ChatMessageList({
   onReply: (message: ChatMessage) => void
   getScrollPosition: (slug: string) => ChatScrollPosition | undefined
   onScrollPositionChange: (slug: string, position: ChatScrollPosition) => void
+  focusMessage?: { id: string; requestId: number }
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -110,17 +113,25 @@ export function ChatMessageList({
   const [firstRenderedMessageId, setFirstRenderedMessageId] = useState(() =>
     initialChatMessageStart(messages, getScrollPosition(conversationSlug))
   )
+  const displayedStartId = focusMessage
+    ? chatMessageStartForTarget(
+        messages,
+        focusMessage.id,
+        firstRenderedMessageId
+      )
+    : firstRenderedMessageId
   const startIndex = Math.max(
     0,
-    messages.findIndex(({ id }) => id === firstRenderedMessageId)
+    messages.findIndex(({ id }) => id === displayedStartId)
   )
   const visibleMessages = messages.slice(startIndex)
-  const firstRenderedIdRef = useRef(firstRenderedMessageId)
+  const firstRenderedIdRef = useRef(displayedStartId)
   const atBottomRef = useRef(true)
   const previousLastMessageId = useRef(lastMessageId)
+  const focusedRequest = useRef<number | null>(null)
   useLayoutEffect(() => {
-    firstRenderedIdRef.current = firstRenderedMessageId
-  }, [firstRenderedMessageId])
+    firstRenderedIdRef.current = displayedStartId
+  }, [displayedStartId])
   useLayoutEffect(() => {
     const viewport = containerRef.current?.querySelector<HTMLElement>(
       '[data-slot="scroll-area-viewport"]'
@@ -186,9 +197,13 @@ export function ChatMessageList({
   }
 
   const jumpToMessage = (id: string) => {
-    const index = messages.findIndex((message) => message.id === id)
-    if (index >= 0 && index < startIndex) {
-      setFirstRenderedMessageId(messages[Math.max(0, index - 10)].id)
+    const firstId = chatMessageStartForTarget(
+      messages,
+      id,
+      firstRenderedMessageId
+    )
+    if (firstId !== firstRenderedMessageId) {
+      setFirstRenderedMessageId(firstId)
       window.requestAnimationFrame(() =>
         window.requestAnimationFrame(() => highlightMessage(id))
       )
@@ -196,6 +211,29 @@ export function ChatMessageList({
     }
     highlightMessage(id)
   }
+
+  useLayoutEffect(() => {
+    if (!focusMessage || focusedRequest.current === focusMessage.requestId)
+      return
+    if (!messages.some(({ id }) => id === focusMessage.id)) return
+    const element = messageElements.current.get(focusMessage.id)
+    if (!element) return
+    atBottomRef.current = false
+    const frame = window.requestAnimationFrame(() => {
+      if (!element.isConnected) return
+      focusedRequest.current = focusMessage.requestId
+      setFirstRenderedMessageId(displayedStartId)
+      element.scrollIntoView({ behavior: "instant", block: "center" })
+      element.focus({ preventScroll: true })
+      setHighlightedMessageId(focusMessage.id)
+      if (highlightTimeout.current) clearTimeout(highlightTimeout.current)
+      highlightTimeout.current = setTimeout(
+        () => setHighlightedMessageId(null),
+        2000
+      )
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [focusMessage, messages, displayedStartId])
 
   useLayoutEffect(() => {
     if (

@@ -17,6 +17,8 @@ const react = moduleUrl(`
 const dependencies = moduleUrl(`
   export const useRouter=()=>globalThis.__toastHarness.router
   export const toast=(title,options)=>globalThis.__toastHarness.toasts.push({title,options})
+  export const showRealtimeToast=(options)=>globalThis.__toastHarness.toasts.push(options)
+  export const navigateToChat=(href,push)=>push(href)
   export const refreshUnreadCountsAction=async()=>null
   export const refreshNotificationCountAction=async()=>null
   export const loadRealtimeConfigAction=async()=>globalThis.__toastHarness.config
@@ -29,11 +31,32 @@ const dependencies = moduleUrl(`
   })
   export const createSocketRealtimeClient=()=>globalThis.__toastHarness.client
 `)
+const jsx = moduleUrl(
+  "export const jsx=(type,props)=>({type,props});export const jsxs=jsx"
+)
+function transpile(file, imports) {
+  return moduleUrl(
+    ts
+      .transpileModule(readFileSync(new URL(file, import.meta.url), "utf8"), {
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2022,
+          module: ts.ModuleKind.ESNext,
+          jsx: ts.JsxEmit.ReactJSX,
+        },
+      })
+      .outputText.replace(/from (["'])([^"']+)\1/g, (_, quote, name) => {
+        assert.ok(imports[name], `Unexpected import: ${name}`)
+        return `from ${quote}${imports[name]}${quote}`
+      })
+      .replace(/import\((["'])([^"']+)\1\)/g, (_, quote, name) => {
+        assert.ok(imports[name], `Unexpected dynamic import: ${name}`)
+        return `import(${quote}${imports[name]}${quote})`
+      })
+  )
+}
 const imports = {
   react,
-  "react/jsx-runtime": moduleUrl(
-    "export const jsx=(type,props)=>({type,props});export const jsxs=jsx"
-  ),
+  "react/jsx-runtime": jsx,
   "next/navigation": dependencies,
   sonner: dependencies,
   "@/modules/chats/actions": dependencies,
@@ -41,35 +64,29 @@ const imports = {
   "@/modules/realtime/hooks/use-notification-sound": dependencies,
   "@/modules/realtime/hooks/use-unread-tab-title": dependencies,
   "@/lib/socket-realtime-client": dependencies,
+  "@/components/realtime-toast": dependencies,
+  "@/modules/chats/lib/chat-navigation": dependencies,
+  "@/modules/realtime/lib/toast-destination": transpile(
+    "../src/modules/realtime/lib/toast-destination.ts",
+    {}
+  ),
 }
-const source = ts
-  .transpileModule(
-    readFileSync(
-      new URL("../src/components/realtime-provider.tsx", import.meta.url),
-      "utf8"
-    ),
-    {
-      compilerOptions: {
-        target: ts.ScriptTarget.ES2022,
-        module: ts.ModuleKind.ESNext,
-        jsx: ts.JsxEmit.ReactJSX,
-      },
-    }
-  )
-  .outputText.replace(/from (["'])([^"']+)\1/g, (_, quote, name) => {
-    assert.ok(imports[name], `Unexpected import: ${name}`)
-    return `from ${quote}${imports[name]}${quote}`
-  })
-  .replace(/import\((["'])([^"']+)\1\)/g, (_, quote, name) => {
-    assert.ok(imports[name], `Unexpected dynamic import: ${name}`)
-    return `import(${quote}${imports[name]}${quote})`
-  })
-const { RealtimeProvider } = await import(moduleUrl(source))
+const { RealtimeProvider } = await import(
+  transpile("../src/components/realtime-provider.tsx", imports)
+)
+const { chatToastHref, notificationToastHref, toastAvatar } = await import(
+  imports["@/modules/realtime/lib/toast-destination"]
+)
 const settle = async () => {
   for (let step = 0; step < 12; step++) await Promise.resolve()
 }
 
 async function mount(t, { muted = false } = {}) {
+  const previousWindow = globalThis.window
+  globalThis.window = { location: { origin: "https://dealhay.example.test" } }
+  t.after(() => {
+    globalThis.window = previousWindow
+  })
   const slots = []
   let cursor = 0
   let effects = []
@@ -176,25 +193,33 @@ const message = (overrides = {}) => ({
   id: "message-id",
   conversation_id: "conversation-id",
   body: " Xin chào! ",
-  sender: { id: "other-user", name: "Cửa hàng" },
+  sender: {
+    id: "other-user",
+    name: "Cửa hàng",
+    avatar_url: "/api/media/assets/shop/avatar.webp",
+  },
   read_at: null,
   attachment: null,
   product: null,
   ...overrides,
 })
 
-test("incoming chat displays sender, preview and a safe action even while sound is muted", async (t) => {
+test("incoming chat includes the sender avatar and opens its exact message even while sound is muted", async (t) => {
   const page = await mount(t, { muted: true })
   page.emit("message", message())
   assert.equal(page.toasts.length, 1)
-  const { title, options } = page.toasts[0]
+  const { title, description, id, avatar, onOpen } = page.toasts[0]
   assert.equal(title, "Tin nhắn mới từ Cửa hàng")
-  assert.equal(options.description, "Xin chào!")
-  assert.equal(options.id, "message:message-id")
-  assert.equal(options.duration, 6000)
-  assert.equal(options.action.label, "Xem")
-  options.action.onClick()
-  assert.deepEqual(page.destinations, ["/chats"])
+  assert.equal(description, "Xin chào!")
+  assert.equal(id, "message:message-id")
+  assert.deepEqual(avatar, {
+    name: "Cửa hàng",
+    src: "/api/media/assets/shop/avatar.webp",
+  })
+  onOpen()
+  assert.deepEqual(page.destinations, [
+    "/chats?conversation=conversation-id&message=message-id",
+  ])
   assert.deepEqual(page.sounds, [])
 })
 
@@ -218,7 +243,8 @@ test("images, videos, files, shared products and empty messages have useful toas
       })
     )
     assert.equal(page.toasts.at(-1).title, "Tin nhắn mới")
-    assert.equal(page.toasts.at(-1).options.description, expected)
+    assert.equal(page.toasts.at(-1).description, expected)
+    assert.deepEqual(page.toasts.at(-1).avatar, { name: "Tin nhắn", src: null })
   }
 })
 
@@ -266,12 +292,12 @@ test("business notifications fall back to a title and have a distinct ID from ch
   page.emit("notification", notification)
   page.emit("notification", notification)
   assert.equal(page.toasts.length, 2)
-  const { title, options } = page.toasts[1]
+  const { title, description, id, avatar, onOpen } = page.toasts[1]
   assert.equal(title, "Thông báo mới")
-  assert.equal(options.id, "notification:same-id")
-  assert.equal(options.description, notification.body)
-  assert.equal(options.duration, 6000)
-  options.action.onClick()
+  assert.equal(id, "notification:same-id")
+  assert.equal(description, notification.body)
+  assert.deepEqual(avatar, { name: "Thông báo", src: null })
+  onOpen()
   assert.deepEqual(page.destinations, ["/notifications"])
   page.emit("notification", {
     id: "read-notification",
@@ -285,11 +311,183 @@ test("business notifications fall back to a title and have a distinct ID from ch
 test("long Unicode message previews are bounded without splitting emoji", async (t) => {
   const page = await mount(t)
   page.emit("message", message({ body: "😀".repeat(200) }))
-  const preview = page.toasts[0].options.description
+  const preview = page.toasts[0].description
   assert.ok(preview.endsWith("…"))
   assert.ok(Array.from(preview).length <= 160)
   assert.doesNotMatch(
     preview,
     /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u
   )
+})
+
+test("chat notifications use their conversation and message metadata with the actor avatar", async (t) => {
+  const page = await mount(t)
+  page.emit("notification", {
+    id: "notification-id",
+    title: "Admin vừa trả lời",
+    action_url: "/notifications",
+    data: {
+      conversation_id: "conversation-admin",
+      message_id: "admin-reply",
+      sender: {
+        name: "Quản trị viên",
+        avatar_url: "https://images.example.test/admin.jpg",
+      },
+    },
+  })
+  const notification = page.toasts[0]
+  assert.deepEqual(notification.avatar, {
+    name: "Quản trị viên",
+    src: "https://images.example.test/admin.jpg",
+  })
+  notification.onOpen()
+  assert.deepEqual(page.destinations, [
+    "/chats?conversation=conversation-admin&message=admin-reply",
+  ])
+})
+
+test("business notifications open their safe destination rather than an unrelated chat", async (t) => {
+  const page = await mount(t)
+  page.emit("notification", {
+    id: "order-id",
+    title: "Đơn hàng mới",
+    action_url: "https://dealhay.example.test/shop-manage?tab=orders#order-id",
+    sender: {
+      name: "Người mua",
+      avatar_url: "/api/media/assets/buyer/avatar.jpg",
+    },
+  })
+  page.toasts[0].onOpen()
+  assert.deepEqual(page.destinations, ["/shop-manage?tab=orders#order-id"])
+  assert.deepEqual(page.toasts[0].avatar, {
+    name: "Người mua",
+    src: "/api/media/assets/buyer/avatar.jpg",
+  })
+})
+
+test("toast destinations reject unsafe links and invalid chat identifiers", () => {
+  const origin = "https://dealhay.example.test"
+  for (const action_url of [
+    "javascript:alert(1)",
+    "data:text/html,hello",
+    "//outside.example.test/chats",
+    "https://outside.example.test/chats",
+    "https://user:pass@dealhay.example.test/chats",
+    "/\\outside.example.test/chats",
+    " /chats",
+    "/chats\n",
+    "chats",
+    "#chat",
+  ])
+    assert.equal(
+      notificationToastHref({ action_url }, origin),
+      "/notifications",
+      action_url
+    )
+  assert.equal(
+    notificationToastHref(
+      { data: { action_url: "/shop-manage?tab=orders" } },
+      origin
+    ),
+    "/shop-manage?tab=orders"
+  )
+  assert.equal(
+    chatToastHref({ conversation_id: "../private", message_id: "m1" }),
+    null
+  )
+  assert.equal(
+    chatToastHref({
+      conversation_id: "room",
+      message_id: "m&conversation=other",
+    }),
+    "/chats?conversation=room"
+  )
+  assert.equal(
+    chatToastHref({ data: { conversation_id: "room", message_id: "m-1" } }),
+    "/chats?conversation=room&message=m-1"
+  )
+})
+
+test("toast avatars use safe actor metadata and retain initials when an image is missing or unsafe", () => {
+  assert.deepEqual(
+    toastAvatar(
+      { sender: { name: " Cửa hàng ", avatar_url: "javascript:alert(1)" } },
+      "Thông báo"
+    ),
+    { name: "Cửa hàng", src: null }
+  )
+  assert.deepEqual(
+    toastAvatar(
+      { data: { avatar_url: "/api/media/assets/shop.jpg" } },
+      "Thông báo"
+    ),
+    { name: "Thông báo", src: "/api/media/assets/shop.jpg" }
+  )
+  assert.deepEqual(
+    toastAvatar(
+      { avatar_url: "//outside.example.test/avatar.jpg" },
+      "Thông báo"
+    ),
+    { name: "Thông báo", src: null }
+  )
+})
+
+const widgetSonner = moduleUrl(`
+  export const toast={
+    dismiss:(id)=>globalThis.__toastWidget.dismissed.push(id),
+    custom:(render,options)=>{
+      globalThis.__toastWidget.options=options
+      globalThis.__toastWidget.element=render(options.id)
+      return options.id
+    }
+  }
+`)
+const { RealtimeToast, showRealtimeToast } = await import(
+  transpile("../src/components/realtime-toast.tsx", {
+    "react/jsx-runtime": jsx,
+    sonner: widgetSonner,
+    "lucide-react": moduleUrl('export const XIcon="close-icon"'),
+    "@/components/user-avatar": moduleUrl(
+      'export const UserAvatar="user-avatar"'
+    ),
+  })
+)
+function nodes(element) {
+  if (!element || typeof element !== "object") return []
+  return [element, ...[].concat(element.props?.children ?? []).flatMap(nodes)]
+}
+test("the entire toast content is a keyboard accessible avatar button and dismissal does not navigate", () => {
+  globalThis.__toastWidget = { dismissed: [] }
+  let opened = 0
+  const props = {
+    id: "message:m1",
+    title: "Tin nhắn mới",
+    description: "Xin chào",
+    avatar: { name: "Shop", src: "/shop.jpg" },
+    onOpen: () => opened++,
+  }
+  showRealtimeToast(props)
+  assert.equal(globalThis.__toastWidget.options.id, props.id)
+  assert.equal(globalThis.__toastWidget.options.duration, 6000)
+  const tree = RealtimeToast(globalThis.__toastWidget.element.props)
+  const buttons = nodes(tree).filter(({ type }) => type === "button")
+  assert.equal(buttons.length, 2)
+  const [open, dismiss] = buttons
+  assert.equal(open.props.type, "button")
+  assert.equal(dismiss.props.type, "button")
+  assert.equal(dismiss.props["aria-label"], "Đóng thông báo")
+  assert.equal(
+    nodes(open).filter(({ type }) => type === "button").length,
+    1,
+    "buttons must be siblings, never nested"
+  )
+  const avatar = nodes(open).find(({ type }) => type === "user-avatar")
+  assert.equal(avatar.props.name, "Shop")
+  assert.equal(avatar.props.src, "/shop.jpg")
+  dismiss.props.onClick()
+  assert.equal(opened, 0)
+  assert.deepEqual(globalThis.__toastWidget.dismissed, [props.id])
+  open.props.onClick()
+  assert.equal(opened, 1)
+  assert.deepEqual(globalThis.__toastWidget.dismissed, [props.id, props.id])
 })

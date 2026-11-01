@@ -32,6 +32,13 @@ import { ChatComposer } from "@/modules/chats/components/chat-composer"
 import { ChatConversationList } from "@/modules/chats/components/chat-conversation-list"
 import { ChatMessageList } from "@/modules/chats/components/chat-message-list"
 import type { ChatScrollPosition } from "@/modules/chats/lib/chat-scroll"
+import {
+  CHAT_NAVIGATION_EVENT,
+  navigateToChat,
+  parseChatNavigationTarget,
+  resolveChatNavigationTarget,
+  type ChatNavigationTarget,
+} from "@/modules/chats/lib/chat-navigation"
 import { useChatRealtime } from "@/modules/chats/hooks/use-chat-realtime"
 import {
   createChatState,
@@ -109,38 +116,64 @@ export function ChatsPageClient({
   const [openedConversationSlugs, setOpenedConversationSlugs] = useState(
     () => new Set(selectedConversation ? [selectedConversation.slug] : [])
   )
+  const [navigation, setNavigation] = useState<{
+    target: ChatNavigationTarget | null
+    requestId: number
+  }>({ target: null, requestId: 0 })
   useEffect(() => {
     const restoreSelection = () => {
-      const path = window.location.pathname
-      const slug = path.startsWith("/chats/")
-        ? decodeURIComponent(path.slice(7))
-        : undefined
-      setState((current) => selectChatConversation(current, slug))
-      if (slug)
-        setOpenedConversationSlugs((current) => new Set([...current, slug]))
+      const target = parseChatNavigationTarget(
+        window.location.pathname,
+        window.location.search
+      )
+      setNavigation((current) => ({ target, requestId: current.requestId + 1 }))
     }
+    restoreSelection()
     window.addEventListener("popstate", restoreSelection)
-    return () => window.removeEventListener("popstate", restoreSelection)
+    window.addEventListener(CHAT_NAVIGATION_EVENT, restoreSelection)
+    return () => {
+      window.removeEventListener("popstate", restoreSelection)
+      window.removeEventListener(CHAT_NAVIGATION_EVENT, restoreSelection)
+    }
   }, [])
 
-  const selectConversation = useCallback(
-    (slug?: string) => {
-      setState((current) => selectChatConversation(current, slug))
-      const conversation = state.conversations.find(
-        (item) => item.slug === slug
-      )
+  useEffect(() => {
+    if (!navigation.target) return
+    const conversation = resolveChatNavigationTarget(
+      state.conversationCache,
+      navigation.target
+    )
+    if (
+      conversation?.id === state.selectedConversation?.id &&
+      (!conversation || openedConversationSlugs.has(conversation.slug))
+    )
+      return
+    const frame = window.requestAnimationFrame(() => {
+      setState((current) => selectChatConversation(current, conversation?.slug))
       if (conversation)
-        setOpenedConversationSlugs(
-          (current) => new Set([...current, conversation.slug])
+        setOpenedConversationSlugs((current) =>
+          current.has(conversation.slug)
+            ? current
+            : new Set([...current, conversation.slug])
         )
-      window.history.pushState(
-        null,
-        "",
-        slug ? `/chats/${encodeURIComponent(slug)}` : "/chats"
-      )
-    },
-    [state.conversations]
-  )
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [
+    navigation,
+    openedConversationSlugs,
+    state.conversationCache,
+    state.selectedConversation?.id,
+  ])
+
+  const selectConversation = useCallback((slug?: string) => {
+    setState((current) => selectChatConversation(current, slug))
+    if (slug)
+      setOpenedConversationSlugs((current) => new Set([...current, slug]))
+    navigateToChat(
+      slug ? `/chats/${encodeURIComponent(slug)}` : "/chats",
+      () => {}
+    )
+  }, [])
 
   const conversationItems = state.conversations
   const activeConversation = state.selectedConversation
@@ -158,6 +191,7 @@ export function ChatsPageClient({
   const conversationSlug = activeConversation?.slug
   const markAsReadRef = useRef<() => void>(() => {})
   const reading = useRef(new Set<string>())
+  const requestedNavigation = useRef(0)
 
   useEffect(() => {
     mounted.current = true
@@ -199,6 +233,24 @@ export function ChatsPageClient({
       synchronization.current = null
     })
   }, [synchronizeUnreadCounts])
+
+  useEffect(() => {
+    const target = navigation.target
+    if (!target?.conversationId && !target?.conversationSlug) return
+    const conversation = resolveChatNavigationTarget(
+      state.conversationCache,
+      target
+    )
+    if (
+      conversation &&
+      (!target.messageId ||
+        conversation.messages.some(({ id }) => id === target.messageId))
+    )
+      return
+    if (requestedNavigation.current === navigation.requestId) return
+    requestedNavigation.current = navigation.requestId
+    synchronize()
+  }, [navigation, state.conversationCache, synchronize])
 
   const markAsRead = useCallback(
     (showConfirmation = false, socketId?: string) => {
@@ -541,6 +593,14 @@ export function ChatsPageClient({
                       key={`messages-${activeConversation.id}`}
                       conversationSlug={activeConversation.slug}
                       currentUserId={currentUserId}
+                      focusMessage={
+                        navigation.target?.messageId
+                          ? {
+                              id: navigation.target.messageId,
+                              requestId: navigation.requestId,
+                            }
+                          : undefined
+                      }
                       getScrollPosition={getScrollPosition}
                       onScrollPositionChange={saveScrollPosition}
                       messages={activeConversation.messages}

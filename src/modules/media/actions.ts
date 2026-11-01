@@ -57,7 +57,7 @@ export async function requestImageUploadsAction(
           .int()
           .min(1)
           .max(20 * 1024),
-        content_type: z.literal("image/webp"),
+        content_type: z.enum(["image/webp", "image/jpeg", "image/png"]),
         filename: z.string().min(1).max(255).optional(),
       })
     )

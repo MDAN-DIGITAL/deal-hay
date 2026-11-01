@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Geist_Mono, Inter } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
 
 import "@/app/globals.css"
 import { SiteFooter } from "@/components/layout/site-footer"
@@ -61,6 +62,7 @@ export function SiteDocument({
             </SessionProvider>
           </TooltipProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )

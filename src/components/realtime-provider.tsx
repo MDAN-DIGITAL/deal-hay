@@ -13,9 +13,10 @@ import type { Dispatch, SetStateAction } from "react"
 import type { RealtimeClient } from "@/lib/realtime-client"
 import type { ConnectionStatus } from "@/lib/realtime-client"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 
 import type { RealtimeConfig } from "@/api/chats/types"
+import { showRealtimeToast } from "@/components/realtime-toast"
+import { navigateToChat } from "@/modules/chats/lib/chat-navigation"
 import {
   refreshUnreadCountsAction,
   refreshNotificationCountAction,
@@ -26,6 +27,11 @@ import {
 } from "@/modules/realtime/actions"
 import { useNotificationSound } from "@/modules/realtime/hooks/use-notification-sound"
 import { useUnreadTabTitle } from "@/modules/realtime/hooks/use-unread-tab-title"
+import {
+  chatToastHref,
+  notificationToastHref,
+  toastAvatar,
+} from "@/modules/realtime/lib/toast-destination"
 import type { UnreadCounts } from "@/types/auth"
 
 type RealtimeConnection = {
@@ -326,18 +332,18 @@ export function RealtimeProvider({
             const senderName = toastPreview(
               "name" in payload.sender ? payload.sender.name : undefined
             )
-            toast(
-              senderName ? `Tin nhắn mới từ ${senderName}` : "Tin nhắn mới",
-              {
-                id: `message:${payload.id}`,
-                description: messageToastDescription(payload),
-                duration: 6000,
-                action: {
-                  label: "Xem",
-                  onClick: () => router.push("/chats"),
-                },
-              }
-            )
+            const destination =
+              chatToastHref({ ...payload, message_id: payload.id }) ?? "/chats"
+            showRealtimeToast({
+              id: `message:${payload.id}`,
+              title: senderName
+                ? `Tin nhắn mới từ ${senderName}`
+                : "Tin nhắn mới",
+              description: messageToastDescription(payload),
+              avatar: toastAvatar(payload, "Tin nhắn"),
+              onOpen: () =>
+                navigateToChat(destination, (href) => router.push(href)),
+            })
             void synchronizeUnreadCounts()
           })
           .listen(".messages.read", (payload: unknown) => {
@@ -398,21 +404,29 @@ export function RealtimeProvider({
               notifications: previous.notifications + 1,
             }))
             playNotificationSound(`notification:${payload.id}`)
-            toast(
-              toastPreview("title" in payload ? payload.title : undefined) ??
+            showRealtimeToast({
+              id: `notification:${payload.id}`,
+              title:
+                toastPreview("title" in payload ? payload.title : undefined) ??
                 "Thông báo mới",
-              {
-                id: `notification:${payload.id}`,
-                description: toastPreview(
-                  "body" in payload ? payload.body : undefined
-                ),
-                duration: 6000,
-                action: {
-                  label: "Xem",
-                  onClick: () => router.push("/notifications"),
-                },
-              }
-            )
+              description: toastPreview(
+                "body" in payload ? payload.body : undefined
+              ),
+              avatar: toastAvatar(payload, "Thông báo"),
+              onOpen: () => {
+                const destination = notificationToastHref(
+                  payload,
+                  window.location.origin
+                )
+                if (
+                  destination === "/chats" ||
+                  destination.startsWith("/chats/") ||
+                  destination.startsWith("/chats?")
+                )
+                  navigateToChat(destination, (href) => router.push(href))
+                else router.push(destination)
+              },
+            })
             void synchronizeUnreadCounts()
           })
           .listen(".notifications.read", () => void synchronizeUnreadCounts())
