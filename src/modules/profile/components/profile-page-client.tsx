@@ -1,5 +1,7 @@
 "use client"
 
+import { Badge } from "@/components/ui/badge"
+
 import { useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -332,34 +334,34 @@ export function ProfilePageClient({ tab, user }: { tab?: string; user: User }) {
         title="Tài khoản của tôi"
         description="Quản lý hồ sơ, bảo mật và quyền bán hàng của bạn tại một nơi."
       />
-      <Card className="bg-foreground text-background ring-0">
-        <CardContent className="flex-col items-start gap-5 sm:flex-row sm:items-center">
+      <Card>
+        <CardContent className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
           <UserAvatar
-            className="size-20 border-4 border-background/10"
+            className="size-16"
             name={user.full_name}
             size="lg"
             src={user.avatar_url}
           />
           <div className="min-w-0 flex-1">
-            <p className="font-heading text-2xl font-semibold">
+            <p className="text-xl font-semibold tracking-tight">
               {user.full_name}
             </p>
-            <p className="mt-1 text-sm text-background/60">
+            <p className="mt-1 text-sm break-all text-muted-foreground">
               {user.email} · {user.user_code}
             </p>
           </div>
-          <div className="rounded-lg bg-background/10 px-3 py-2 text-xs font-medium">
+          <Badge variant="secondary">
             {user.role === "shop_owner"
               ? "Chủ cửa hàng"
               : user.role === "administrator"
                 ? "Quản trị viên"
                 : "Khách hàng"}
-          </div>
+          </Badge>
         </CardContent>
       </Card>
 
       <Tabs key={defaultTab} defaultValue={defaultTab}>
-        <TabsList className="grid h-auto w-full grid-cols-2 sm:w-fit sm:grid-cols-3">
+        <TabsList className="grid w-full auto-cols-fr grid-flow-col sm:w-fit">
           <TabsTrigger value="profile">
             <UserRoundIcon /> Hồ sơ
           </TabsTrigger>
@@ -367,7 +369,7 @@ export function ProfilePageClient({ tab, user }: { tab?: string; user: User }) {
             <KeyRoundIcon /> Bảo mật
           </TabsTrigger>
           {user.role === "customer" ? (
-            <TabsTrigger className="col-span-2 sm:col-span-1" value="seller">
+            <TabsTrigger value="seller">
               <StoreIcon /> Bán hàng
             </TabsTrigger>
           ) : null}

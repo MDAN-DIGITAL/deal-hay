@@ -1,17 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { useState } from "react"
-import {
-  BadgeCheckIcon,
-  ChevronDownIcon,
-  BellIcon,
-  MessageCircleIcon,
-  ShieldCheckIcon,
-  StoreIcon,
-  TicketPercentIcon,
-  TruckIcon,
-} from "lucide-react"
+import { BellIcon, ChevronDownIcon, MessageCircleIcon } from "lucide-react"
 
 import { useSession } from "@/components/session-provider"
 import { ServerPing } from "@/components/layout/server-ping"
@@ -24,111 +16,89 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { Brand } from "@/components/ui/brand"
 import { MobileNavigation } from "@/components/layout/mobile-navigation"
 import { NotificationSoundToggle } from "@/components/layout/notification-sound-toggle"
 import { SignOutButton } from "@/components/layout/sign-out-button"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
-import { UnreadNavigationLink } from "@/components/layout/unread-count-badge"
-import { buttonVariants } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
+import {
+  UnreadCountBadge,
+  UnreadNavigationLink,
+} from "@/components/layout/unread-count-badge"
 import { UserAvatar } from "@/components/user-avatar"
 
-const navigation = [
+type NavigationItem = {
+  href: string
+  label: string
+  unreadKey?: "messages" | "notifications"
+}
+
+const navigation: NavigationItem[] = [
   { href: "/", label: "Khám phá" },
   { href: "/chats", label: "Tin nhắn", unreadKey: "messages" },
-  {
-    href: "/notifications",
-    label: "Thông báo",
-    unreadKey: "notifications",
-  },
-] as const
+  { href: "/notifications", label: "Thông báo", unreadKey: "notifications" },
+]
 
 export function SiteHeader() {
   const { user } = useSession()
+  const pathname = usePathname()
   const [accountOpen, setAccountOpen] = useState(false)
+  const items: NavigationItem[] = [
+    ...navigation,
+    ...(user ? [{ href: "/discount-codes", label: "Mã giảm giá" }] : []),
+    ...(user?.role === "shop_owner"
+      ? [{ href: "/shop-manage", label: "Kênh người bán" }]
+      : []),
+    ...(user?.role === "administrator"
+      ? [{ href: "/admin/users", label: "Quản trị" }]
+      : []),
+  ]
+  const active = (href: string) =>
+    href === "/"
+      ? pathname === "/"
+      : href.startsWith("/admin/")
+        ? pathname.startsWith("/admin/")
+        : pathname === href || pathname.startsWith(`${href}/`)
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
-      <div className="hidden border-b bg-foreground text-background lg:block">
-        <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-8 text-xs">
-          <p>Săn deal hay, mua sắm an tâm mỗi ngày</p>
-          <div className="flex items-center gap-5">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheckIcon className="size-3.5" /> Giao dịch minh bạch
-            </span>
-            <span className="flex items-center gap-1.5">
-              <TruckIcon className="size-3.5" /> Theo dõi đơn hàng
-            </span>
-            <span className="flex items-center gap-1.5">
-              <BadgeCheckIcon className="size-3.5" /> Gian hàng xác thực
-            </span>
-          </div>
-        </div>
-      </div>
-
+    <header className="sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur supports-backdrop-filter:bg-card/90">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="group flex shrink-0 items-center gap-2.5"
-          aria-label="Deal Hay - Trang chủ"
-        >
-          <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground shadow-sm transition-transform group-hover:-rotate-3">
-            D
-          </span>
-          <span className="hidden font-heading text-xl font-bold tracking-tight min-[360px]:inline">
-            Deal<span className="text-primary">Hay</span>
-          </span>
+        <Link href="/" aria-label="Deal Hay - Trang chủ">
+          <Brand compact />
         </Link>
 
-        <Separator className="hidden h-6 lg:block" orientation="vertical" />
-
         <nav
-          className="hidden items-center gap-1 lg:flex"
+          className="ml-3 hidden items-center gap-1 xl:flex"
           aria-label="Điều hướng chính"
         >
-          {navigation.map((item) => (
-            <UnreadNavigationLink
+          {items.map((item) => (
+            <Link
               key={item.href}
               href={item.href}
-              kind={"unreadKey" in item ? item.unreadKey : undefined}
-              label={item.label}
-            />
+              aria-current={active(item.href) ? "page" : undefined}
+              className={buttonVariants({
+                variant: active(item.href) ? "secondary" : "ghost",
+              })}
+            >
+              {item.label}
+              {item.unreadKey ? (
+                <UnreadCountBadge kind={item.unreadKey} />
+              ) : null}
+            </Link>
           ))}
-          {user ? (
-            <Link
-              href="/discount-codes"
-              className={buttonVariants({ variant: "ghost" })}
-            >
-              <TicketPercentIcon /> Mã giảm giá
-            </Link>
-          ) : null}
-          {user?.role === "shop_owner" ? (
-            <Link
-              href="/shop-manage"
-              className={buttonVariants({ variant: "ghost" })}
-            >
-              <StoreIcon /> Kênh người bán
-            </Link>
-          ) : null}
-          {user?.role === "administrator" ? (
-            <Link
-              href="/admin/users"
-              className={buttonVariants({ variant: "ghost" })}
-            >
-              Quản trị
-            </Link>
-          ) : null}
         </nav>
 
-        <div className="ml-auto hidden items-center gap-2 lg:flex">
+        <div className="ml-auto hidden items-center gap-1 xl:flex">
           <ThemeToggle />
           {user ? (
             <>
               <NotificationSoundToggle />
               <DropdownMenu onOpenChange={setAccountOpen}>
                 <DropdownMenuTrigger
-                  render={<Button className="h-10 gap-2" variant="ghost" />}
+                  render={
+                    <Button aria-label="Mở menu tài khoản" variant="ghost" />
+                  }
                 >
                   <UserAvatar
                     className="size-7"
@@ -137,13 +107,16 @@ export function SiteHeader() {
                     src={user.avatar_url}
                   />
                   <span className="max-w-32 truncate">{user.full_name}</span>
-                  <ChevronDownIcon className="size-3.5" />
+                  <ChevronDownIcon className="size-3.5 text-muted-foreground" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64">
                   <DropdownMenuGroup>
                     <DropdownMenuLabel className="space-y-1 text-sm">
-                      <span className="block truncate text-foreground">
+                      <span className="block truncate font-medium text-foreground">
                         {user.full_name}
+                      </span>
+                      <span className="block truncate text-xs font-normal">
+                        {user.email}
                       </span>
                       <ServerPing active={accountOpen} />
                     </DropdownMenuLabel>
@@ -157,9 +130,12 @@ export function SiteHeader() {
                       </DropdownMenuItem>
                     ) : null}
                   </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <div className="p-1">
+                    <SignOutButton className="w-full justify-start" />
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <SignOutButton />
             </>
           ) : (
             <>
@@ -176,7 +152,7 @@ export function SiteHeader() {
           )}
         </div>
 
-        <div className="ml-auto flex items-center gap-1 lg:hidden">
+        <div className="ml-auto flex items-center gap-0.5 xl:hidden">
           <UnreadNavigationLink
             badgeClassName="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px]"
             className="relative"

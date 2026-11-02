@@ -1,5 +1,7 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+
 import { useEffect, useId, useState } from "react"
 import {
   ChevronLeftIcon,
@@ -226,7 +228,11 @@ export function ShopInventoryUnitsPanel({
             <RefreshCwIcon /> Tải lại
           </Button>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/40 p-3">
+        <Surface
+          padding="none"
+          variant="muted"
+          className="flex flex-wrap items-center justify-between gap-3 p-3"
+        >
           <div className="space-y-1">
             <p className="text-sm font-medium" aria-live="polite">
               Đã chọn {selected.size}/{MAX_PRINT_UNITS} đơn vị
@@ -261,7 +267,7 @@ export function ShopInventoryUnitsPanel({
               {printing ? "Đang tạo tem..." : `In ${selected.size} tem đã chọn`}
             </Button>
           </div>
-        </div>
+        </Surface>
         <p className="text-xs leading-5 text-muted-foreground">
           In lại sử dụng đúng SKU và QR đã cấp của đơn vị đó. Thao tác in không
           tạo thêm hàng hoặc mã mới. Mã QR chỉ chứa SKU được in trên tem.
@@ -275,20 +281,24 @@ export function ShopInventoryUnitsPanel({
             hàng hóa...
           </p>
         ) : error ? (
-          <div className="space-y-3 rounded-lg border border-destructive/30 p-4">
+          <Surface padding="none" variant="danger" className="space-y-3 p-4">
             <p className="text-sm text-destructive" role="alert">
               {error}
             </p>
             <Button type="button" size="sm" variant="outline" onClick={reload}>
               Thử lại
             </Button>
-          </div>
+          </Surface>
         ) : rows.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+          <Surface
+            padding="none"
+            variant="dashed"
+            className="p-6 text-center text-sm text-muted-foreground"
+          >
             {filters.search || filters.productId !== "all"
               ? "Không tìm thấy đơn vị hàng hóa phù hợp. Thử đổi từ khóa hoặc sản phẩm."
               : "Chưa có đơn vị hàng hóa sẵn có trong kho để in tem."}
-          </div>
+          </Surface>
         ) : (
           <div className="space-y-3">
             <Table>
@@ -351,7 +361,7 @@ export function ShopInventoryUnitsPanel({
                       {formatCurrency(unit.price)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">Trong kho</Badge>
+                      <Badge variant="success">Trong kho</Badge>
                     </TableCell>
                   </TableRow>
                 ))}

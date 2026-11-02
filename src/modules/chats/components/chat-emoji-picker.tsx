@@ -4,6 +4,7 @@ import { useState, type RefObject } from "react"
 import { SmileIcon } from "lucide-react"
 
 import { InputGroupButton } from "@/components/ui/input-group"
+import { Button } from "@/components/ui/button"
 import {
   Popover,
   PopoverContent,
@@ -89,10 +90,12 @@ export function ChatEmojiPicker({
         <PopoverTitle>Emoji</PopoverTitle>
         <div className="grid grid-cols-8 gap-1">
           {EMOJI.map(([emoji, label]) => (
-            <button
+            <Button
               key={emoji}
+              variant="ghost"
+              size="icon"
               aria-label={label}
-              className="flex aspect-square w-full min-w-0 items-center justify-center rounded-md text-2xl hover:bg-accent focus-visible:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+              className="aspect-square h-auto w-full min-w-0 p-0 text-2xl"
               disabled={disabled}
               title={label}
               type="button"
@@ -111,7 +114,7 @@ export function ChatEmojiPicker({
               >
                 {emoji}
               </span>
-            </button>
+            </Button>
           ))}
         </div>
         <PopoverDescription className="text-xs">

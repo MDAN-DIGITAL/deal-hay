@@ -5,6 +5,7 @@ import Link from "next/link"
 import { PlayIcon, RefreshCwIcon, TicketPercentIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Surface } from "@/components/ui/surface"
 import { getAuthPageHref } from "@/lib/auth-redirect"
 import { readAdvertisingConsent } from "@/lib/advertising-consent"
 import {
@@ -235,9 +236,11 @@ export function ShippingRewardOffer({
   }
 
   return (
-    <section
+    <Surface
+      render={<section />}
+      variant="muted"
       aria-label="Nhận mã miễn phí vận chuyển"
-      className="space-y-3 rounded-lg border bg-muted/30 p-4"
+      className="space-y-3"
     >
       <h3 className="flex items-center gap-2 font-medium">
         <TicketPercentIcon className="size-4" /> Miễn phí vận chuyển
@@ -330,6 +333,6 @@ export function ShippingRewardOffer({
           ) : null}
         </div>
       ) : null}
-    </section>
+    </Surface>
   )
 }

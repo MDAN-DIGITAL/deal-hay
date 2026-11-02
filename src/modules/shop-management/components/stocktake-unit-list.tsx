@@ -1,5 +1,7 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+
 import { useEffect, useState } from "react"
 import {
   ChevronLeftIcon,
@@ -107,7 +109,7 @@ export function StocktakeUnitList({
           vị...
         </p>
       ) : error ? (
-        <div className="space-y-2 rounded-md border border-destructive/30 p-3">
+        <Surface padding="none" variant="danger" className="space-y-2 p-3">
           <p role="alert" className="text-xs text-destructive">
             {error}
           </p>
@@ -120,13 +122,15 @@ export function StocktakeUnitList({
           >
             Thử lại
           </Button>
-        </div>
+        </Surface>
       ) : rows.length ? (
         <ul className="max-h-64 space-y-2 overflow-auto">
           {rows.map((unit) => (
-            <li
+            <Surface
+              padding="none"
+              render={<li />}
               key={unit.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2"
+              className="flex flex-wrap items-center justify-between gap-2 p-2"
             >
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-xs break-all">{unit.sku}</p>
@@ -146,7 +150,7 @@ export function StocktakeUnitList({
                   Hoàn tác
                 </Button>
               ) : null}
-            </li>
+            </Surface>
           ))}
         </ul>
       ) : (

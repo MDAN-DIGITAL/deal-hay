@@ -40,6 +40,8 @@ WSS mặc định dùng SQLite trong RAM (`WSS_SQLITE_PATH=:memory:`). Mỗi l�
 
 ## Kiểm tra
 
+Hệ giao diện dùng chung và quy tắc `components/ui`: [design-system.md](docs/design-system.md). Toàn bộ shadcn/ui đã được cài và tùy chỉnh theo phong cách chat; màu sắc dùng token toàn cục, các trang ghép từ primitive chung.
+
 ```sh
 npm test
 npm run typecheck

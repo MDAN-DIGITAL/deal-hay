@@ -22,13 +22,13 @@ export function ProductCard({
 }: ProductCardProps) {
   return (
     <Link href={href} className="group block min-w-0">
-      <Card className="h-full gap-0 py-0 transition-all group-hover:-translate-y-1 group-hover:shadow-md">
+      <Card className="h-full gap-0 py-0">
         <div className="relative overflow-hidden">
           <MediaImage
             alt={product.name}
             className="aspect-square w-full"
             fallbackLabel="Chưa có ảnh sản phẩm"
-            imageClassName="transition-transform duration-500 group-hover:scale-105"
+            imageClassName="transition-transform duration-300 group-hover:scale-[1.02]"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             src={product.image_url}
           />

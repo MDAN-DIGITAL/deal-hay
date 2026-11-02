@@ -81,6 +81,60 @@ function MessageFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+function MessageBubble({
+  className,
+  align = "start",
+  continuesPrevious = false,
+  continuesNext = false,
+  ...props
+}: React.ComponentProps<"div"> & {
+  align?: "start" | "end"
+  continuesPrevious?: boolean
+  continuesNext?: boolean
+}) {
+  const outgoing = align === "end"
+  return (
+    <div
+      data-slot="message-bubble"
+      data-align={align}
+      className={cn(
+        "max-w-full min-w-0 overflow-hidden rounded-2xl border shadow-xs",
+        outgoing
+          ? "border-transparent bg-action text-action-foreground"
+          : "border-border/70 bg-card text-foreground",
+        continuesPrevious && (outgoing ? "rounded-tr-md" : "rounded-tl-md"),
+        continuesNext && (outgoing ? "rounded-br-md" : "rounded-bl-md"),
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function MessageQuote({
+  className,
+  variant = "draft",
+  ...props
+}: React.ComponentProps<"div"> & {
+  variant?: "draft" | "incoming" | "outgoing"
+}) {
+  return (
+    <div
+      data-slot="message-quote"
+      className={cn(
+        "flex min-w-0 items-start gap-2 border-l-2 p-2",
+        variant === "draft"
+          ? "max-w-sm rounded-lg border-primary/60 bg-muted/40"
+          : variant === "outgoing"
+            ? "max-w-full rounded-md border-action-foreground/50 bg-action-foreground/10 text-action-foreground"
+            : "max-w-full rounded-md border-primary/40 bg-background/65 text-foreground/80",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
 export {
   MessageGroup,
   Message,
@@ -88,4 +142,6 @@ export {
   MessageContent,
   MessageFooter,
   MessageHeader,
+  MessageBubble,
+  MessageQuote,
 }

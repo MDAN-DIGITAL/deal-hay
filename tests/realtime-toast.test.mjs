@@ -499,6 +499,8 @@ const { RealtimeToast, showRealtimeToast } = await import(
     "@/components/user-avatar": moduleUrl(
       'export const UserAvatar="user-avatar"'
     ),
+    "@/components/ui/button": moduleUrl('export const Button="button"'),
+    "@/components/ui/card": moduleUrl('export const Card="card"'),
   })
 )
 function nodes(element) {

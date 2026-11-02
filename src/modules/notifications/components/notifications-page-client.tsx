@@ -1,5 +1,7 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -282,8 +284,9 @@ export function NotificationsPageClient({
         title="Trung tâm thông báo"
       />
       {newNotificationCount > 0 ? (
-        <div
-          className="flex items-center justify-between gap-4 rounded-lg border border-primary/30 bg-primary/5 p-4"
+        <Surface
+          padding="none"
+          className="flex items-center justify-between gap-4 border-primary/30 bg-primary/5 p-4"
           role="status"
         >
           <p className="text-sm">Có {newNotificationCount} thông báo mới.</p>
@@ -293,7 +296,7 @@ export function NotificationsPageClient({
           >
             Xem mới nhất
           </Link>
-        </div>
+        </Surface>
       ) : null}
       <div ref={containerRef} className="grid gap-4 lg:grid-cols-2">
         {notificationPage.data.map((notification) => (

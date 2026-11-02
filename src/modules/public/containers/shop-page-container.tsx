@@ -25,6 +25,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { StatCard } from "@/components/ui/section"
+import { buttonVariants } from "@/components/ui/button"
 import { UserAvatar } from "@/components/user-avatar"
 import { ShopCategoryFilter } from "@/modules/public/components/shop-category-filter"
 import { ShopOffers } from "@/modules/public/components/shop-offers"
@@ -78,13 +80,12 @@ export function ShopPageContainer({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <Card className="overflow-hidden border-0 bg-foreground py-0 text-background ring-0">
-        <div className="h-24 bg-linear-to-r from-primary/80 via-primary/40 to-transparent sm:h-32" />
-        <CardContent className="-mt-8 gap-6 px-5 pb-7 sm:-mt-10 sm:px-8">
+      <Card>
+        <CardContent className="gap-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-end gap-4">
+            <div className="flex items-center gap-4">
               <UserAvatar
-                className="size-20 border-4 border-foreground bg-card shadow-lg sm:size-24"
+                className="size-16 sm:size-20"
                 name={data.shop.name}
                 size="lg"
                 src={data.shop.avatar_url}
@@ -95,21 +96,18 @@ export function ShopPageContainer({
                     {data.shop.name}
                   </h1>
                   <BadgeCheckIcon className="size-5 text-primary" />
-                  <Badge
-                    className="border-background/20 bg-background/10 text-background"
-                    variant="outline"
-                  >
+                  <Badge variant="outline">
                     <span
                       className={
                         data.shop.is_online
                           ? "size-1.5 rounded-full bg-emerald-400"
-                          : "size-1.5 rounded-full bg-background/40"
+                          : "size-1.5 rounded-full bg-muted-foreground/50"
                       }
                     />
                     {data.shop.is_online ? "Đang hoạt động" : "Ngoại tuyến"}
                   </Badge>
                 </div>
-                <p className="mt-1 flex items-start gap-1.5 text-sm text-background/65">
+                <p className="mt-1.5 flex items-start gap-1.5 text-sm text-muted-foreground">
                   <MapPinIcon className="mt-0.5 size-4 shrink-0" />{" "}
                   {data.shop.address || "Cửa hàng chưa cập nhật địa chỉ."}
                 </p>
@@ -117,33 +115,29 @@ export function ShopPageContainer({
             </div>
           </div>
 
-          <Separator className="bg-background/10" />
+          <Separator />
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {shopStats.map((stat) => (
-              <div
+              <StatCard
                 key={stat.label}
-                className="flex items-center gap-3 rounded-xl border border-background/10 bg-background/5 p-3"
-              >
-                <stat.icon className="size-5 shrink-0 text-primary" />
-                <div>
-                  <p className="font-semibold">{stat.value}</p>
-                  <p className="text-xs text-background/55">{stat.label}</p>
-                </div>
-              </div>
+                icon={<stat.icon />}
+                value={stat.value}
+                label={stat.label}
+              />
             ))}
           </div>
 
-          <div className="flex flex-col gap-2 text-sm text-background/65 sm:flex-row sm:gap-6">
+          <div className="flex flex-wrap gap-2">
             <a
-              className="flex items-center gap-2 hover:text-primary"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
               href={`mailto:${data.shop.email}`}
             >
               <MailIcon className="size-4" />
               {data.shop.email}
             </a>
             <a
-              className="flex items-center gap-2 hover:text-primary"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
               href={`tel:${data.shop.phone_number}`}
             >
               <PhoneIcon className="size-4" />

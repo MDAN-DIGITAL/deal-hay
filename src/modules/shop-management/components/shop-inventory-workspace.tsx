@@ -1,5 +1,8 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+import { StatCard } from "@/components/ui/section"
+
 import { useEffect, useRef, useState, useTransition } from "react"
 import { CameraIcon, DownloadIcon, RefreshCwIcon, SaveIcon } from "lucide-react"
 import { toast } from "sonner"
@@ -79,19 +82,15 @@ function downloadReport(session: Stocktake) {
 }
 
 function ItemResult({ item }: { item: StocktakeItem }) {
-  if (item.is_unknown) return <Badge variant="outline">Mã lạ</Badge>
+  if (item.is_unknown) return <Badge variant="warning">Mã lạ</Badge>
   const shortage = item.shortage_quantity ?? Math.max(0, -item.difference)
   const surplus = item.surplus_quantity ?? Math.max(0, item.difference)
   return (
     <div className="flex flex-wrap gap-1">
-      {shortage > 0 && (
-        <Badge variant="outline" className="text-destructive">
-          Thiếu {shortage}
-        </Badge>
-      )}
-      {surplus > 0 && <Badge variant="outline">Thừa {surplus}</Badge>}
+      {shortage > 0 && <Badge variant="destructive">Thiếu {shortage}</Badge>}
+      {surplus > 0 && <Badge variant="warning">Thừa {surplus}</Badge>}
       {shortage === 0 && surplus === 0 && (
-        <Badge variant="secondary">Đủ mã</Badge>
+        <Badge variant="success">Đủ mã</Badge>
       )}
     </div>
   )
@@ -404,12 +403,11 @@ export function ShopInventoryWorkspace({
             value: stockLines.filter((stock) => stock === 0).length,
           },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border bg-card p-4">
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {stat.value.toLocaleString("vi-VN")}
-            </p>
-          </div>
+          <StatCard
+            key={stat.label}
+            label={stat.label}
+            value={stat.value.toLocaleString("vi-VN")}
+          />
         ))}
       </div>
       <ShopInventoryUnitsPanel key={inventoryRevision} products={products} />
@@ -544,11 +542,15 @@ export function ShopInventoryWorkspace({
                 </div>
               </div>
               {!serialized && (
-                <p className="rounded-lg border p-3 text-sm text-muted-foreground">
+                <Surface
+                  padding="none"
+                  render={<p />}
+                  className="p-3 text-sm text-muted-foreground"
+                >
                   Phiên cũ ghi nhận số lượng gộp và không có công nợ theo mã
                   riêng. Mở phiên mới để kiểm kê từng đơn vị; dữ liệu lịch sử
                   được giữ nguyên.
-                </p>
+                </Surface>
               )}
               <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
                 {[
@@ -561,18 +563,23 @@ export function ShopInventoryWorkspace({
                     count: session.summary.unknown,
                   },
                 ].map((stat) => (
-                  <div key={stat.label} className="rounded-lg bg-muted/50 p-3">
+                  <Surface
+                    padding="none"
+                    variant="muted"
+                    key={stat.label}
+                    className="p-3"
+                  >
                     <p className="text-xs text-muted-foreground">
                       {stat.label}
                     </p>
                     <p className="mt-1 text-lg font-semibold tabular-nums">
                       {stat.count.toLocaleString("vi-VN")}
                     </p>
-                  </div>
+                  </Surface>
                 ))}
               </div>
               {finance && (
-                <div className="space-y-3 rounded-xl border p-4">
+                <Surface padding="none" className="space-y-3 p-4">
                   <div>
                     <p className="font-medium">
                       {session.status === "completed"
@@ -600,9 +607,11 @@ export function ShopInventoryWorkspace({
                         value: finance.net_difference_value,
                       },
                     ].map((stat) => (
-                      <div
+                      <Surface
+                        padding="none"
+                        variant="muted"
                         key={stat.label}
-                        className="rounded-lg bg-muted/50 p-3"
+                        className="p-3"
                       >
                         <p className="text-xs text-muted-foreground">
                           {stat.label}
@@ -610,7 +619,7 @@ export function ShopInventoryWorkspace({
                         <p className="mt-1 text-lg font-semibold tabular-nums">
                           {formatCurrency(stat.value)}
                         </p>
-                      </div>
+                      </Surface>
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -619,10 +628,10 @@ export function ShopInventoryWorkspace({
                     {formatCurrency(finance.counted_value)}. Đơn giá và kết quả
                     được cố định khi chốt.
                   </p>
-                </div>
+                </Surface>
               )}
               {serialized && session.status === "counting" && (
-                <div className="space-y-3 rounded-lg border p-4">
+                <Surface padding="none" className="space-y-3 p-4">
                   <form
                     className="flex flex-wrap items-end gap-3"
                     onSubmit={(event) => {
@@ -688,8 +697,10 @@ export function ShopInventoryWorkspace({
                     />
                   )}
                   {queueState.queued > 0 && (
-                    <div
-                      className="space-y-2 rounded-lg border bg-muted/40 p-3 text-sm"
+                    <Surface
+                      padding="none"
+                      variant="muted"
+                      className="space-y-2 p-3 text-sm"
                       aria-live="polite"
                     >
                       <p>
@@ -736,7 +747,7 @@ export function ShopInventoryWorkspace({
                           </div>
                         </>
                       )}
-                    </div>
+                    </Surface>
                   )}
                   <p className="text-xs text-muted-foreground">
                     Máy quét có thể gửi Enter hoặc Tab sau mỗi SKU. Có thể bắn
@@ -748,7 +759,7 @@ export function ShopInventoryWorkspace({
                   <p role="status" aria-live="polite" className="text-sm">
                     {lastScan}
                   </p>
-                </div>
+                </Surface>
               )}
               <div className="flex max-w-sm items-center gap-3">
                 <Label htmlFor="stocktake-result" className="shrink-0">
@@ -761,7 +772,7 @@ export function ShopInventoryWorkspace({
                   onValueChange={setResultFilter}
                 />
               </div>
-              <div className="max-h-[38rem] overflow-auto rounded-lg border">
+              <Surface padding="none" className="max-h-[38rem] overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -866,7 +877,7 @@ export function ShopInventoryWorkspace({
                     )}
                   </TableBody>
                 </Table>
-              </div>
+              </Surface>
               {session.status === "counting" && (
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="max-w-xl text-xs text-muted-foreground">
@@ -916,7 +927,7 @@ export function ShopInventoryWorkspace({
             </AlertDialogDescription>
           </AlertDialogHeader>
           {finance && (
-            <div className="space-y-2 rounded-lg border p-3 text-sm">
+            <Surface padding="none" className="space-y-2 p-3 text-sm">
               <div className="flex justify-between gap-3">
                 <span>Công nợ thiếu hàng</span>
                 <strong>{formatCurrency(finance.debt_amount)}</strong>
@@ -929,7 +940,7 @@ export function ShopInventoryWorkspace({
                 Tính theo giá bán hiện tại. Tiền thừa không tự bù trừ công nợ
                 thiếu hàng. Đơn giá được giữ cố định sau khi chốt.
               </p>
-            </div>
+            </Surface>
           )}
           <div className="flex items-start gap-3">
             <Checkbox

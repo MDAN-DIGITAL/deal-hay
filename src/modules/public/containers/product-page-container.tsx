@@ -28,6 +28,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Surface } from "@/components/ui/surface"
 import { UserAvatar } from "@/components/user-avatar"
 import { formatDate } from "@/lib/format"
 import { ProductCard } from "@/modules/public/components/product-card"
@@ -117,20 +118,20 @@ export function ProductPageContainer({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-secondary p-4 text-center">
+              <Surface variant="muted" className="text-center">
                 <ThumbsUpIcon className="mx-auto mb-2 size-5 text-primary" />
                 <p className="text-2xl font-semibold">
                   {data.reviewSummary.likes_count}
                 </p>
                 <p className="text-xs text-muted-foreground">Hài lòng</p>
-              </div>
-              <div className="rounded-lg bg-muted p-4 text-center">
+              </Surface>
+              <Surface variant="muted" className="text-center">
                 <ThumbsDownIcon className="mx-auto mb-2 size-5 text-muted-foreground" />
                 <p className="text-2xl font-semibold">
                   {data.reviewSummary.dislikes_count}
                 </p>
                 <p className="text-xs text-muted-foreground">Chưa hài lòng</p>
-              </div>
+              </Surface>
             </div>
           </CardContent>
         </Card>
@@ -193,7 +194,7 @@ export function ProductPageContainer({
                   {review.shop_reply ? (
                     <>
                       <Separator />
-                      <div className="rounded-lg bg-muted p-3">
+                      <Surface variant="muted" padding="sm">
                         <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-primary">
                           <MessageSquareTextIcon className="size-3.5" /> Phản
                           hồi từ cửa hàng
@@ -201,7 +202,7 @@ export function ProductPageContainer({
                         <p className="text-sm leading-6 text-muted-foreground">
                           {review.shop_reply}
                         </p>
-                      </div>
+                      </Surface>
                     </>
                   ) : null}
                 </CardContent>

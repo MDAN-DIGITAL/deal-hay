@@ -112,7 +112,7 @@ export function AdminUsersClient({
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={isActive ? "secondary" : "destructive"}>
+                        <Badge variant={isActive ? "success" : "destructive"}>
                           {isActive ? "Hoạt động" : "Đã khoá"}
                         </Badge>
                       </TableCell>

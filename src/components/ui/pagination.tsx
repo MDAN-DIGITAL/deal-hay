@@ -13,7 +13,7 @@ function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
     <nav
       role="navigation"
-      aria-label="pagination"
+      aria-label="Phân trang"
       data-slot="pagination"
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
@@ -51,31 +51,28 @@ function PaginationLink({
   size = "icon",
   ...props
 }: PaginationLinkProps) {
-  const linkClassName = cn(
+  const classes = cn(
     buttonVariants({ variant: isActive ? "outline" : "ghost", size }),
     className
   )
-
-  if (disabled) {
+  if (disabled)
     return (
       <span
         role="link"
         aria-disabled="true"
         aria-label={props["aria-label"]}
         data-slot="pagination-link"
-        className={cn(linkClassName, "pointer-events-none opacity-50")}
+        className={cn(classes, "pointer-events-none opacity-50")}
       >
         {props.children}
       </span>
     )
-  }
-
   return (
     <Link
       aria-current={isActive ? "page" : undefined}
       data-slot="pagination-link"
       data-active={isActive}
-      className={linkClassName}
+      className={classes}
       {...props}
     />
   )
@@ -83,7 +80,7 @@ function PaginationLink({
 
 function PaginationPrevious({
   className,
-  text = "Previous",
+  text = "Trước",
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
   return (
@@ -101,7 +98,7 @@ function PaginationPrevious({
 
 function PaginationNext({
   className,
-  text = "Next",
+  text = "Sau",
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
   return (
@@ -132,7 +129,7 @@ function PaginationEllipsis({
       {...props}
     >
       <MoreHorizontalIcon />
-      <span className="sr-only">More pages</span>
+      <span className="sr-only">Các trang khác</span>
     </span>
   )
 }

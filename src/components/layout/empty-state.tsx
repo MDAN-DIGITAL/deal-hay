@@ -20,7 +20,7 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <Empty className="border bg-card/60">
+    <Empty>
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <PackageOpenIcon />

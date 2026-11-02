@@ -14,7 +14,7 @@ const react = moduleUrl(`
 `)
 const widgets = moduleUrl(`
   export const MessageCircleIcon='message-icon',SearchIcon='search-icon',ShieldCheckIcon='support-icon'
-  export const EmptyState='empty-state',Badge='badge',UserAvatar='avatar',ScrollArea='scroll-area'
+  export const EmptyState='empty-state',Badge='badge',Button='button',UserAvatar='avatar',ScrollArea='scroll-area'
   export const InputGroup='input-group',InputGroupAddon='input-addon',InputGroupInput='search'
   export const Item='item',ItemContent='item-content',ItemDescription='item-description',ItemMedia='item-media',ItemTitle='item-title'
 `)
@@ -92,18 +92,18 @@ test("Deal Hay Admin remains first while searching and its row selects the real 
     onSelect: (slug) => selected.push(slug),
   }
   let tree = ChatConversationList(props)
-  let rows = nodes(tree).filter((node) => node.type === "link")
+  let rows = nodes(tree).filter((node) => node.type === "item")
   assert.ok(text(rows[0]).includes("Deal Hay Admin"))
   nodes(tree)
     .find((node) => node.type === "search")
     .props.onChange({ target: { value: "Shop" } })
   tree = ChatConversationList(props)
-  rows = nodes(tree).filter((node) => node.type === "link")
+  rows = nodes(tree).filter((node) => node.type === "item")
   assert.equal(rows.length, 2)
   assert.ok(text(rows[0]).includes("Deal Hay Admin"))
   assert.ok(text(rows[1]).includes("Shop"))
   let prevented = false
-  rows[0].props.onClick({
+  rows[0].props.render.props.onClick({
     button: 0,
     preventDefault: () => {
       prevented = true
@@ -121,9 +121,7 @@ test("missing support staff leaves a disabled first support row without a fabric
       throw new Error("Unavailable support must not navigate")
     },
   })
-  const rows = nodes(tree).filter(
-    (node) => node.props?.["aria-disabled"] === "true" || node.type === "link"
-  )
+  const rows = nodes(tree).filter((node) => node.type === "item")
   assert.ok(text(rows[0]).includes("Deal Hay Admin"))
   assert.ok(text(rows[0]).includes("Bộ phận hỗ trợ chưa sẵn sàng"))
   assert.equal(rows[0].props["aria-disabled"], "true")
@@ -147,13 +145,14 @@ test("unread filtering keeps official support pinned and preserves selection sem
     .find((node) => node.type === "button" && text(node).startsWith("Chưa đọc"))
     .props.onClick()
   tree = ChatConversationList(props)
-  const rows = nodes(tree).filter((node) => node.type === "link")
+  const rows = nodes(tree).filter((node) => node.type === "item")
   assert.equal(rows.length, 2)
   assert.ok(text(rows[0]).includes("Deal Hay Admin"))
   assert.ok(text(rows[1]).includes("Unread"))
-  assert.equal(rows[1].props["aria-current"], "page")
+  assert.equal(rows[1].props.render.props["aria-current"], "page")
+  assert.equal(rows[1].props.selected, true)
   let prevented = false
-  rows[1].props.onClick({
+  rows[1].props.render.props.onClick({
     button: 0,
     ctrlKey: true,
     preventDefault: () => {

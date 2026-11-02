@@ -1,5 +1,8 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+import { StatCard } from "@/components/ui/section"
+
 import Link from "next/link"
 import { useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -313,14 +316,18 @@ function ReviewReplyForm({ review }: { review: ShopProductReview }) {
           </span>
           <Badge
             className="mr-2"
-            variant={review.shop_reply ? "secondary" : "outline"}
+            variant={review.shop_reply ? "success" : "warning"}
           >
             {review.shop_reply ? "Đã phản hồi" : "Chưa phản hồi"}
           </Badge>
         </span>
       </AccordionTrigger>
       <AccordionContent className="space-y-4">
-        <div className="flex items-start gap-3 rounded-lg bg-muted p-3">
+        <Surface
+          padding="none"
+          variant="muted"
+          className="flex items-start gap-3 p-3"
+        >
           <UserAvatar
             name={review.customer.name}
             size="sm"
@@ -330,7 +337,7 @@ function ReviewReplyForm({ review }: { review: ShopProductReview }) {
             <p className="font-medium">{review.customer.name}</p>
             <p className="mt-1 text-muted-foreground">{review.content}</p>
           </div>
-        </div>
+        </Surface>
         {review.image_url ? (
           <MediaImage
             alt={`Ảnh đánh giá của ${review.customer.name}`}
@@ -628,7 +635,7 @@ function ProductListItem({ product }: { product: ShopProduct }) {
   }
 
   return (
-    <div className="grid min-w-0 gap-3 overflow-hidden rounded-xl border p-3">
+    <Surface padding="none" className="grid min-w-0 gap-3 overflow-hidden p-3">
       <div className="flex min-w-0 gap-3">
         <MediaImage
           alt={product.name}
@@ -644,7 +651,7 @@ function ProductListItem({ product }: { product: ShopProduct }) {
             </p>
             <Badge
               className="shrink-0"
-              variant={product.is_active ? "default" : "outline"}
+              variant={product.is_active ? "success" : "secondary"}
             >
               {product.is_active ? "Đang hiển thị" : "Đang ẩn"}
             </Badge>
@@ -714,7 +721,7 @@ function ProductListItem({ product }: { product: ShopProduct }) {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </div>
+    </Surface>
   )
 }
 
@@ -869,9 +876,10 @@ function InventoryMovementList({
     <>
       <div className="space-y-3">
         {visibleMovements.map((movement) => (
-          <div
+          <Surface
+            padding="none"
             key={movement.id}
-            className="min-w-0 overflow-hidden rounded-lg border p-3 text-sm"
+            className="min-w-0 overflow-hidden p-3 text-sm"
           >
             <div className="flex items-start justify-between gap-3">
               <p className="line-clamp-2 min-w-0 flex-1 font-medium break-words">
@@ -893,7 +901,7 @@ function InventoryMovementList({
               {movement.note ?? "Không có ghi chú"} •{" "}
               {formatDate(movement.created_at)}
             </p>
-          </div>
+          </Surface>
         ))}
       </div>
 
@@ -945,7 +953,7 @@ function OrderCard({ order }: { order: ShopOrder }) {
   }
 
   return (
-    <div className="rounded-xl border p-4">
+    <Surface padding="none" className="p-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -955,7 +963,7 @@ function OrderCard({ order }: { order: ShopOrder }) {
                 order.status === "cancelled"
                   ? "destructive"
                   : order.status === "completed"
-                    ? "default"
+                    ? "success"
                     : "secondary"
               }
             >
@@ -1020,7 +1028,7 @@ function OrderCard({ order }: { order: ShopOrder }) {
             Chi tiết giao hàng và sản phẩm
           </AccordionTrigger>
           <AccordionContent className="space-y-3">
-            <div className="rounded-lg bg-muted p-3">
+            <Surface padding="none" variant="muted" className="p-3">
               <p className="text-xs font-medium text-muted-foreground">
                 Địa chỉ giao hàng
               </p>
@@ -1030,12 +1038,13 @@ function OrderCard({ order }: { order: ShopOrder }) {
                   Ghi chú: {order.note}
                 </p>
               ) : null}
-            </div>
+            </Surface>
             <div className="space-y-2">
               {order.items.map((item) => (
-                <div
+                <Surface
+                  padding="none"
                   key={item.id}
-                  className="flex items-start justify-between gap-4 rounded-lg border p-3"
+                  className="flex items-start justify-between gap-4 p-3"
                 >
                   <div className="min-w-0">
                     <p className="font-medium">{item.product_name}</p>
@@ -1047,10 +1056,14 @@ function OrderCard({ order }: { order: ShopOrder }) {
                   <p className="shrink-0 font-medium">
                     {formatCurrency(item.subtotal)}
                   </p>
-                </div>
+                </Surface>
               ))}
             </div>
-            <dl className="space-y-2 rounded-lg border p-3 text-sm">
+            <Surface
+              padding="none"
+              render={<dl />}
+              className="space-y-2 p-3 text-sm"
+            >
               <div className="flex justify-between gap-4">
                 <dt>Tiền hàng</dt>
                 <dd>{formatCurrency(order.subtotal)}</dd>
@@ -1081,11 +1094,11 @@ function OrderCard({ order }: { order: ShopOrder }) {
                 <dt>Tổng thanh toán</dt>
                 <dd>{formatCurrency(order.total)}</dd>
               </div>
-            </dl>
+            </Surface>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-    </div>
+    </Surface>
   )
 }
 
@@ -1215,21 +1228,12 @@ export function ShopManagementClient({
         <TabsContent className="space-y-6 pt-4" value="overview">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {summaryMetrics.map((metric) => (
-              <Card key={metric.label} size="sm">
-                <CardContent className="flex-row items-center">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
-                    <metric.icon className="size-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">
-                      {metric.label}
-                    </p>
-                    <p className="text-base font-semibold break-words sm:text-lg">
-                      {metric.value}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <StatCard
+                key={metric.label}
+                label={metric.label}
+                value={metric.value}
+                icon={<metric.icon />}
+              />
             ))}
           </div>
 
@@ -1245,15 +1249,15 @@ export function ShopManagementClient({
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg bg-muted p-4">
+                <Surface padding="none" variant="muted" className="p-4">
                   <p className="text-xs text-muted-foreground">
                     Người theo dõi
                   </p>
                   <p className="mt-1 text-xl font-semibold">
                     {metrics?.followers_count ?? 0}
                   </p>
-                </div>
-                <div className="rounded-lg bg-muted p-4">
+                </Surface>
+                <Surface padding="none" variant="muted" className="p-4">
                   <p className="text-xs text-muted-foreground">
                     Tỷ lệ hài lòng
                   </p>
@@ -1263,16 +1267,16 @@ export function ShopManagementClient({
                       ? "—"
                       : `${metrics.satisfaction_rate}%`}
                   </p>
-                </div>
-                <div className="rounded-lg bg-muted p-4">
+                </Surface>
+                <Surface padding="none" variant="muted" className="p-4">
                   <p className="text-xs text-muted-foreground">
                     Hội thoại khách hàng
                   </p>
                   <p className="mt-1 text-xl font-semibold">
                     {metrics?.customer_conversations_count ?? 0}
                   </p>
-                </div>
-                <div className="rounded-lg bg-muted p-4">
+                </Surface>
+                <Surface padding="none" variant="muted" className="p-4">
                   <p className="text-xs text-muted-foreground">
                     Tỷ lệ phản hồi
                   </p>
@@ -1282,7 +1286,7 @@ export function ShopManagementClient({
                       ? "—"
                       : `${metrics.response_rate}%`}
                   </p>
-                </div>
+                </Surface>
               </CardContent>
             </Card>
 
@@ -1375,9 +1379,10 @@ export function ShopManagementClient({
                   )
                   if (!category) return null
                   return (
-                    <div
+                    <Surface
+                      padding="none"
                       key={category.id}
-                      className="flex items-center gap-3 rounded-lg border p-2.5"
+                      className="flex items-center gap-3 p-2.5"
                     >
                       <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold">
                         {index + 1}
@@ -1407,7 +1412,7 @@ export function ShopManagementClient({
                           <ArrowDownIcon />
                         </Button>
                       </ButtonGroup>
-                    </div>
+                    </Surface>
                   )
                 })}
                 {orderedCategories.length === 0 ? (

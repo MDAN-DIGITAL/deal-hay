@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation"
 
 import { buttonVariants } from "@/components/ui/button"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { Surface } from "@/components/ui/surface"
 
 const items = [
   { href: "/admin/users", label: "Người dùng", icon: UsersIcon },
@@ -24,19 +25,25 @@ export function AdminNavigation() {
 
   return (
     <ScrollArea className="w-full">
-      <nav className="flex w-max gap-2 pb-3" aria-label="Điều hướng quản trị">
+      <Surface
+        render={<nav aria-label="Điều hướng quản trị" />}
+        padding="none"
+        variant="muted"
+        className="flex w-max gap-1 p-1"
+      >
         {items.map((item) => (
           <Link
             key={item.href}
             href={item.href}
+            aria-current={pathname.startsWith(item.href) ? "page" : undefined}
             className={buttonVariants({
-              variant: pathname.startsWith(item.href) ? "default" : "outline",
+              variant: pathname.startsWith(item.href) ? "secondary" : "ghost",
             })}
           >
             <item.icon /> {item.label}
           </Link>
         ))}
-      </nav>
+      </Surface>
       <ScrollBar orientation="horizontal" />
     </ScrollArea>
   )

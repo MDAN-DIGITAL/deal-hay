@@ -5,6 +5,8 @@ import { useMemo, useState } from "react"
 import { MessageCircleIcon, SearchIcon, ShieldCheckIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Item } from "@/components/ui/item"
 import {
   InputGroup,
   InputGroupAddon,
@@ -61,23 +63,28 @@ export function ChatConversationList({
     )
     const date = conversationDate(conversation.updated_at)
     return (
-      <Link
+      <Item
         key={conversation.id}
-        href={`/chats/${encodeURIComponent(conversation.slug)}`}
-        aria-current={selected ? "page" : undefined}
-        onClick={(event) => {
-          if (
-            event.button !== 0 ||
-            event.metaKey ||
-            event.ctrlKey ||
-            event.shiftKey ||
-            event.altKey
-          )
-            return
-          event.preventDefault()
-          onSelect(conversation.slug)
-        }}
-        className={`group flex min-w-0 items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring ${selected ? "border-primary/15 bg-primary/[0.09]" : "border-transparent hover:bg-muted/80"}`}
+        variant="interactive"
+        selected={selected}
+        render={
+          <Link
+            href={`/chats/${encodeURIComponent(conversation.slug)}`}
+            aria-current={selected ? "page" : undefined}
+            onClick={(event) => {
+              if (
+                event.button !== 0 ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey
+              )
+                return
+              event.preventDefault()
+              onSelect(conversation.slug)
+            }}
+          />
+        }
       >
         <div className="relative shrink-0">
           <UserAvatar
@@ -133,7 +140,7 @@ export function ChatConversationList({
             ) : null}
           </div>
         </div>
-      </Link>
+      </Item>
     )
   }
 
@@ -148,7 +155,7 @@ export function ChatConversationList({
             <h1 className="text-2xl font-semibold tracking-tight">Tin nhắn</h1>
           </div>
         ) : null}
-        <InputGroup className="h-11 rounded-xl border-transparent bg-muted/80 shadow-none">
+        <InputGroup variant="search" className="h-11">
           <InputGroupAddon>
             <SearchIcon className="size-4" />
           </InputGroupAddon>
@@ -160,36 +167,42 @@ export function ChatConversationList({
             onChange={(event) => setQuery(event.target.value)}
           />
           {query ? (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               aria-label="Xóa tìm kiếm"
-              className="mr-1 flex size-8 shrink-0 items-center justify-center rounded-lg text-lg text-muted-foreground hover:bg-background"
+              className="mr-1 text-lg text-muted-foreground"
               onClick={() => setQuery("")}
             >
               ×
-            </button>
+            </Button>
           ) : null}
         </InputGroup>
         <div
           className="flex items-center gap-1.5"
           aria-label="Lọc cuộc trò chuyện"
         >
-          <button
+          <Button
             type="button"
+            variant="filter"
+            size="sm"
             aria-pressed={filter === "all"}
             onClick={() => setFilter("all")}
-            className={`min-h-8 rounded-full px-3 text-xs font-medium transition-colors ${filter === "all" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"}`}
+            className="text-xs"
           >
             Tất cả
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="filter"
+            size="sm"
             aria-pressed={filter === "unread"}
             onClick={() => setFilter("unread")}
-            className={`min-h-8 rounded-full px-3 text-xs font-medium transition-colors ${filter === "unread" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"}`}
+            className="text-xs"
           >
             Chưa đọc{unreadCount ? ` (${unreadCount})` : ""}
-          </button>
+          </Button>
         </div>
       </div>
       <ScrollArea className="min-h-0 flex-1">
@@ -200,10 +213,7 @@ export function ChatConversationList({
           {support ? (
             renderConversation(support)
           ) : (
-            <div
-              className="flex items-center gap-3 rounded-xl px-3 py-3"
-              aria-disabled="true"
-            >
+            <Item className="flex-nowrap" aria-disabled="true">
               <UserAvatar name="Deal Hay Admin" size="lg" src={null} />
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 text-[15px] font-medium">
@@ -214,7 +224,7 @@ export function ChatConversationList({
                   Bộ phận hỗ trợ chưa sẵn sàng
                 </p>
               </div>
-            </div>
+            </Item>
           )}
           <p className="px-3 pt-5 pb-1 text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
             {filter === "unread" ? "Tin nhắn chưa đọc" : "Gần đây"}

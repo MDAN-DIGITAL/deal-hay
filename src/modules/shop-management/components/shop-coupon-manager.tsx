@@ -1,5 +1,7 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+
 import { useId, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
@@ -201,9 +203,14 @@ export function ShopCouponManager({
         </Button>
       </div>
       {products.length === 0 ? (
-        <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+        <Surface
+          padding="none"
+          variant="dashed"
+          render={<p />}
+          className="p-6 text-sm text-muted-foreground"
+        >
           Thêm sản phẩm vào cửa hàng để tạo ưu đãi.
-        </p>
+        </Surface>
       ) : null}
 
       {editing !== undefined ? (
@@ -226,10 +233,14 @@ export function ShopCouponManager({
             >
               <fieldset disabled={pending} className="space-y-6">
                 {editing ? (
-                  <div className="rounded-lg bg-muted p-3 text-sm">
+                  <Surface
+                    padding="none"
+                    variant="muted"
+                    className="p-3 text-sm"
+                  >
                     <span className="text-muted-foreground">Mã hệ thống: </span>
                     <code className="break-all">{editing.code}</code>
-                  </div>
+                  </Surface>
                 ) : null}
                 {field("name", "Tên hiển thị", editing?.name ?? "", "text")}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -346,7 +357,7 @@ export function ShopCouponManager({
                       Bỏ chọn tất cả
                     </Button>
                   </div>
-                  <div className="max-h-64 overflow-y-auto rounded-lg border">
+                  <Surface padding="none" className="max-h-64 overflow-y-auto">
                     {matching.map((product) => (
                       <Label
                         key={product.id}
@@ -382,7 +393,7 @@ export function ShopCouponManager({
                         Không có sản phẩm phù hợp.
                       </p>
                     ) : null}
-                  </div>
+                  </Surface>
                   {error("product_ids")}
                 </fieldset>
                 <Label
@@ -437,7 +448,7 @@ export function ShopCouponManager({
                 <Badge
                   variant={
                     couponStatus(coupon) === "Đang áp dụng"
-                      ? "default"
+                      ? "success"
                       : "secondary"
                   }
                 >
@@ -467,7 +478,11 @@ export function ShopCouponManager({
                     : " · Không giới hạn thời gian"}
                 </p>
               </div>
-              <div className="flex items-center gap-2 rounded-lg bg-muted p-2">
+              <Surface
+                padding="none"
+                variant="muted"
+                className="flex items-center gap-2 p-2"
+              >
                 <code
                   className="min-w-0 flex-1 truncate text-xs"
                   title={coupon.code}
@@ -492,9 +507,13 @@ export function ShopCouponManager({
                 >
                   <CopyIcon className="size-4" />
                 </Button>
-              </div>
+              </Surface>
               {deleteId === coupon.id ? (
-                <div className="space-y-2 rounded-lg border border-destructive/30 p-3">
+                <Surface
+                  padding="none"
+                  variant="danger"
+                  className="space-y-2 p-3"
+                >
                   <p className="text-sm">
                     Xóa ưu đãi “{coupon.name}”? Ưu đãi đã có đơn hàng chỉ có thể
                     tắt.
@@ -519,7 +538,7 @@ export function ShopCouponManager({
                       Hủy
                     </Button>
                   </div>
-                </div>
+                </Surface>
               ) : (
                 <div className="flex gap-2">
                   <Button
@@ -549,13 +568,13 @@ export function ShopCouponManager({
         ))}
       </div>
       {!coupons.length && editing === undefined && products.length > 0 ? (
-        <div className="rounded-xl border border-dashed p-10 text-center">
+        <Surface padding="none" variant="dashed" className="p-10 text-center">
           <TicketPercentIcon className="mx-auto mb-3 size-8 text-muted-foreground" />
           <p className="font-medium">Chưa có ưu đãi từ shop</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Tạo ưu đãi đầu tiên để khách dễ tìm và sử dụng khi đặt hàng.
           </p>
-        </div>
+        </Surface>
       ) : null}
     </div>
   )

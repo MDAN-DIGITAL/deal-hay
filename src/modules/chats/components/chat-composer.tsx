@@ -21,6 +21,8 @@ import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import { SelectedFilePreview } from "@/components/selected-file-preview"
 import {
   Form,
@@ -307,18 +309,18 @@ export function ChatComposer({
               </p>
               {admins.length ? (
                 admins.map((admin) => (
-                  <label
+                  <Label
                     key={admin.id}
                     className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-muted"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
+                      aria-label={`@${admin.name}`}
                       disabled={isPending}
                       checked={mentionAdminIds.includes(admin.id)}
-                      onChange={(event) =>
+                      onCheckedChange={(checked) =>
                         form.setValue(
                           "mention_admin_ids",
-                          event.target.checked
+                          checked
                             ? [...mentionAdminIds, admin.id]
                             : mentionAdminIds.filter((id) => id !== admin.id),
                           { shouldValidate: true }
@@ -326,7 +328,7 @@ export function ChatComposer({
                       }
                     />
                     @{admin.name}
-                  </label>
+                  </Label>
                 ))
               ) : (
                 <p className="px-2 py-1 text-sm text-muted-foreground">
@@ -377,7 +379,7 @@ export function ChatComposer({
               <FormItem>
                 <FormLabel className="sr-only">Nội dung tin nhắn</FormLabel>
                 <FormControl>
-                  <InputGroup className="h-auto items-end rounded-2xl border-border/70 bg-muted/45 p-1 shadow-none transition-colors focus-within:bg-background has-[[data-slot=input-group-control]:focus-visible]:ring-2 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/15">
+                  <InputGroup variant="composer">
                     <InputGroupAddon
                       align="inline-start"
                       className="gap-0 self-end py-0.5 pl-0.5 has-[>button]:ml-0 [&_button]:size-10 [&_button]:rounded-xl"
@@ -459,7 +461,7 @@ export function ChatComposer({
                     >
                       <InputGroupButton
                         aria-label="Gửi tin nhắn"
-                        className="size-10 rounded-xl bg-[var(--chat-outgoing)] text-white shadow-sm hover:bg-[var(--chat-outgoing)] hover:opacity-90 disabled:shadow-none"
+                        className="size-10 rounded-xl"
                         disabled={isPending || !canSend}
                         size="icon-sm"
                         title="Gửi tin nhắn"

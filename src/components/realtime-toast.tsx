@@ -4,6 +4,8 @@ import { XIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { UserAvatar } from "@/components/user-avatar"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 type RealtimeToastProps = {
   id: string | number
@@ -21,10 +23,11 @@ export function RealtimeToast({
   onOpen,
 }: RealtimeToastProps) {
   return (
-    <div className="flex w-[var(--width)] max-w-full items-start rounded-xl border bg-popover text-popover-foreground shadow-lg">
-      <button
+    <Card className="w-[var(--width)] max-w-full flex-row items-start gap-0 py-0">
+      <Button
         type="button"
-        className="flex min-w-0 flex-1 items-start gap-3 rounded-l-xl p-4 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        className="h-auto min-w-0 flex-1 items-start justify-start gap-3 rounded-r-none border-0 p-4 text-left whitespace-normal"
+        variant="ghost"
         onClick={() => {
           toast.dismiss(id)
           onOpen()
@@ -40,22 +43,24 @@ export function RealtimeToast({
             {title}
           </span>
           {description ? (
-            <span className="line-clamp-3 block text-sm wrap-break-word text-muted-foreground">
+            <span className="line-clamp-3 block text-sm font-normal wrap-break-word text-muted-foreground">
               {description}
             </span>
           ) : null}
           <span className="block text-xs font-medium text-primary">Xem</span>
         </span>
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
         aria-label="Đóng thông báo"
-        className="m-1 flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        className="m-1 text-muted-foreground"
+        size="icon-sm"
+        variant="ghost"
         onClick={() => toast.dismiss(id)}
       >
         <XIcon className="size-4" />
-      </button>
-    </div>
+      </Button>
+    </Card>
   )
 }
 

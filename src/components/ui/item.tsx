@@ -42,13 +42,19 @@ const itemVariants = cva(
         default: "border-transparent",
         outline: "border-border",
         muted: "border-transparent bg-muted/50",
+        interactive:
+          "flex-nowrap rounded-xl border-transparent hover:bg-muted/80",
       },
       size: {
         default: "gap-3.5 px-4 py-3.5",
         sm: "gap-2.5 px-3 py-2.5",
         xs: "gap-2 px-2.5 py-2 in-data-[slot=dropdown-menu-content]:p-0",
       },
+      selected: { true: "border-primary/15 bg-primary/[0.09]", false: "" },
     },
+    compoundVariants: [
+      { variant: "interactive", size: "default", className: "gap-3 px-3 py-3" },
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",
@@ -60,6 +66,7 @@ function Item({
   className,
   variant = "default",
   size = "default",
+  selected,
   render,
   ...props
 }: useRender.ComponentProps<"div"> & VariantProps<typeof itemVariants>) {
@@ -67,7 +74,7 @@ function Item({
     defaultTagName: "div",
     props: mergeProps<"div">(
       {
-        className: cn(itemVariants({ variant, size, className })),
+        className: cn(itemVariants({ variant, size, selected, className })),
       },
       props
     ),
@@ -76,6 +83,7 @@ function Item({
       slot: "item",
       variant,
       size,
+      selected,
     },
   })
 }

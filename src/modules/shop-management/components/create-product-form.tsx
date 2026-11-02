@@ -1,5 +1,7 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+
 import { useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
@@ -237,10 +239,14 @@ export function CreateProductForm({
     <Form {...form}>
       <form className="space-y-6" noValidate onSubmit={onSubmit}>
         {categories.length === 0 ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          <Surface
+            padding="none"
+            variant="danger"
+            className="p-3 text-sm text-destructive"
+          >
             Chưa có danh mục hoạt động. Vui lòng liên hệ quản trị viên trước khi
             đăng sản phẩm.
-          </div>
+          </Surface>
         ) : null}
 
         <section className="space-y-4" aria-labelledby="product-basic-heading">
@@ -567,7 +573,7 @@ export function CreateProductForm({
               )}
             />
           ) : (
-            <div className="space-y-5 rounded-xl border p-4">
+            <Surface padding="none" className="space-y-5 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="font-medium">Thuộc tính</p>
@@ -588,9 +594,11 @@ export function CreateProductForm({
 
               <div className="space-y-3">
                 {optionFields.fields.map((option, optionIndex) => (
-                  <div
+                  <Surface
+                    padding="none"
+                    variant="muted"
                     key={option.id}
-                    className="grid gap-3 rounded-lg bg-muted/50 p-3 md:grid-cols-[minmax(0,0.65fr)_minmax(0,1.35fr)_auto] md:items-start"
+                    className="grid gap-3 p-3 md:grid-cols-[minmax(0,0.65fr)_minmax(0,1.35fr)_auto] md:items-start"
                   >
                     <FormField
                       control={form.control}
@@ -637,7 +645,7 @@ export function CreateProductForm({
                     >
                       <Trash2Icon />
                     </Button>
-                  </div>
+                  </Surface>
                 ))}
               </div>
               {optionsError ? (
@@ -679,9 +687,11 @@ export function CreateProductForm({
                       variantErrors?.is_default
                     )
                     return (
-                      <div
+                      <Surface
+                        padding="none"
+                        variant="inset"
                         key={variant.id}
-                        className="space-y-3 rounded-lg border bg-background p-3"
+                        className="space-y-3 p-3"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="min-w-0">
@@ -794,23 +804,27 @@ export function CreateProductForm({
                             )}
                           />
                         </div>
-                      </div>
+                      </Surface>
                     )
                   })}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                <Surface
+                  padding="none"
+                  variant="dashed"
+                  className="flex items-center gap-2 p-4 text-sm text-muted-foreground"
+                >
                   <ImagePlusIcon className="size-4 shrink-0" />
                   Nhập thuộc tính rồi tạo danh sách biến thể để khai báo giá và
                   tồn kho riêng. SKU sẽ được hệ thống tự động tạo.
-                </div>
+                </Surface>
               )}
               {variantsError ? (
                 <p className="text-sm text-destructive" role="alert">
                   {variantsError}
                 </p>
               ) : null}
-            </div>
+            </Surface>
           )}
         </section>
 

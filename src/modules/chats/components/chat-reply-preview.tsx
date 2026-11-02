@@ -3,6 +3,7 @@
 import { ReplyIcon, XIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { MessageQuote } from "@/components/ui/message"
 import { cn } from "@/lib/utils"
 import type { ChatReply } from "@/types/chat"
 
@@ -57,7 +58,7 @@ export function ChatReplyPreview({
         className={cn(
           "line-clamp-2 text-xs leading-relaxed wrap-break-word",
           variant === "message" && outgoing
-            ? "text-primary-foreground/80"
+            ? "text-action-foreground/80"
             : "text-muted-foreground"
         )}
       >
@@ -67,26 +68,22 @@ export function ChatReplyPreview({
   )
 
   return (
-    <div
-      className={cn(
-        "flex min-w-0 items-start gap-2 border-l-2 p-2",
-        variant === "draft"
-          ? "max-w-sm rounded-lg border-primary/60 bg-muted/40"
-          : outgoing
-            ? "max-w-full rounded-md border-primary-foreground/50 bg-primary-foreground/10 text-primary-foreground"
-            : "max-w-full rounded-md border-primary/40 bg-background/65 text-foreground/80",
-        className
-      )}
+    <MessageQuote
+      variant={
+        variant === "draft" ? "draft" : outgoing ? "outgoing" : "incoming"
+      }
+      className={className}
     >
       {onJump ? (
-        <button
+        <Button
+          variant="ghost"
           aria-label={`Xem tin nhắn của ${reply.sender.name}`}
-          className="flex min-w-0 flex-1 flex-col gap-1 rounded-sm text-left outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-auto min-w-0 flex-1 flex-col items-start gap-1 p-0 text-left whitespace-normal text-inherit hover:bg-transparent hover:text-inherit"
           type="button"
           onClick={onJump}
         >
           {content}
-        </button>
+        </Button>
       ) : (
         <div className="flex min-w-0 flex-1 flex-col gap-1" role="status">
           {content}
@@ -104,6 +101,6 @@ export function ChatReplyPreview({
           <XIcon />
         </Button>
       ) : null}
-    </div>
+    </MessageQuote>
   )
 }

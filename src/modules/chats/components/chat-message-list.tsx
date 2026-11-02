@@ -32,6 +32,7 @@ import {
   MessageAvatar,
   MessageContent,
   MessageGroup,
+  MessageBubble,
 } from "@/components/ui/message"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { UserAvatar } from "@/components/user-avatar"
@@ -416,21 +417,10 @@ export function ChatMessageList({
                         fromCurrentUser && "flex-row-reverse"
                       )}
                     >
-                      <div
-                        className={cn(
-                          "max-w-full min-w-0 overflow-hidden rounded-2xl border shadow-xs",
-                          fromCurrentUser
-                            ? "border-transparent bg-[var(--chat-outgoing)] text-white"
-                            : "border-border/70 bg-card text-foreground",
-                          continuesPrevious &&
-                            (fromCurrentUser
-                              ? "rounded-tr-md"
-                              : "rounded-tl-md"),
-                          continuesNext &&
-                            (fromCurrentUser
-                              ? "rounded-br-md"
-                              : "rounded-bl-md")
-                        )}
+                      <MessageBubble
+                        align={fromCurrentUser ? "end" : "start"}
+                        continuesPrevious={continuesPrevious}
+                        continuesNext={continuesNext}
                         title={
                           hasTimestamp
                             ? formatDate(message.created_at)
@@ -505,7 +495,7 @@ export function ChatMessageList({
                             />
                           </div>
                         ) : null}
-                      </div>
+                      </MessageBubble>
                       <Button
                         aria-label={`Trả lời tin nhắn của ${message.sender.name}`}
                         className="shrink-0 rounded-full text-muted-foreground opacity-60 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/message:opacity-100 [@media(hover:hover)]:group-hover/message:opacity-100"

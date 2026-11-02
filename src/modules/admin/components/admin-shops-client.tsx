@@ -1,5 +1,7 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+
 import { useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { LockIcon, LockOpenIcon } from "lucide-react"
@@ -42,58 +44,60 @@ function ShopLockForm({ shop }: { shop: AdminShop }) {
   const [reason, setReason] = useState("")
   const [pending, startTransition] = useTransition()
   return (
-    <form
-      className="space-y-2 rounded-lg border p-3"
-      onSubmit={(event) => {
-        event.preventDefault()
-        startTransition(async () => {
-          try {
-            await toggleUserLockAction(
-              shop.id,
-              shop.is_active ? "lock" : "unlock",
-              shop.is_active ? reason.trim() : undefined
-            )
-            setReason("")
-            toast.success(
-              shop.is_active ? "Đã khoá gian hàng." : "Đã mở khoá gian hàng."
-            )
-          } catch {
-            toast.error("Không thể cập nhật trạng thái gian hàng.")
-          }
-        })
-      }}
-    >
-      {shop.is_active ? (
-        <>
-          <Label htmlFor={`shop-lock-${shop.id}`}>Lý do khoá gian hàng</Label>
-          <Textarea
-            id={`shop-lock-${shop.id}`}
-            maxLength={500}
-            required
-            disabled={pending}
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            Khoá gian hàng sẽ ẩn shop và tạm khoá tài khoản chủ shop.
-          </p>
-        </>
-      ) : shop.lock_reason ? (
-        <p>Lý do khoá: {shop.lock_reason}</p>
-      ) : null}
-      <Button
-        disabled={pending || (shop.is_active && !reason.trim())}
-        type="submit"
-        variant={shop.is_active ? "destructive" : "outline"}
+    <Surface padding="none" className="p-3">
+      <form
+        className="space-y-2"
+        onSubmit={(event) => {
+          event.preventDefault()
+          startTransition(async () => {
+            try {
+              await toggleUserLockAction(
+                shop.id,
+                shop.is_active ? "lock" : "unlock",
+                shop.is_active ? reason.trim() : undefined
+              )
+              setReason("")
+              toast.success(
+                shop.is_active ? "Đã khoá gian hàng." : "Đã mở khoá gian hàng."
+              )
+            } catch {
+              toast.error("Không thể cập nhật trạng thái gian hàng.")
+            }
+          })
+        }}
       >
-        {shop.is_active ? <LockIcon /> : <LockOpenIcon />}
-        {pending
-          ? "Đang cập nhật..."
-          : shop.is_active
-            ? "Khoá gian hàng"
-            : "Mở khoá gian hàng"}
-      </Button>
-    </form>
+        {shop.is_active ? (
+          <>
+            <Label htmlFor={`shop-lock-${shop.id}`}>Lý do khoá gian hàng</Label>
+            <Textarea
+              id={`shop-lock-${shop.id}`}
+              maxLength={500}
+              required
+              disabled={pending}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Khoá gian hàng sẽ ẩn shop và tạm khoá tài khoản chủ shop.
+            </p>
+          </>
+        ) : shop.lock_reason ? (
+          <p>Lý do khoá: {shop.lock_reason}</p>
+        ) : null}
+        <Button
+          disabled={pending || (shop.is_active && !reason.trim())}
+          type="submit"
+          variant={shop.is_active ? "destructive" : "outline"}
+        >
+          {shop.is_active ? <LockIcon /> : <LockOpenIcon />}
+          {pending
+            ? "Đang cập nhật..."
+            : shop.is_active
+              ? "Khoá gian hàng"
+              : "Mở khoá gian hàng"}
+        </Button>
+      </form>
+    </Surface>
   )
 }
 
@@ -133,35 +137,33 @@ function ShopProductDeleteForm({
 
   return (
     <Form {...form}>
-      <form
-        className="space-y-2 rounded-lg border p-3"
-        noValidate
-        onSubmit={onSubmit}
-      >
-        <p className="font-medium">Xoá sản phẩm: {productName}</p>
-        <FormField
-          control={form.control}
-          name="reason"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Lý do xoá sản phẩm</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Lý do xoá sản phẩm này khỏi shop"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormSubmitButton
-          idleText="Xoá sản phẩm"
-          pending={isPending}
-          pendingText="Đang xoá..."
-          variant="destructive"
-        />
-      </form>
+      <Surface padding="none" className="p-3">
+        <form className="space-y-2" noValidate onSubmit={onSubmit}>
+          <p className="font-medium">Xoá sản phẩm: {productName}</p>
+          <FormField
+            control={form.control}
+            name="reason"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Lý do xoá sản phẩm</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Lý do xoá sản phẩm này khỏi shop"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormSubmitButton
+            idleText="Xoá sản phẩm"
+            pending={isPending}
+            pendingText="Đang xoá..."
+            variant="destructive"
+          />
+        </form>
+      </Surface>
     </Form>
   )
 }
@@ -197,7 +199,7 @@ export function AdminShopsClient({
                   </p>
                 </div>
               </div>
-              <Badge variant={shop.is_active ? "default" : "destructive"}>
+              <Badge variant={shop.is_active ? "success" : "destructive"}>
                 {shop.is_active ? "Đang hoạt động" : "Đã khoá"}
               </Badge>
             </CardHeader>
@@ -209,9 +211,10 @@ export function AdminShopsClient({
                 mục
               </p>
               {(shop.products ?? []).map((product) => (
-                <div
+                <Surface
+                  padding="none"
                   key={product.id}
-                  className="grid gap-3 rounded-lg border p-3 md:grid-cols-[96px_1fr]"
+                  className="grid gap-3 p-3 md:grid-cols-[96px_1fr]"
                 >
                   <MediaImage
                     alt={product.name}
@@ -225,7 +228,7 @@ export function AdminShopsClient({
                     productName={product.name}
                     shopId={shop.id}
                   />
-                </div>
+                </Surface>
               ))}
             </CardContent>
           </Card>

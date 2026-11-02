@@ -726,9 +726,11 @@ export function ChatsPageClient({
                         className="flex shrink-0 items-center justify-center gap-3 border-b bg-card/70 px-4 py-2 text-xs text-muted-foreground"
                       >
                         <RealtimeStatusBadge status={status} />
-                        <button
+                        <Button
                           type="button"
-                          className="font-medium text-primary hover:underline"
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 text-xs"
                           onClick={
                             status === "connected" ? synchronize : reconnect
                           }
@@ -736,7 +738,7 @@ export function ChatsPageClient({
                           {status === "connected"
                             ? "Đồng bộ lại"
                             : "Thử kết nối lại"}
-                        </button>
+                        </Button>
                       </div>
                     ) : null}
 

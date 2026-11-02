@@ -31,7 +31,27 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-black/35 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+/** Low-level popup for composed interfaces such as the persistent floating chat. */
+function DialogPopup({
+  className,
+  variant = "default",
+  ...props
+}: DialogPrimitive.Popup.Props & { variant?: "default" | "floating" }) {
+  return (
+    <DialogPrimitive.Popup
+      data-slot="dialog-popup"
+      className={cn(
+        variant === "floating"
+          ? "fixed top-[var(--chat-viewport-top,0px)] left-0 z-50 flex h-[var(--chat-viewport-height,100dvh)] w-full min-w-0 flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none sm:top-auto sm:right-6 sm:bottom-24 sm:left-auto sm:h-[min(720px,calc(100dvh-7.5rem))] sm:w-[420px] sm:max-w-[calc(100vw-3rem)] sm:rounded-2xl sm:border"
+          : "rounded-xl border border-border bg-popover text-popover-foreground shadow-xl outline-none",
         className
       )}
       {...props}
@@ -53,7 +73,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl border border-border bg-popover p-6 text-sm text-popover-foreground duration-100 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
@@ -71,7 +91,7 @@ function DialogContent({
             }
           >
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">Đóng</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>
@@ -109,7 +129,7 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close render={<Button variant="outline" />}>
-          Close
+          Đóng
         </DialogPrimitive.Close>
       )}
     </div>
@@ -151,6 +171,7 @@ export {
   DialogHeader,
   DialogOverlay,
   DialogPortal,
+  DialogPopup,
   DialogTitle,
   DialogTrigger,
 }

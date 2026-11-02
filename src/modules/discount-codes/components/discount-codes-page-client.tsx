@@ -1,5 +1,7 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -117,7 +119,11 @@ export function DiscountCodesPageClient({
                           : "Không còn hiệu lực"}
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2">
+                <Surface
+                  padding="none"
+                  variant="muted"
+                  className="flex items-center justify-between gap-2 px-3 py-2"
+                >
                   <code className="min-w-0 text-base font-semibold break-all">
                     {code.code}
                   </code>
@@ -138,7 +144,7 @@ export function DiscountCodesPageClient({
                   >
                     <CopyIcon />
                   </Button>
-                </div>
+                </Surface>
                 <p className="text-sm text-muted-foreground">
                   Hạn dùng: {formatDate(code.expires_at)}
                 </p>

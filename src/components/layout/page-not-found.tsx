@@ -13,7 +13,7 @@ import {
 
 export default function NotFound() {
   return (
-    <Empty className="min-h-[55svh] border bg-card">
+    <Empty className="min-h-[55svh]">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <SearchXIcon />

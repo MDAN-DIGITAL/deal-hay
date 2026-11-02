@@ -1,5 +1,7 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+
 import { useId, useState } from "react"
 import {
   ActivityIcon,
@@ -86,9 +88,10 @@ function MetricHelp({ label, children }: { label: string; children: string }) {
   return (
     <Tooltip onOpenChange={setOpen}>
       <TooltipTrigger
+        render={<Button variant="ghost" size="icon-xs" />}
         aria-label={`Giải thích ${label}`}
         aria-describedby={open ? descriptionId : undefined}
-        className="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        className="text-muted-foreground"
       >
         <InfoIcon aria-hidden="true" className="size-3.5" />
       </TooltipTrigger>
@@ -317,7 +320,7 @@ function ThroughputChart({ samples }: { samples: SpeedtestState["samples"] }) {
   }
 
   return (
-    <div className="rounded-xl border bg-background/50 p-4">
+    <Surface padding="none" variant="inset" className="p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-xs font-medium text-muted-foreground">
           Tốc độ theo từng lượt truyền
@@ -408,7 +411,7 @@ function ThroughputChart({ samples }: { samples: SpeedtestState["samples"] }) {
           </p>
         ) : null}
       </div>
-    </div>
+    </Surface>
   )
 }
 
@@ -441,14 +444,15 @@ export function DiagnosticsClient() {
           {(["backend", "wss"] as const).map((target) => {
             const result = states[target]
             return (
-              <button
+              <Button
                 key={target}
                 type="button"
+                variant="outline"
                 disabled={running}
                 aria-pressed={displayedTarget === target}
                 onClick={() => setSelectedTarget(target)}
                 className={cn(
-                  "min-w-0 rounded-xl border bg-card p-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait",
+                  "block h-auto min-w-0 p-5 text-left whitespace-normal disabled:cursor-wait",
                   displayedTarget === target &&
                     "border-primary/50 ring-1 ring-primary/20"
                 )}
@@ -496,7 +500,7 @@ export function DiagnosticsClient() {
                     {result.error}
                   </span>
                 ) : null}
-              </button>
+              </Button>
             )
           })}
         </div>
@@ -570,10 +574,15 @@ export function DiagnosticsClient() {
             ) : null}
 
             {phase === "cancelled" ? (
-              <p className="rounded-lg border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+              <Surface
+                padding="none"
+                variant="muted"
+                render={<p />}
+                className="px-4 py-3 text-sm text-muted-foreground"
+              >
                 Lượt đo đã dừng. Các số liệu bên dưới là kết quả đo được trước
                 khi dừng.
-              </p>
+              </Surface>
             ) : null}
 
             {state.pingMs !== null && state.pingMs >= 500 && !state.error ? (
@@ -609,10 +618,12 @@ export function DiagnosticsClient() {
                       background: "bg-chart-3/10",
                     },
                   ].map((metric) => (
-                    <div
+                    <Surface
+                      padding="none"
+                      variant="muted"
                       key={metric.label}
                       className={cn(
-                        "rounded-xl border bg-muted/20 px-4 py-4 transition-colors motion-reduce:transition-none sm:px-5",
+                        "px-4 py-4 transition-colors motion-reduce:transition-none sm:px-5",
                         metric.active && "border-primary/30 bg-primary/5"
                       )}
                     >
@@ -634,11 +645,15 @@ export function DiagnosticsClient() {
                       <p className="mt-1 text-xs text-muted-foreground">
                         Mbps{metric.active ? " · Đang đo" : ""}
                       </p>
-                    </div>
+                    </Surface>
                   ))}
                 </div>
 
-                <dl className="grid grid-cols-2 divide-x rounded-xl border px-4 py-3">
+                <Surface
+                  padding="none"
+                  render={<dl />}
+                  className="grid grid-cols-2 divide-x px-4 py-3"
+                >
                   <div className="pr-4">
                     <dt className="flex items-center gap-1 text-sm text-muted-foreground">
                       <ActivityIcon
@@ -672,7 +687,7 @@ export function DiagnosticsClient() {
                       </span>
                     </dd>
                   </div>
-                </dl>
+                </Surface>
 
                 <ThroughputChart samples={state.samples} />
               </div>

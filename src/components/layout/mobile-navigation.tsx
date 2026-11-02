@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   ActivityIcon,
   BellIcon,
@@ -21,6 +22,8 @@ import { NotificationSoundToggle } from "@/components/layout/notification-sound-
 import { UnreadCountBadge } from "@/components/layout/unread-count-badge"
 import { useRealtime } from "@/components/realtime-provider"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { Brand } from "@/components/ui/brand"
+import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
@@ -52,7 +55,14 @@ const publicItems = [
 
 export function MobileNavigation({ user }: { user: User | null }) {
   const [open, setOpen] = useState(false)
+  const pathname = usePathname()
   const { unreadCounts } = useRealtime()
+  const active = (href: string) =>
+    href === "/"
+      ? pathname === "/"
+      : href.startsWith("/admin/")
+        ? pathname.startsWith("/admin/")
+        : pathname === href || pathname.startsWith(`${href}/`)
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
@@ -60,30 +70,37 @@ export function MobileNavigation({ user }: { user: User | null }) {
       >
         <MenuIcon />
       </SheetTrigger>
-      <SheetContent className="w-[88%]" side="right">
+      <SheetContent
+        className="w-[min(88vw,360px)] gap-4 overflow-y-auto"
+        side="right"
+      >
         <SheetHeader className="border-b">
-          <SheetTitle>Deal Hay</SheetTitle>
+          <SheetTitle>
+            <Brand />
+          </SheetTitle>
           <SheetDescription>
-            Khám phá, mua sắm và quản lý tài khoản.
+            Điều hướng nhanh và tài khoản của bạn.
           </SheetDescription>
         </SheetHeader>
 
         {user ? (
-          <div className="flex items-center gap-3 px-4 pt-1">
-            <UserAvatar
-              className="size-11"
-              name={user.full_name}
-              size="lg"
-              src={user.avatar_url}
-            />
-            <div className="min-w-0">
-              <p className="truncate font-medium">{user.full_name}</p>
-              <ServerPing active={open} />
-              <p className="truncate text-xs text-muted-foreground">
-                {user.email}
-              </p>
-            </div>
-          </div>
+          <Card size="sm" className="mx-4 shrink-0">
+            <CardContent className="flex-row items-center gap-3">
+              <UserAvatar
+                className="size-11"
+                name={user.full_name}
+                size="lg"
+                src={user.avatar_url}
+              />
+              <div className="min-w-0">
+                <p className="truncate font-medium">{user.full_name}</p>
+                <ServerPing active={open} />
+                <p className="truncate text-xs text-muted-foreground">
+                  {user.email}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         ) : null}
 
         <nav
@@ -97,13 +114,14 @@ export function MobileNavigation({ user }: { user: User | null }) {
               <Link
                 onNavigate={() => setOpen(false)}
                 href={item.href}
+                aria-current={active(item.href) ? "page" : undefined}
                 key={item.href}
                 aria-label={
                   count > 0 ? `${item.label}, ${count} chưa đọc` : item.label
                 }
                 className={buttonVariants({
                   className: "justify-start",
-                  variant: "ghost",
+                  variant: active(item.href) ? "secondary" : "ghost",
                 })}
               >
                 <item.icon /> {item.label}
@@ -115,9 +133,10 @@ export function MobileNavigation({ user }: { user: User | null }) {
             <Link
               onNavigate={() => setOpen(false)}
               href="/discount-codes"
+              aria-current={active("/discount-codes") ? "page" : undefined}
               className={buttonVariants({
                 className: "justify-start",
-                variant: "ghost",
+                variant: active("/discount-codes") ? "secondary" : "ghost",
               })}
             >
               <TicketPercentIcon /> Mã giảm giá của tôi
@@ -127,9 +146,10 @@ export function MobileNavigation({ user }: { user: User | null }) {
             <Link
               onNavigate={() => setOpen(false)}
               href="/shop-manage"
+              aria-current={active("/shop-manage") ? "page" : undefined}
               className={buttonVariants({
                 className: "justify-start",
-                variant: "ghost",
+                variant: active("/shop-manage") ? "secondary" : "ghost",
               })}
             >
               <StoreIcon /> Kênh người bán
@@ -140,9 +160,10 @@ export function MobileNavigation({ user }: { user: User | null }) {
               <Link
                 onNavigate={() => setOpen(false)}
                 href="/diagnostics"
+                aria-current={active("/diagnostics") ? "page" : undefined}
                 className={buttonVariants({
                   className: "justify-start",
-                  variant: "ghost",
+                  variant: active("/diagnostics") ? "secondary" : "ghost",
                 })}
               >
                 <ActivityIcon /> Đo tốc độ máy chủ
@@ -150,9 +171,10 @@ export function MobileNavigation({ user }: { user: User | null }) {
               <Link
                 onNavigate={() => setOpen(false)}
                 href="/admin/users"
+                aria-current={active("/admin/users") ? "page" : undefined}
                 className={buttonVariants({
                   className: "justify-start",
-                  variant: "ghost",
+                  variant: active("/admin/users") ? "secondary" : "ghost",
                 })}
               >
                 <LayoutDashboardIcon /> Trung tâm quản trị

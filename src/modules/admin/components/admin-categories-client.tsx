@@ -1,5 +1,7 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+
 import { useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -57,7 +59,7 @@ function CategoryItem({ category }: { category: ProductCategory }) {
   })
 
   return (
-    <div className="rounded-lg border p-4">
+    <Surface padding="none" className="p-4">
       <Form {...form}>
         <form
           className="flex flex-col gap-3 md:flex-row md:items-start"
@@ -105,7 +107,7 @@ function CategoryItem({ category }: { category: ProductCategory }) {
           </div>
         </form>
       </Form>
-    </div>
+    </Surface>
   )
 }
 

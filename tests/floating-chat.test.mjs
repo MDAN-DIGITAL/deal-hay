@@ -34,7 +34,7 @@ const widgets = moduleUrl(`
   export const useRealtime=()=>({unreadCounts:{messages:globalThis.__floatingChat.unread}})
   export const Button='button',buttonVariants=()=>''
   export const Maximize2Icon='maximize',MessageCircleIcon='message',MinusIcon='minimize',ShieldCheckIcon='shield'
-  export const Dialog={Root:'dialog-root',Trigger:'dialog-trigger',Portal:'dialog-portal',Popup:'dialog-popup',Title:'dialog-title',Description:'dialog-description',Close:'dialog-close'}
+  export const Dialog='dialog-root',DialogTrigger='dialog-trigger',DialogPortal='dialog-portal',DialogPopup='dialog-popup',DialogTitle='dialog-title',DialogDescription='dialog-description',DialogClose='dialog-close'
 `)
 const imports = {
   react,
@@ -47,7 +47,7 @@ const imports = {
 }
 for (const name of [
   "next/navigation",
-  "@base-ui/react/dialog",
+  "@/components/ui/dialog",
   "lucide-react",
   "@/components/realtime-provider",
   "@/components/session-provider",

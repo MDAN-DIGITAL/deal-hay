@@ -23,7 +23,7 @@ export default function Error({
   useEffect(() => console.error(error), [error])
 
   return (
-    <Empty className="min-h-[55svh] border bg-card">
+    <Empty className="min-h-[55svh]">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <TriangleAlertIcon />

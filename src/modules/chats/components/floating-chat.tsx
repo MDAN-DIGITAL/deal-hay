@@ -10,7 +10,15 @@ import {
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Dialog } from "@base-ui/react/dialog"
+import {
+  Dialog,
+  DialogTrigger,
+  DialogPortal,
+  DialogPopup,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog"
 import {
   Maximize2Icon,
   MessageCircleIcon,
@@ -103,7 +111,7 @@ function FloatingChatWidget({
   }, [open, mobile])
 
   return (
-    <Dialog.Root
+    <Dialog
       open={open}
       modal={mobile}
       disablePointerDismissal
@@ -113,7 +121,7 @@ function FloatingChatWidget({
       }}
     >
       {!hidden ? (
-        <Dialog.Trigger
+        <DialogTrigger
           render={
             <Button
               aria-label={
@@ -132,22 +140,19 @@ function FloatingChatWidget({
               {unread > 99 ? "99+" : unread}
             </span>
           ) : null}
-        </Dialog.Trigger>
+        </DialogTrigger>
       ) : null}
-      <Dialog.Portal keepMounted>
-        <Dialog.Popup
-          ref={popup}
-          className="chat-surface fixed top-[var(--chat-viewport-top,0px)] left-0 z-50 flex h-[var(--chat-viewport-height,100dvh)] w-full min-w-0 flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none sm:top-auto sm:right-6 sm:bottom-24 sm:left-auto sm:h-[min(720px,calc(100dvh-7.5rem))] sm:w-[420px] sm:max-w-[calc(100vw-3rem)] sm:rounded-2xl sm:border"
-        >
+      <DialogPortal keepMounted>
+        <DialogPopup ref={popup} variant="floating">
           <div className="flex shrink-0 items-center gap-3 border-b bg-primary/5 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <MessageCircleIcon className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <Dialog.Title className="font-semibold">Tin nhắn</Dialog.Title>
-              <Dialog.Description className="text-xs text-muted-foreground">
+              <DialogTitle className="font-semibold">Tin nhắn</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
                 Hỗ trợ & trò chuyện cùng Deal Hay
-              </Dialog.Description>
+              </DialogDescription>
             </div>
             <Link
               aria-label="Mở trang tin nhắn đầy đủ"
@@ -162,7 +167,7 @@ function FloatingChatWidget({
             >
               <Maximize2Icon />
             </Link>
-            <Dialog.Close
+            <DialogClose
               render={
                 <Button
                   aria-label="Thu nhỏ chat"
@@ -173,7 +178,7 @@ function FloatingChatWidget({
               }
             >
               <MinusIcon />
-            </Dialog.Close>
+            </DialogClose>
           </div>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {currentUserId && opened ? (
@@ -211,9 +216,9 @@ function FloatingChatWidget({
               </div>
             )}
           </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </DialogPopup>
+      </DialogPortal>
+    </Dialog>
   )
 }
 

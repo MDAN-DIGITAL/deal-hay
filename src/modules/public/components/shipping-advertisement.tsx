@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { Surface } from "@/components/ui/surface"
 import {
   ADVERTISING_CONSENT_CHANGE_EVENT,
   readAdvertisingConsent,
@@ -53,7 +54,7 @@ export function ShippingAdvertisement({
           cứ lúc nào; đóng trước khi đạt điều kiện sẽ không nhận được mã.
         </p>
       ) : (
-        <div className="space-y-3 rounded-lg border p-3">
+        <Surface variant="inset" padding="sm" className="space-y-3">
           <p className="text-sm leading-6 text-muted-foreground">
             Để tải quảng cáo có thưởng, bạn cần đồng ý cookie quảng cáo. Google
             và đối tác có thể dùng cookie, địa chỉ IP và thông tin trình duyệt
@@ -86,7 +87,7 @@ export function ShippingAdvertisement({
               Đồng ý cookie quảng cáo
             </Button>
           </div>
-        </div>
+        </Surface>
       )}
     </section>
   )

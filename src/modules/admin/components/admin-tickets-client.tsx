@@ -1,5 +1,7 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+
 import { useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -80,67 +82,69 @@ function TicketForm({ ticket }: { ticket: Ticket }) {
         <Badge
           variant={
             ticket.status === "approved"
-              ? "default"
+              ? "success"
               : ticket.status === "rejected"
                 ? "destructive"
-                : "outline"
+                : "warning"
           }
         >
-          {ticket.status}
+          {ticket.status === "approved"
+            ? "Đã duyệt"
+            : ticket.status === "rejected"
+              ? "Đã từ chối"
+              : "Chờ xử lý"}
         </Badge>
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm">{ticket.message}</p>
         <Form {...form}>
-          <form
-            className="space-y-3 rounded-lg border p-3"
-            noValidate
-            onSubmit={onSubmit}
-          >
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Trạng thái</FormLabel>
-                  <FormSelect
-                    inputRef={field.ref}
-                    name={field.name}
-                    options={[
-                      { label: "Duyệt", value: "approved" },
-                      { label: "Từ chối", value: "rejected" },
-                    ]}
-                    value={field.value}
-                    onBlur={field.onBlur}
-                    onValueChange={field.onChange}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="admin_note"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ghi chú admin</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Ghi chú admin"
-                      {...field}
-                      value={field.value ?? ""}
+          <Surface padding="none" className="p-3">
+            <form className="space-y-3" noValidate onSubmit={onSubmit}>
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Trạng thái</FormLabel>
+                    <FormSelect
+                      inputRef={field.ref}
+                      name={field.name}
+                      options={[
+                        { label: "Duyệt", value: "approved" },
+                        { label: "Từ chối", value: "rejected" },
+                      ]}
+                      value={field.value}
+                      onBlur={field.onBlur}
+                      onValueChange={field.onChange}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormSubmitButton
-              idleText="Cập nhật ticket"
-              pending={isPending}
-              pendingText="Đang lưu..."
-            />
-          </form>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="admin_note"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ghi chú admin</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Ghi chú admin"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormSubmitButton
+                idleText="Cập nhật ticket"
+                pending={isPending}
+                pendingText="Đang lưu..."
+              />
+            </form>
+          </Surface>
         </Form>
       </CardContent>
     </Card>

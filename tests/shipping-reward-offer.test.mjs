@@ -130,6 +130,7 @@ const { ShippingRewardOffer } = await import(
       'export const PlayIcon = "play", RefreshCwIcon = "refresh", TicketPercentIcon = "ticket"'
     ),
     "@/components/ui/button": moduleUrl('export const Button = "button"'),
+    "@/components/ui/surface": moduleUrl('export const Surface = "surface"'),
     "@/lib/auth-redirect": moduleUrl(
       'export const getAuthPageHref = (path, next) => path + "?next=" + encodeURIComponent(next)'
     ),

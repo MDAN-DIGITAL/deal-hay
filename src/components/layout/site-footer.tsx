@@ -6,6 +6,7 @@ import {
 } from "lucide-react"
 
 import { Separator } from "@/components/ui/separator"
+import { Brand } from "@/components/ui/brand"
 
 const footerLinks = [
   { href: "/", label: "Khám phá sản phẩm" },
@@ -17,29 +18,27 @@ const footerLinks = [
 export function SiteFooter() {
   return (
     <footer className="mt-10 border-t bg-card">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.25fr_0.75fr_1fr] lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 md:grid-cols-[1.25fr_0.75fr_1fr] lg:px-8">
         <div className="space-y-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-primary font-bold text-primary-foreground">
-              D
-            </span>
-            <span className="font-heading text-xl font-bold">
-              Deal<span className="text-primary">Hay</span>
-            </span>
-          </div>
-          <p className="max-w-md text-sm leading-6 text-muted-foreground">
-            Nền tảng kết nối người mua với những gian hàng đáng tin cậy, giúp
-            bạn tìm đúng sản phẩm và trao đổi trực tiếp với người bán.
+          <Link href="/" aria-label="Deal Hay - Trang chủ">
+            <Brand />
+          </Link>
+          <p className="max-w-sm text-sm leading-6 text-muted-foreground">
+            Khám phá sản phẩm, trò chuyện trực tiếp với cửa hàng và nhận hỗ trợ
+            khi bạn cần.
           </p>
         </div>
 
         <div>
           <p className="mb-3 text-sm font-semibold">Liên kết nhanh</p>
-          <nav className="grid gap-2 text-sm text-muted-foreground">
+          <nav
+            className="grid gap-2 text-sm text-muted-foreground"
+            aria-label="Liên kết cuối trang"
+          >
             {footerLinks.map((item) => (
               <Link
                 key={item.href}
-                className="w-fit hover:text-primary"
+                className="w-fit transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:outline-ring"
                 href={item.href}
               >
                 {item.label}
@@ -49,7 +48,7 @@ export function SiteFooter() {
         </div>
 
         <div className="space-y-3">
-          <p className="text-sm font-semibold">Cam kết của Deal Hay</p>
+          <p className="text-sm font-semibold">Mua sắm cùng Deal Hay</p>
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <ShieldCheckIcon className="size-4 text-primary" /> Bảo vệ thông tin
             tài khoản
@@ -67,7 +66,14 @@ export function SiteFooter() {
       <Separator />
       <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <p>© 2026 Deal Hay. All rights reserved.</p>
-        <p>Mua sắm thông minh, kết nối trực tiếp.</p>
+        <nav className="flex items-center gap-4" aria-label="Thông tin pháp lý">
+          <Link href="/privacy" className="hover:text-foreground">
+            Chính sách bảo mật
+          </Link>
+          <Link href="/terms" className="hover:text-foreground">
+            Điều khoản sử dụng
+          </Link>
+        </nav>
       </div>
     </footer>
   )

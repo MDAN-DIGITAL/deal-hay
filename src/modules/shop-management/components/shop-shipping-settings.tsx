@@ -1,5 +1,7 @@
 "use client"
 
+import { Surface } from "@/components/ui/surface"
+
 import { useEffect, useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PlusIcon, Trash2Icon, TruckIcon } from "lucide-react"
@@ -187,9 +189,10 @@ export function ShopShippingSettings() {
                     Phí riêng theo phường/xã (tùy chọn)
                   </p>
                   {fields.map((rate, index) => (
-                    <div
+                    <Surface
+                      padding="none"
                       key={rate.id}
-                      className="grid items-start gap-3 rounded-lg border p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+                      className="grid items-start gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
                     >
                       <FormField
                         control={form.control}
@@ -259,7 +262,7 @@ export function ShopShippingSettings() {
                       >
                         <Trash2Icon />
                       </Button>
-                    </div>
+                    </Surface>
                   ))}
                   <Button
                     disabled={

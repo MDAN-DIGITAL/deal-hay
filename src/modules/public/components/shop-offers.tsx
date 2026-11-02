@@ -5,7 +5,8 @@ import Link from "next/link"
 import { CopyIcon, TicketPercentIcon } from "lucide-react"
 import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { Surface } from "@/components/ui/surface"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { formatCurrency, formatDate } from "@/lib/format"
@@ -76,16 +77,17 @@ export function ShopOffers({ shopCode }: { shopCode: string }) {
           </Button>
         </div>
       ) : result.offers.length === 0 ? (
-        <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">
+        <Surface
+          variant="dashed"
+          render={<p />}
+          className="text-muted-foreground"
+        >
           Shop chưa có ưu đãi đang áp dụng.
-        </p>
+        </Surface>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {result.offers.map((offer) => (
-            <article
-              key={offer.id}
-              className="space-y-3 rounded-xl border bg-card p-5"
-            >
+            <Surface render={<article />} key={offer.id} className="space-y-3">
               <div>
                 <p className="text-xl font-semibold text-primary">
                   Giảm {offerValue(offer)}
@@ -114,7 +116,10 @@ export function ShopOffers({ shopCode }: { shopCode: string }) {
                   {offer.products.map((product) => (
                     <Link
                       key={product.id}
-                      className="rounded-lg border px-2 py-1 text-xs hover:border-primary hover:text-primary"
+                      className={buttonVariants({
+                        variant: "outline",
+                        size: "xs",
+                      })}
                       href={`/shops/${encodeURIComponent(shopCode)}/products/${encodeURIComponent(product.slug)}`}
                     >
                       {product.name}
@@ -143,7 +148,7 @@ export function ShopOffers({ shopCode }: { shopCode: string }) {
                 <CopyIcon />
                 Sao chép mã ưu đãi
               </Button>
-            </article>
+            </Surface>
           ))}
         </div>
       )}
@@ -175,7 +180,11 @@ export function ShopOfferSelector({
   const prefix = useId()
 
   return (
-    <fieldset className="space-y-3 rounded-xl border p-4" disabled={disabled}>
+    <Surface
+      render={<fieldset disabled={disabled} />}
+      variant="inset"
+      className="space-y-3"
+    >
       <legend id={`${prefix}-legend`} className="px-1 font-medium">
         Ưu đãi từ shop
       </legend>
@@ -211,20 +220,23 @@ export function ShopOfferSelector({
         onValueChange={(value) => onSelect(value)}
         disabled={disabled}
       >
-        <Label
-          htmlFor={`${prefix}-none`}
-          className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm font-normal"
+        <Surface
+          render={<Label htmlFor={`${prefix}-none`} />}
+          padding="sm"
+          className="flex cursor-pointer items-center gap-3 font-normal"
         >
           <RadioGroupItem id={`${prefix}-none`} value="" />
           Không dùng ưu đãi từ shop
-        </Label>
+        </Surface>
         {offers.map((offer) => {
           const discount = shopOfferDiscount(offer, subtotal, remaining)
           return (
-            <Label
+            <Surface
               key={offer.id}
-              htmlFor={`${prefix}-${offer.id}`}
-              className={`flex items-start gap-3 rounded-lg border p-3 ${discount > 0 ? "cursor-pointer hover:border-primary" : "text-muted-foreground"}`}
+              render={<Label htmlFor={`${prefix}-${offer.id}`} />}
+              padding="sm"
+              variant={discount > 0 ? "default" : "muted"}
+              className={`flex items-start gap-3 ${discount > 0 ? "cursor-pointer" : "text-muted-foreground"}`}
             >
               <RadioGroupItem
                 id={`${prefix}-${offer.id}`}
@@ -257,7 +269,7 @@ export function ShopOfferSelector({
                       : "Chưa đủ điều kiện hoặc mã đã hết hiệu lực"}
                 </span>
               </span>
-            </Label>
+            </Surface>
           )
         })}
       </RadioGroup>
@@ -266,6 +278,6 @@ export function ShopOfferSelector({
           Sản phẩm này chưa có ưu đãi từ shop.
         </p>
       ) : null}
-    </fieldset>
+    </Surface>
   )
 }

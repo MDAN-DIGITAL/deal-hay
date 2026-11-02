@@ -35,7 +35,7 @@ function transpile(file, imports = {}) {
 const widgets = moduleUrl(`
   export const EmptyState='empty',MediaImage='image',Button='button',ScrollArea='scroll-area',UserAvatar='avatar'
   export const Item='item',ItemContent='item-content',ItemDescription='item-description',ItemMedia='item-media',ItemTitle='item-title'
-  export const Message='message-node',MessageAvatar='message-avatar',MessageContent='message-content',MessageGroup='message-group'
+  export const Message='message-node',MessageAvatar='message-avatar',MessageContent='message-content',MessageGroup='message-group',MessageBubble='message-bubble'
   export const ChatImageAttachment='attachment',DownloadAttachment='download',ChatReplyPreview='reply'
   export const CheckCheckIcon='read',CheckIcon='sent',LoaderCircleIcon='loading',MessageCircleIcon='chat-icon',ReplyIcon='reply-icon'
   export const toast={info:()=>{},error:()=>{}}

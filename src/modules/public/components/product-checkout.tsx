@@ -26,7 +26,9 @@ import { toast } from "sonner"
 import { AddressFields } from "@/components/address-fields"
 import { MediaImage } from "@/components/media-image"
 import { Button } from "@/components/ui/button"
+import { ButtonGroup } from "@/components/ui/button-group"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import {
   Form,
   FormControl,
@@ -37,6 +39,8 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Section } from "@/components/ui/section"
+import { Surface } from "@/components/ui/surface"
 import { ShippingRewardOffer } from "@/modules/public/components/shipping-reward-offer"
 import { ShopOfferSelector } from "@/modules/public/components/shop-offers"
 import { loadShopOffersAction } from "@/modules/public/shop-offer-actions"
@@ -561,7 +565,7 @@ export function ProductCheckout({
             Đơn hàng đã được gửi đến {shop.name}.
           </p>
         </div>
-        <div className="space-y-5 rounded-2xl border bg-card p-5 sm:p-6">
+        <Surface padding="lg" className="space-y-5">
           <dl className="space-y-4">
             <div className="flex flex-wrap justify-between gap-2">
               <dt className="text-muted-foreground">Mã đơn hàng</dt>
@@ -615,7 +619,7 @@ export function ProductCheckout({
               ? "Đang mở cuộc trò chuyện..."
               : "Nhắn với shop về đơn hàng"}
           </Button>
-        </div>
+        </Surface>
         <Link
           href={`/shops/${encodeURIComponent(shop.code)}`}
           className="flex items-center justify-center gap-2 text-sm font-medium text-primary hover:underline"
@@ -663,19 +667,12 @@ export function ProductCheckout({
         >
           <fieldset disabled={pending} className="min-w-0 space-y-5">
             <legend className="sr-only">Thông tin đơn hàng</legend>
-            <section
-              aria-labelledby="checkout-product-title"
-              className="overflow-hidden rounded-2xl border bg-card"
-            >
-              <div className="flex items-center gap-3 border-b px-4 py-4 sm:px-6">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <ShoppingBagIcon className="size-4" aria-hidden="true" />
-                </span>
-                <h2 id="checkout-product-title" className="font-semibold">
-                  Sản phẩm đặt mua
-                </h2>
-              </div>
-              <div className="space-y-5 p-4 sm:p-6">
+            <section aria-labelledby="checkout-product-title">
+              <Section
+                title={<h2 id="checkout-product-title">Sản phẩm đặt mua</h2>}
+                icon={<ShoppingBagIcon aria-hidden="true" />}
+                contentClassName="gap-5"
+              >
                 <Link
                   href={`/shops/${encodeURIComponent(shop.code)}`}
                   className="inline-flex items-center gap-2 text-sm font-medium hover:text-primary"
@@ -723,12 +720,11 @@ export function ProductCheckout({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Số lượng</FormLabel>
-                        <div className="flex items-center gap-0">
+                        <ButtonGroup aria-label="Số lượng sản phẩm">
                           <Button
                             type="button"
                             variant="outline"
                             size="icon"
-                            className="rounded-r-none"
                             aria-label="Giảm số lượng"
                             disabled={quantity <= 1}
                             onClick={() =>
@@ -744,7 +740,7 @@ export function ProductCheckout({
                               inputMode="numeric"
                               min={1}
                               max={maxQuantity}
-                              className="h-9 w-16 [appearance:textfield] rounded-none border-x-0 text-center shadow-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                              className="w-16 [appearance:textfield] text-center shadow-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                               onChange={(event) =>
                                 field.onChange(Number(event.target.value))
                               }
@@ -754,7 +750,6 @@ export function ProductCheckout({
                             type="button"
                             variant="outline"
                             size="icon"
-                            className="rounded-l-none"
                             aria-label="Tăng số lượng"
                             disabled={quantity >= maxQuantity}
                             onClick={() =>
@@ -765,7 +760,7 @@ export function ProductCheckout({
                           >
                             <PlusIcon />
                           </Button>
-                        </div>
+                        </ButtonGroup>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -779,27 +774,18 @@ export function ProductCheckout({
                       : "Sản phẩm tạm hết hàng"}
                   </p>
                 </div>
-              </div>
+              </Section>
             </section>
 
-            <section
-              aria-labelledby="checkout-delivery-title"
-              className="overflow-hidden rounded-2xl border bg-card"
-            >
-              <div className="flex items-center gap-3 border-b px-4 py-4 sm:px-6">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <MapPinIcon className="size-4" aria-hidden="true" />
-                </span>
-                <div>
-                  <h2 id="checkout-delivery-title" className="font-semibold">
-                    Thông tin giao hàng
-                  </h2>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Cửa hàng sẽ giao theo thông tin bạn cung cấp.
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-4 p-4 sm:p-6">
+            <section aria-labelledby="checkout-delivery-title">
+              <Section
+                title={
+                  <h2 id="checkout-delivery-title">Thông tin giao hàng</h2>
+                }
+                description={<>Cửa hàng sẽ giao theo thông tin bạn cung cấp.</>}
+                icon={<MapPinIcon aria-hidden="true" />}
+                contentClassName="gap-4"
+              >
                 <div className="grid gap-4 sm:grid-cols-2">
                   {(
                     [
@@ -912,27 +898,16 @@ export function ProductCheckout({
                     ) : null}
                   </div>
                 </div>
-              </div>
+              </Section>
             </section>
 
-            <section
-              aria-labelledby="checkout-discount-title"
-              className="overflow-hidden rounded-2xl border bg-card"
-            >
-              <div className="flex items-center gap-3 border-b px-4 py-4 sm:px-6">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <TicketPercentIcon className="size-4" aria-hidden="true" />
-                </span>
-                <div>
-                  <h2 id="checkout-discount-title" className="font-semibold">
-                    Ưu đãi của bạn
-                  </h2>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Chọn mã giảm tiền hàng và ưu đãi vận chuyển.
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-4 p-4 sm:p-6">
+            <section aria-labelledby="checkout-discount-title">
+              <Section
+                title={<h2 id="checkout-discount-title">Ưu đãi của bạn</h2>}
+                description={<>Chọn mã giảm tiền hàng và ưu đãi vận chuyển.</>}
+                icon={<TicketPercentIcon aria-hidden="true" />}
+                contentClassName="gap-4"
+              >
                 <ShopOfferSelector
                   offers={shopOffers}
                   subtotal={summary.subtotal}
@@ -1004,11 +979,15 @@ export function ProductCheckout({
                           Không dùng mã
                         </Button>
                       </div>
-                      <div className="max-h-52 space-y-2 overflow-y-auto rounded-lg border p-3">
+                      <Surface
+                        variant="inset"
+                        padding="sm"
+                        className="max-h-52 space-y-2 overflow-y-auto"
+                      >
                         {discountCodes.map((code) => (
-                          <label
+                          <Label
                             key={code.id}
-                            className="flex items-start gap-2 text-sm"
+                            className="flex items-start gap-2 font-normal"
                           >
                             <Checkbox
                               checked={selectedCodes.includes(code.code)}
@@ -1035,9 +1014,9 @@ export function ProductCheckout({
                                 {formatDate(code.expires_at)}
                               </span>
                             </span>
-                          </label>
+                          </Label>
                         ))}
-                      </div>
+                      </Surface>
                     </>
                   ) : null}
                 </fieldset>
@@ -1103,7 +1082,12 @@ export function ProductCheckout({
                 </p>
 
                 {availableShippingCode ? (
-                  <label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
+                  <Surface
+                    render={<Label />}
+                    padding="sm"
+                    variant={useShippingCode ? "muted" : "default"}
+                    className="flex items-start gap-2 font-normal"
+                  >
                     <Checkbox
                       checked={useShippingCode}
                       disabled={pending || shippingRewardPending}
@@ -1126,7 +1110,7 @@ export function ProductCheckout({
                         nếu đơn chưa có phí ship.
                       </span>
                     </span>
-                  </label>
+                  </Surface>
                 ) : null}
                 {shippingCodeError &&
                 !shippingCodeError.includes("đăng nhập") ? (
@@ -1183,7 +1167,7 @@ export function ProductCheckout({
                     />
                   </div>
                 ) : null}
-              </div>
+              </Section>
             </section>
           </fieldset>
 
@@ -1191,165 +1175,151 @@ export function ProductCheckout({
             className="min-w-0 space-y-4 lg:sticky lg:top-28"
             aria-labelledby="checkout-summary-title"
           >
-            <section className="overflow-hidden rounded-2xl border bg-card">
-              <div className="border-b px-5 py-5">
-                <h2
-                  id="checkout-summary-title"
-                  className="text-lg font-semibold"
-                >
-                  Tóm tắt đơn hàng
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
+            <Section
+              title={<h2 id="checkout-summary-title">Tóm tắt đơn hàng</h2>}
+              description={
+                <>
                   {validQuantity
                     ? `${quantity} sản phẩm từ ${shop.name}`
                     : "Kiểm tra lại số lượng sản phẩm"}
-                </p>
-              </div>
-              <div className="space-y-5 p-5">
-                <div
-                  className="space-y-4"
-                  aria-live="polite"
-                  aria-atomic="true"
-                >
-                  <dl className="space-y-3 text-sm">
+                </>
+              }
+              contentClassName="gap-5"
+            >
+              <div className="space-y-4" aria-live="polite" aria-atomic="true">
+                <dl className="space-y-3 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Tiền hàng</dt>
+                    <dd className="font-medium">
+                      {validQuantity ? formatCurrency(summary.subtotal) : "—"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Giảm giá sản phẩm</dt>
+                    <dd className="text-primary">
+                      {unconfirmedCodes
+                        ? "Đang xác nhận"
+                        : validQuantity
+                          ? `−${formatCurrency(summary.discount)}`
+                          : "—"}
+                    </dd>
+                  </div>
+                  {selectedShopOfferId ? (
                     <div className="flex justify-between gap-3">
-                      <dt className="text-muted-foreground">Tiền hàng</dt>
-                      <dd className="font-medium">
-                        {validQuantity ? formatCurrency(summary.subtotal) : "—"}
+                      <dt className="text-muted-foreground">Ưu đãi từ shop</dt>
+                      <dd className="text-primary">
+                        {shopCouponUnconfirmed
+                          ? "Chưa xác nhận"
+                          : `−${formatCurrency(shopDiscount)}`}
                       </dd>
                     </div>
+                  ) : null}
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Phí vận chuyển</dt>
+                    <dd className="text-right">
+                      {!shippingLocationSelected
+                        ? "Chọn địa chỉ"
+                        : shippingBlocked
+                          ? "Chưa xác nhận"
+                          : shippingConfirmed
+                            ? formatCurrency(shippingFee)
+                            : "Trao đổi với shop"}
+                    </dd>
+                  </div>
+                  {appliedShippingCode ? (
                     <div className="flex justify-between gap-3">
                       <dt className="text-muted-foreground">
-                        Giảm giá sản phẩm
+                        Giảm phí vận chuyển
                       </dt>
                       <dd className="text-primary">
-                        {unconfirmedCodes
-                          ? "Đang xác nhận"
-                          : validQuantity
-                            ? `−${formatCurrency(summary.discount)}`
-                            : "—"}
+                        −{formatCurrency(shippingDiscount)}
                       </dd>
                     </div>
-                    {selectedShopOfferId ? (
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-muted-foreground">
-                          Ưu đãi từ shop
-                        </dt>
-                        <dd className="text-primary">
-                          {shopCouponUnconfirmed
-                            ? "Chưa xác nhận"
-                            : `−${formatCurrency(shopDiscount)}`}
-                        </dd>
-                      </div>
-                    ) : null}
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-muted-foreground">Phí vận chuyển</dt>
-                      <dd className="text-right">
-                        {!shippingLocationSelected
-                          ? "Chọn địa chỉ"
-                          : shippingBlocked
-                            ? "Chưa xác nhận"
-                            : shippingConfirmed
-                              ? formatCurrency(shippingFee)
-                              : "Trao đổi với shop"}
-                      </dd>
-                    </div>
-                    {appliedShippingCode ? (
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-muted-foreground">
-                          Giảm phí vận chuyển
-                        </dt>
-                        <dd className="text-primary">
-                          −{formatCurrency(shippingDiscount)}
-                        </dd>
-                      </div>
-                    ) : null}
-                  </dl>
-                  <div className="flex flex-wrap items-baseline justify-between gap-2 border-t pt-4">
-                    <span className="font-semibold">
-                      {shippingConfirmed
-                        ? "Tổng thanh toán"
-                        : "Tiền hàng sau giảm"}
-                    </span>
-                    <span className="text-2xl font-semibold tracking-tight text-primary">
-                      {!validQuantity ||
-                      unconfirmedCodes ||
-                      shippingBlocked ||
-                      shopCouponUnconfirmed ||
-                      shippingCodeUnconfirmed
-                        ? "—"
-                        : formatCurrency(finalProductTotal + shippingTotal)}
-                    </span>
-                  </div>
-                  {!validQuantity ? (
-                    <p className="text-sm text-destructive" role="alert">
-                      {stock < 1
-                        ? "Sản phẩm đã hết hàng. Vui lòng quay lại để chọn sản phẩm khác."
-                        : `Vui lòng chọn số lượng từ 1 đến ${maxQuantity}.`}
-                    </p>
                   ) : null}
-                  {unconfirmedCodes ? (
-                    <p className="text-xs text-muted-foreground">
-                      Vui lòng xác nhận các mã đã chọn trong phần ưu đãi.
-                    </p>
-                  ) : null}
-                  {shippingCodeUnconfirmed ? (
-                    <p className="text-xs text-muted-foreground">
-                      Đang chờ xác nhận mã vận chuyển.
-                    </p>
-                  ) : null}
-                  {shopCouponUnconfirmed ? (
-                    <p className="text-xs text-destructive" role="alert">
-                      Tải lại hoặc bỏ chọn ưu đãi từ shop không còn đủ điều
-                      kiện.
-                    </p>
-                  ) : null}
-                  {shippingRewardPending ? (
-                    <p className="text-xs text-muted-foreground">
-                      Hoàn tất hoặc hủy xem quảng cáo trước khi xác nhận đơn.
-                    </p>
-                  ) : null}
-                  {!shippingConfirmed && !shippingBlocked ? (
-                    <p className="text-xs leading-5 text-muted-foreground">
-                      {shippingLocationSelected
-                        ? "Chưa bao gồm phí vận chuyển. Vui lòng xác nhận phí với shop."
-                        : "Phí vận chuyển sẽ hiển thị sau khi bạn chọn địa chỉ."}
-                    </p>
-                  ) : null}
-                  {validQuantity &&
-                  !unconfirmedCodes &&
-                  finalProductTotal === 0 &&
-                  summary.discount + shopDiscount > 0 ? (
-                    <p className="rounded-lg bg-primary/5 p-3 text-xs font-medium text-primary">
-                      Ưu đãi đã giảm toàn bộ tiền hàng của bạn.
-                    </p>
-                  ) : null}
+                </dl>
+                <div className="flex flex-wrap items-baseline justify-between gap-2 border-t pt-4">
+                  <span className="font-semibold">
+                    {shippingConfirmed
+                      ? "Tổng thanh toán"
+                      : "Tiền hàng sau giảm"}
+                  </span>
+                  <span className="text-2xl font-semibold tracking-tight text-primary">
+                    {!validQuantity ||
+                    unconfirmedCodes ||
+                    shippingBlocked ||
+                    shopCouponUnconfirmed ||
+                    shippingCodeUnconfirmed
+                      ? "—"
+                      : formatCurrency(finalProductTotal + shippingTotal)}
+                  </span>
                 </div>
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="h-12 w-full text-base"
-                  disabled={orderBlocked}
-                >
-                  {pending ? (
-                    <LoaderCircleIcon className="animate-spin" />
-                  ) : (
-                    <ShoppingBagIcon />
-                  )}
-                  {pending
-                    ? "Đang xác nhận..."
-                    : validQuantity &&
-                        !unconfirmedCodes &&
-                        finalProductTotal + shippingTotal === 0 &&
-                        shippingConfirmed
-                      ? "Xác nhận đặt hàng 0đ"
-                      : "Xác nhận đặt hàng"}
-                </Button>
-                <p className="text-center text-xs leading-5 text-muted-foreground">
-                  Kiểm tra thông tin giao hàng và tổng tiền trước khi xác nhận.
-                </p>
+                {!validQuantity ? (
+                  <p className="text-sm text-destructive" role="alert">
+                    {stock < 1
+                      ? "Sản phẩm đã hết hàng. Vui lòng quay lại để chọn sản phẩm khác."
+                      : `Vui lòng chọn số lượng từ 1 đến ${maxQuantity}.`}
+                  </p>
+                ) : null}
+                {unconfirmedCodes ? (
+                  <p className="text-xs text-muted-foreground">
+                    Vui lòng xác nhận các mã đã chọn trong phần ưu đãi.
+                  </p>
+                ) : null}
+                {shippingCodeUnconfirmed ? (
+                  <p className="text-xs text-muted-foreground">
+                    Đang chờ xác nhận mã vận chuyển.
+                  </p>
+                ) : null}
+                {shopCouponUnconfirmed ? (
+                  <p className="text-xs text-destructive" role="alert">
+                    Tải lại hoặc bỏ chọn ưu đãi từ shop không còn đủ điều kiện.
+                  </p>
+                ) : null}
+                {shippingRewardPending ? (
+                  <p className="text-xs text-muted-foreground">
+                    Hoàn tất hoặc hủy xem quảng cáo trước khi xác nhận đơn.
+                  </p>
+                ) : null}
+                {!shippingConfirmed && !shippingBlocked ? (
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {shippingLocationSelected
+                      ? "Chưa bao gồm phí vận chuyển. Vui lòng xác nhận phí với shop."
+                      : "Phí vận chuyển sẽ hiển thị sau khi bạn chọn địa chỉ."}
+                  </p>
+                ) : null}
+                {validQuantity &&
+                !unconfirmedCodes &&
+                finalProductTotal === 0 &&
+                summary.discount + shopDiscount > 0 ? (
+                  <p className="rounded-lg bg-primary/5 p-3 text-xs font-medium text-primary">
+                    Ưu đãi đã giảm toàn bộ tiền hàng của bạn.
+                  </p>
+                ) : null}
               </div>
-            </section>
+              <Button
+                type="submit"
+                size="lg"
+                className="h-12 w-full text-base"
+                disabled={orderBlocked}
+              >
+                {pending ? (
+                  <LoaderCircleIcon className="animate-spin" />
+                ) : (
+                  <ShoppingBagIcon />
+                )}
+                {pending
+                  ? "Đang xác nhận..."
+                  : validQuantity &&
+                      !unconfirmedCodes &&
+                      finalProductTotal + shippingTotal === 0 &&
+                      shippingConfirmed
+                    ? "Xác nhận đặt hàng 0đ"
+                    : "Xác nhận đặt hàng"}
+              </Button>
+              <p className="text-center text-xs leading-5 text-muted-foreground">
+                Kiểm tra thông tin giao hàng và tổng tiền trước khi xác nhận.
+              </p>
+            </Section>
             <Button
               type="button"
               variant="outline"
