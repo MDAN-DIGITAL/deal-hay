@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 
 import { getShop } from "@/api/catalog/queries"
+import type { ShopResponse } from "@/api/catalog/types"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -35,14 +36,19 @@ export function ShopPageContainer({
   shopUserCode,
   category,
   page,
+  initialData,
+  initialError,
 }: {
   shopUserCode: string
   category?: string
   page?: string
+  initialData?: ShopResponse
+  initialError?: string
 }) {
   const { data, error } = useApiQuery(
     JSON.stringify(["shop", shopUserCode, category, page]),
-    () => getShop(shopUserCode, category, page)
+    () => getShop(shopUserCode, category, page),
+    { initialData, initialError }
   )
   if (!data) return <QueryPlaceholder error={error} />
 
@@ -65,7 +71,11 @@ export function ShopPageContainer({
   ]
 
   return (
-    <div className="space-y-10">
+    <div
+      className="space-y-10"
+      data-catalog-content="ready"
+      data-ad-eligible={data.products.length > 0 ? "true" : undefined}
+    >
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>

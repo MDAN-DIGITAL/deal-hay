@@ -61,6 +61,7 @@ const hooksUrl = moduleUrl(`
     }
   }
   export const useLayoutEffect = useEffect
+  export function useSyncExternalStore(_subscribe, getSnapshot) { return getSnapshot() }
 `)
 const hooks = await import(hooksUrl)
 const { StorefrontAdvertising } = await import(
@@ -69,6 +70,11 @@ const { StorefrontAdvertising } = await import(
     "react/jsx-runtime": import.meta.resolve("react/jsx-runtime"),
     "next/link": moduleUrl('export default "a"'),
     "@/components/ui/button": moduleUrl('export const Button = "button"'),
+    "@/components/ui/surface": moduleUrl('export const Surface = "section"'),
+    "@/hooks/use-advertising-content": transpile(
+      "../src/hooks/use-advertising-content.ts",
+      { react: hooksUrl }
+    ),
     "@/lib/google-adsense": adsenseUrl,
     "@/lib/advertising-consent": consentUrl,
   })
@@ -186,10 +192,16 @@ class Document extends Events {
     this.documentElement.append(this.head, this.body)
     this.cookie = ""
     this.visibilityState = "visible"
+    this.adEligible = true
   }
 
   createElement(tagName) {
     return new Element(tagName, this)
+  }
+
+  querySelector(selector) {
+    assert.equal(selector, 'main [data-ad-eligible="true"]')
+    return this.adEligible ? this.body : null
   }
 
   getElementById(id) {
@@ -231,6 +243,7 @@ function textContent(node) {
 function advertisingComponent(initialConsent, options = {}) {
   hooks.reset()
   const document = new Document()
+  document.adEligible = options.eligible ?? true
   document.cookie =
     options.currentCookie ??
     (initialConsent
@@ -241,6 +254,7 @@ function advertisingComponent(initialConsent, options = {}) {
   const window = Object.assign(new Events(), {
     location: {
       protocol: "https:",
+      pathname: options.pathname ?? "/",
       reload: () => {
         reloads += 1
       },
@@ -423,6 +437,32 @@ test("no provider scripts execute before consent or after an initial refusal", (
   }
 })
 
+test("accepted cookies cannot initialize ads on loading, empty or failed catalog content", () => {
+  const component = advertisingComponent("accepted", { eligible: false })
+  assert.equal(component.document.scripts.length, 0)
+  assert.equal(component.tree, null)
+  component.document.adEligible = true
+  component.render()
+  assert.equal(component.document.scripts.length, 1)
+  component.render()
+  assert.equal(component.document.scripts.length, 1)
+})
+
+test("checkout and account routes cannot initialize publisher ads even if a content marker is present", () => {
+  for (const pathname of [
+    "/sign-in",
+    "/profile",
+    "/chats",
+    "/chats/example",
+    "/admin/users",
+    "/shops/SHOP/products/product/checkout",
+  ]) {
+    const component = advertisingComponent("accepted", { pathname })
+    assert.equal(component.document.scripts.length, 0, pathname)
+    assert.equal(component.tree, null, pathname)
+  }
+})
+
 test("accepting cookie advertising loads scripts once and persists the decision", () => {
   const component = advertisingComponent(null)
   component.click("Đồng ý cookie quảng cáo")
@@ -574,9 +614,16 @@ test("private routes use a separate document root so loaded provider code cannot
     "sell",
     "privacy",
     "terms",
+    "shops/[shopUserCode]/products/[productSlug]/checkout",
   ]) {
     assert.ok(exists(`../src/app/(application)/${route}/page.tsx`), route)
   }
+  assert.equal(
+    exists(
+      "../src/app/(storefront)/shops/[shopUserCode]/products/[productSlug]/checkout/page.tsx"
+    ),
+    false
+  )
   assert.match(read("../next.config.ts"), /globalNotFound:\s*true/)
   assert.ok(exists("../src/app/global-not-found.tsx"))
 })

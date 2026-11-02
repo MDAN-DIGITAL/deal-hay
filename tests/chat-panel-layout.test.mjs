@@ -54,7 +54,8 @@ const imports = {
     "../src/modules/chats/lib/chat-state.ts"
   ),
   "@/modules/chats/lib/chat-navigation": transpile(
-    "../src/modules/chats/lib/chat-navigation.ts"
+    "../src/modules/chats/lib/chat-navigation.ts",
+    { "@/lib/session": transpile("../src/lib/session.ts") }
   ),
 }
 for (const name of [

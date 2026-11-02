@@ -30,6 +30,7 @@ import { useRealtime } from "@/components/realtime-provider"
 import { useSession } from "@/components/session-provider"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { getAuthPageHref } from "@/lib/auth-redirect"
+import { ChatPageLink } from "@/components/chat-page-link"
 
 const ChatsPanel = dynamic(
   () =>
@@ -154,7 +155,7 @@ function FloatingChatWidget({
                 Hỗ trợ & trò chuyện cùng Deal Hay
               </DialogDescription>
             </div>
-            <Link
+            <ChatPageLink
               aria-label="Mở trang tin nhắn đầy đủ"
               className={buttonVariants({ size: "icon-lg", variant: "ghost" })}
               href={
@@ -166,7 +167,7 @@ function FloatingChatWidget({
               title="Mở toàn màn hình"
             >
               <Maximize2Icon />
-            </Link>
+            </ChatPageLink>
             <DialogClose
               render={
                 <Button
@@ -209,6 +210,8 @@ function FloatingChatWidget({
                 <Link
                   className={buttonVariants({ size: "lg" })}
                   href={getAuthPageHref("/sign-in", "/chats")}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={() => setExpanded(false)}
                 >
                   Đăng nhập để trò chuyện

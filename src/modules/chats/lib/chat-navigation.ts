@@ -1,6 +1,80 @@
 import type { SelectedConversation, ConversationAlias } from "@/types/chat"
+import { ACCESS_TOKEN_STORAGE_KEY, getAccessToken } from "@/lib/session"
 
 export const CHAT_NAVIGATION_EVENT = "dealhay:chat-navigation"
+
+type ReservedChatPage = {
+  navigate: (href: string) => boolean
+  close: () => void
+}
+
+function chatHref(href: string): string | null {
+  try {
+    const destination = new URL(href, window.location.origin)
+    if (
+      destination.origin !== window.location.origin ||
+      !parseChatNavigationTarget(destination.pathname, destination.search)
+    )
+      return null
+    return `${destination.pathname}${destination.search}${destination.hash}`
+  } catch {
+    return null
+  }
+}
+
+/** Reserve during the click gesture, before awaiting conversation creation. */
+export function reserveChatPage(): ReservedChatPage | null {
+  if (typeof window === "undefined") return null
+  const account = getAccessToken()
+  let page: Window | null
+  try {
+    page = window.open("about:blank", "_blank")
+  } catch {
+    return null
+  }
+  if (!page) return null
+  try {
+    // The owned blank document is same-origin. Disconnect its opener before any
+    // app code runs and seed only this tab's account, never a token in the URL.
+    page.opener = null
+    page.sessionStorage.removeItem("dealhay_wss_session")
+    if (account) page.sessionStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, account)
+    else page.sessionStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
+  } catch {
+    page.close()
+    return null
+  }
+  let settled = false
+  const close = () => {
+    if (settled) return
+    settled = true
+    page.close()
+  }
+  return {
+    close,
+    navigate(href) {
+      const destination = chatHref(href)
+      if (settled || page.closed) return false
+      if (!destination || getAccessToken() !== account) {
+        close()
+        return false
+      }
+      try {
+        page.location.replace(destination)
+        settled = true
+        return true
+      } catch {
+        close()
+        return false
+      }
+    },
+  }
+}
+
+export function openChatPage(href: string): boolean {
+  if (typeof window === "undefined" || !chatHref(href)) return false
+  return reserveChatPage()?.navigate(href) ?? false
+}
 
 export type ChatNavigationTarget = {
   conversationId?: string
@@ -56,7 +130,7 @@ export function resolveChatNavigationTarget(
   )
 }
 
-/** Keep cached chat and drafts mounted, including repeated clicks on one toast. */
+/** Reuse chat history in the chat tab; open a separate authenticated tab elsewhere. */
 export function navigateToChat(
   href: string,
   push: (href: string) => void
@@ -84,5 +158,5 @@ export function navigateToChat(
     )
       window.history.pushState(null, "", localHref)
     window.dispatchEvent(new Event(CHAT_NAVIGATION_EVENT))
-  } else push(localHref)
+  } else openChatPage(localHref)
 }

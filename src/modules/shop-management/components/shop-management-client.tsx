@@ -1170,7 +1170,6 @@ export function ShopManagementClient({
     setActiveTab("products")
     requestAnimationFrame(() => {
       const heading = document.getElementById("create-product-heading")
-      heading?.scrollIntoView({ behavior: "smooth", block: "start" })
       heading?.focus({ preventScroll: true })
     })
   }

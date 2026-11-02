@@ -10,12 +10,20 @@ import { SESSION_CHANGED, getAccessToken } from "@/lib/session"
 import { DATA_CHANGED, invalidateQueries } from "@/lib/query-cache"
 
 /** The key includes every request parameter; disposed requests cannot replace newer data. */
-export function useApiQuery<T>(key: string, load: () => Promise<T>) {
+export function useApiQuery<T>(
+  key: string,
+  load: () => Promise<T>,
+  { initialData, initialError }: { initialData?: T; initialError?: string } = {}
+) {
   const router = useRouter()
   const [revision, setRevision] = useState(0)
-  const [state, setState] = useState<{ key: string; data?: T; error?: Error }>({
-    key,
-  })
+  const [state, setState] = useState<{ key: string; data?: T; error?: Error }>(
+    () => ({
+      key,
+      data: initialData,
+      error: initialError ? new Error(initialError) : undefined,
+    })
+  )
   useEffect(() => {
     const invalidate = () => setRevision((value) => value + 1)
     const changeSession = () => {
@@ -53,7 +61,13 @@ export function useApiQuery<T>(key: string, load: () => Promise<T>) {
     // Request arguments are represented by key; callers pass an inline loader.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, revision, router])
-  return state.key === key ? state : { key }
+  return state.key === key
+    ? state
+    : {
+        key,
+        data: initialData,
+        error: initialError ? new Error(initialError) : undefined,
+      }
 }
 
 export function QueryPlaceholder({ error }: { error?: Error }) {

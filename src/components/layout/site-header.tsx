@@ -27,6 +27,7 @@ import {
   UnreadNavigationLink,
 } from "@/components/layout/unread-count-badge"
 import { UserAvatar } from "@/components/user-avatar"
+import { ChatPageLink } from "@/components/chat-page-link"
 
 type NavigationItem = {
   href: string
@@ -72,21 +73,24 @@ export function SiteHeader() {
           className="ml-3 hidden items-center gap-1 xl:flex"
           aria-label="Điều hướng chính"
         >
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active(item.href) ? "page" : undefined}
-              className={buttonVariants({
-                variant: active(item.href) ? "secondary" : "ghost",
-              })}
-            >
-              {item.label}
-              {item.unreadKey ? (
-                <UnreadCountBadge kind={item.unreadKey} />
-              ) : null}
-            </Link>
-          ))}
+          {items.map((item) => {
+            const NavigationLink = item.href === "/chats" ? ChatPageLink : Link
+            return (
+              <NavigationLink
+                key={item.href}
+                href={item.href}
+                aria-current={active(item.href) ? "page" : undefined}
+                className={buttonVariants({
+                  variant: active(item.href) ? "secondary" : "ghost",
+                })}
+              >
+                {item.label}
+                {item.unreadKey ? (
+                  <UnreadCountBadge kind={item.unreadKey} />
+                ) : null}
+              </NavigationLink>
+            )
+          })}
         </nav>
 
         <div className="ml-auto hidden items-center gap-1 xl:flex">

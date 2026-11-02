@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 
 import { getHome } from "@/api/catalog/queries"
+import type { HomeResponse } from "@/api/catalog/types"
 import { EmptyState } from "@/components/layout/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
@@ -30,16 +31,33 @@ import { StatCard } from "@/components/ui/section"
 import { UserAvatar } from "@/components/user-avatar"
 import { ProductCard } from "@/modules/public/components/product-card"
 
-export function HomePageContainer({ category }: { category?: string }) {
+export function HomePageContainer({
+  category,
+  initialData,
+  initialError,
+}: {
+  category?: string
+  initialData?: HomeResponse
+  initialError?: string
+}) {
   const { data: data, error } = useApiQuery(
     JSON.stringify(["home", category]),
-    () => getHome(category)
+    () => getHome(category),
+    { initialData, initialError }
   )
   if (!data) return <QueryPlaceholder error={error} />
   const activeCategory = data.filters.category
 
   return (
-    <div className="space-y-10">
+    <div
+      className="space-y-10"
+      data-catalog-content="ready"
+      data-ad-eligible={
+        data.products.total > 0 && data.products.data.length > 0
+          ? "true"
+          : undefined
+      }
+    >
       <Card className="py-0">
         <CardContent className="grid gap-8 py-7 sm:py-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
           <div className="space-y-6">

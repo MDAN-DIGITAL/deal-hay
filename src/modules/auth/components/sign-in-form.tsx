@@ -153,7 +153,6 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
                       <FormControl>
                         <Input
                           autoComplete="one-time-code"
-                          autoFocus
                           disabled={isPending}
                           inputMode="numeric"
                           maxLength={6}

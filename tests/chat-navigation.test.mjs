@@ -3,11 +3,8 @@ import { readFileSync } from "node:fs"
 import test from "node:test"
 import ts from "typescript"
 
-const source = ts.transpileModule(
-  readFileSync(
-    new URL("../src/modules/chats/lib/chat-navigation.ts", import.meta.url),
-    "utf8"
-  ),
+const sessionSource = ts.transpileModule(
+  readFileSync(new URL("../src/lib/session.ts", import.meta.url), "utf8"),
   {
     compilerOptions: {
       module: ts.ModuleKind.ESNext,
@@ -15,9 +12,26 @@ const source = ts.transpileModule(
     },
   }
 ).outputText
+const sessionUrl = `data:text/javascript;base64,${Buffer.from(sessionSource).toString("base64")}`
+const source = ts
+  .transpileModule(
+    readFileSync(
+      new URL("../src/modules/chats/lib/chat-navigation.ts", import.meta.url),
+      "utf8"
+    ),
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.ESNext,
+        target: ts.ScriptTarget.ES2022,
+      },
+    }
+  )
+  .outputText.replace('"@/lib/session"', JSON.stringify(sessionUrl))
 const {
   CHAT_NAVIGATION_EVENT,
   navigateToChat,
+  reserveChatPage,
+  openChatPage,
   parseChatNavigationTarget,
   resolveChatNavigationTarget,
 } = await import(
@@ -137,6 +151,34 @@ function browser(t, path) {
   const window = new EventTarget()
   window.location = new URL(path, "https://dealhay.example")
   window.pushes = []
+  const storage = (values = {}) => {
+    const entries = new Map(Object.entries(values))
+    return {
+      getItem: (key) => entries.get(key) ?? null,
+      setItem: (key, value) => entries.set(key, value),
+      removeItem: (key) => entries.delete(key),
+    }
+  }
+  window.sessionStorage = storage({ dealhay_access_token: "account-a" })
+  window.opens = []
+  window.open = (url, target) => {
+    const page = {
+      opener: window,
+      closed: false,
+      sessionStorage: storage({ dealhay_wss_session: "outdated" }),
+      destinations: [],
+      close() {
+        this.closed = true
+      },
+    }
+    page.location = {
+      replace(href) {
+        page.destinations.push(href)
+      },
+    }
+    window.opens.push({ url, target, page })
+    return page
+  }
   window.history = {
     pushState(_state, _unused, href) {
       window.pushes.push(href)
@@ -152,13 +194,24 @@ Object.defineProperty(globalThis, "window", {
   configurable: true,
 })
 
-test("opening a toast from outside chat uses the router with the exact message query", (t) => {
+test("opening a toast outside chat preserves its account and exact message in a new tab", (t) => {
   const window = browser(t, "/profile")
   const destinations = []
   const href = "/chats?conversation=thread-b&message=message-b"
   navigateToChat(href, (value) => destinations.push(value))
-  assert.deepEqual(destinations, [href])
+  assert.deepEqual(destinations, [])
   assert.deepEqual(window.pushes, [])
+  assert.equal(window.opens.length, 1)
+  const opened = window.opens[0]
+  assert.equal(opened.url, "about:blank")
+  assert.equal(opened.target, "_blank")
+  assert.equal(opened.page.opener, null)
+  assert.equal(
+    opened.page.sessionStorage.getItem("dealhay_access_token"),
+    "account-a"
+  )
+  assert.equal(opened.page.sessionStorage.getItem("dealhay_wss_session"), null)
+  assert.deepEqual(opened.page.destinations, [href])
 })
 
 test("chat toast clicks use local history and repeat the focus event for an identical target", (t) => {
@@ -181,6 +234,7 @@ test("chat toast clicks use local history and repeat the focus event for an iden
   assert.equal(selected.length, 2)
   assert.equal(selected[1].conversationId, "thread-b")
   assert.equal(selected[1].messageId, "message-b")
+  assert.deepEqual(window.opens, [])
 })
 
 test("toast navigation cannot leave the site or execute an active URL", (t) => {
@@ -194,5 +248,58 @@ test("toast navigation cannot leave the site or execute an active URL", (t) => {
   ])
     navigateToChat(href, (value) => destinations.push(value))
   assert.deepEqual(destinations, [])
+  assert.deepEqual(window.pushes, [])
+  assert.deepEqual(window.opens, [])
+})
+
+test("reserving before an async chat action closes an unused tab on failure", (t) => {
+  const window = browser(t, "/admin/users")
+  const reserved = reserveChatPage()
+  assert.equal(window.opens.length, 1)
+  assert.deepEqual(window.opens[0].page.destinations, [])
+  reserved.close()
+  reserved.close()
+  assert.equal(window.opens[0].page.closed, true)
+  assert.equal(reserved.navigate("/chats/new-thread"), false)
+})
+
+for (const next of [null, "account-b"])
+  test(`${next ? "switching accounts" : "logging out"} while creating a chat cannot navigate the reserved tab`, (t) => {
+    const window = browser(t, "/shop-manage")
+    const reserved = reserveChatPage()
+    if (next) window.sessionStorage.setItem("dealhay_access_token", next)
+    else window.sessionStorage.removeItem("dealhay_access_token")
+    assert.equal(reserved.navigate("/chats/old-account-thread"), false)
+    assert.equal(window.opens[0].page.closed, true)
+    assert.deepEqual(window.opens[0].page.destinations, [])
+  })
+
+test("a reserved tab only navigates once to a local chat URL and does not close after success", (t) => {
+  const window = browser(t, "/")
+  const reserved = reserveChatPage()
+  assert.equal(
+    reserved.navigate("https://dealhay.example/chats/target?message=exact"),
+    true
+  )
+  assert.equal(reserved.navigate("/chats/other"), false)
+  reserved.close()
+  assert.equal(window.opens[0].page.closed, false)
+  assert.deepEqual(window.opens[0].page.destinations, [
+    "/chats/target?message=exact",
+  ])
+})
+
+test("blocked tabs and invalid destinations never replace the source page", (t) => {
+  const window = browser(t, "/profile")
+  window.open = () => null
+  assert.equal(reserveChatPage(), null)
+  assert.equal(openChatPage("/chats/thread"), false)
+  for (const href of [
+    "javascript:alert(1)",
+    "https://outside.example/chats",
+    "/profile",
+  ])
+    assert.equal(openChatPage(href), false)
+  assert.equal(window.location.pathname, "/profile")
   assert.deepEqual(window.pushes, [])
 })

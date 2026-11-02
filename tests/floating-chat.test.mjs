@@ -35,6 +35,7 @@ const widgets = moduleUrl(`
   export const Button='button',buttonVariants=()=>''
   export const Maximize2Icon='maximize',MessageCircleIcon='message',MinusIcon='minimize',ShieldCheckIcon='shield'
   export const Dialog='dialog-root',DialogTrigger='dialog-trigger',DialogPortal='dialog-portal',DialogPopup='dialog-popup',DialogTitle='dialog-title',DialogDescription='dialog-description',DialogClose='dialog-close'
+  export const ChatPageLink='chat-link'
 `)
 const imports = {
   react,
@@ -52,6 +53,7 @@ for (const name of [
   "@/components/realtime-provider",
   "@/components/session-provider",
   "@/components/ui/button",
+  "@/components/chat-page-link",
 ])
   imports[name] = widgets
 const { FloatingChat } = await import(
@@ -256,6 +258,8 @@ test("guests see the admin support entry and a safe login link returning to chat
     (node) => node.type === "link" && node.props.href.startsWith("/sign-in")
   )
   assert.equal(login.props.href, "/sign-in?redirect=%2Fchats")
+  assert.equal(login.props.target, "_blank")
+  assert.equal(login.props.rel, "noopener noreferrer")
   assert.ok(
     nodes(screen.tree).some(
       (node) => node.type === "p" && node.props.children === "Deal Hay Admin"
@@ -279,6 +283,7 @@ test("maximizing opens the selected conversation and falls back to the list afte
       (node) => node.props?.["aria-label"] === "Mở trang tin nhắn đầy đủ"
     )
   assert.equal(maximize().props.href, "/chats/shop%20%26%20viewer")
+  assert.equal(maximize().type, "chat-link")
   screen.panel().props.onConversationChange(undefined)
   screen.render()
   assert.equal(maximize().props.href, "/chats")

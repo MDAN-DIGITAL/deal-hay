@@ -34,6 +34,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { UserAvatar } from "@/components/user-avatar"
+import { ChatPageLink } from "@/components/chat-page-link"
 import type { User } from "@/types/auth"
 
 const publicItems = [
@@ -109,10 +110,14 @@ export function MobileNavigation({ user }: { user: User | null }) {
         >
           {publicItems.map((item) => {
             const count = "unreadKey" in item ? unreadCounts[item.unreadKey] : 0
+            const NavigationLink = item.href === "/chats" ? ChatPageLink : Link
 
             return (
-              <Link
+              <NavigationLink
                 onNavigate={() => setOpen(false)}
+                onClick={
+                  item.href === "/chats" ? () => setOpen(false) : undefined
+                }
                 href={item.href}
                 aria-current={active(item.href) ? "page" : undefined}
                 key={item.href}
@@ -126,7 +131,7 @@ export function MobileNavigation({ user }: { user: User | null }) {
               >
                 <item.icon /> {item.label}
                 <UnreadCountBadge className="ml-auto" count={count} />
-              </Link>
+              </NavigationLink>
             )
           })}
           {user ? (

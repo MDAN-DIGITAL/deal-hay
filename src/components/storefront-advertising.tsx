@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
+import { Surface } from "@/components/ui/surface"
+import { useAdvertisingContent } from "@/hooks/use-advertising-content"
 import { initializeGoogleAdsense } from "@/lib/google-adsense"
 import {
   ADVERTISING_CONSENT_CHANGE_EVENT,
@@ -20,6 +22,7 @@ export function StorefrontAdvertising({
   const [consent, setConsent] = useState(initialConsent)
   const [showChoices, setShowChoices] = useState(initialConsent === null)
   const initialized = useRef(false)
+  const contentReady = useAdvertisingContent()
 
   useEffect(() => {
     let reloading = false
@@ -66,7 +69,7 @@ export function StorefrontAdvertising({
     window.addEventListener(ADVERTISING_CONSENT_CHANGE_EVENT, syncInlineConsent)
     document.addEventListener("visibilitychange", syncWhenVisible)
 
-    if (syncConsent() && consent === "accepted") {
+    if (syncConsent() && consent === "accepted" && contentReady) {
       initializeGoogleAdsense(document)
       initialized.current = true
     }
@@ -80,7 +83,7 @@ export function StorefrontAdvertising({
       )
       document.removeEventListener("visibilitychange", syncWhenVisible)
     }
-  }, [consent])
+  }, [consent, contentReady])
 
   function saveConsent(choice: AdvertisingConsent) {
     document.cookie = serializeAdvertisingConsent(
@@ -96,6 +99,8 @@ export function StorefrontAdvertising({
     setShowChoices(false)
     window.dispatchEvent(new Event(ADVERTISING_CONSENT_CHANGE_EVENT))
   }
+
+  if (!contentReady) return null
 
   return (
     <>
@@ -118,9 +123,10 @@ export function StorefrontAdvertising({
         </div>
       </aside>
       {showChoices ? (
-        <section
+        <Surface
+          render={<section />}
           aria-label="Lựa chọn cookie quảng cáo"
-          className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-3xl space-y-3 rounded-xl border bg-background p-4 shadow-lg sm:p-5"
+          className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-3xl space-y-3 shadow-lg"
         >
           <p className="font-medium">Cookie quảng cáo</p>
           <p className="text-sm leading-6 text-muted-foreground">
@@ -153,7 +159,7 @@ export function StorefrontAdvertising({
               </Button>
             ) : null}
           </div>
-        </section>
+        </Surface>
       ) : null}
     </>
   )

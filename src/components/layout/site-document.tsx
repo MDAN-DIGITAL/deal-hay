@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { GOOGLE_ADSENSE_CLIENT } from "@/config/advertising"
+import { SITE_URL } from "@/config/site"
 import { cn } from "@/lib/utils"
 
 const inter = Inter({
@@ -19,6 +20,7 @@ const inter = Inter({
 const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
 export const siteMetadata: Metadata = {
+  metadataBase: SITE_URL,
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Deal Hay", statusBarStyle: "default" },
   title: {

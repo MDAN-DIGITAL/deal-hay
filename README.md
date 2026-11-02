@@ -1,6 +1,6 @@
 # Deal Hay frontend
 
-Next.js App Router dùng cho giao diện và điều hướng, deploy trên Vercel. Trình duyệt gọi trực tiếp `deal-hay-api` qua HTTP và `deal-hay-wss` qua Socket.IO. Dự án không chứa Server Actions, API routes, proxy backend hoặc WebSocket server.
+Next.js App Router dùng cho giao diện và điều hướng, deploy trên Vercel. Catalog công khai có HTML server từ request GET không xác thực; dữ liệu riêng tư và các thao tác tương tác vẫn gọi trực tiếp `deal-hay-api` qua HTTP, chat dùng `deal-hay-wss` qua Socket.IO. Dự án không chứa Server Actions, proxy backend hoặc WebSocket server. `robots.txt` và `sitemap.xml` là metadata routes của Next.js.
 
 ## Phát triển
 
@@ -18,13 +18,15 @@ NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api
 
 Vercel dùng Root Directory `deal-hay`, preset Next.js và cùng biến `NEXT_PUBLIC_API_URL` trỏ tới API HTTPS thật. Biến này được đưa vào bundle khi build; đổi địa chỉ cần build lại. Không cần Docker hoặc Render cho frontend.
 
+Đặt thêm `NEXT_PUBLIC_SITE_URL=https://ten-mien-chinh.example` cho origin canonical/sitemap. Nếu bỏ trống hoặc không hợp lệ, dùng `VERCEL_PROJECT_PRODUCTION_URL`, cuối cùng là `https://dealhay.vercel.app`. Hướng dẫn rà quảng cáo, nội dung công khai và bước gửi duyệt trong tài khoản Google: [adsense-readiness.md](docs/adsense-readiness.md).
+
 API phải cho phép origin frontend trong CORS; WSS phải cho phép cùng origin đó. R2/S3 cần bucket CORS cho phép frontend upload bằng URL PUT có thời hạn. Khóa storage, khóa ký ticket và service secret chỉ cấu hình ở API/WSS.
 
 ## Luồng dữ liệu
 
 - `src/api`: HTTP client dùng bearer token, route và kiểu dữ liệu API. API quyết định xác thực, phân quyền, giá, tồn kho và lưu dữ liệu nghiệp vụ.
 - `src/modules`: UI và request handlers chạy trên browser; schema phía client hỗ trợ nhập liệu, API vẫn kiểm tra lại.
-- `useApiQuery`: tải dữ liệu trên browser, xử lý loading/lỗi/retry, bỏ kết quả request đã cũ và cập nhật sau mutation.
+- `useApiQuery`: nhận snapshot SSR công khai nếu có, tiếp tục kiểm tra lại trên browser, xử lý loading/lỗi/retry, bỏ kết quả request đã cũ và cập nhật sau mutation.
 - `SessionProvider`/`AuthGuard`: lấy user từ API. Token lưu trong `sessionStorage`, giữ qua reload cùng tab và được xóa khi đăng xuất hoặc API trả 401 cho phiên hiện tại. Token không được ghi vào cookie hoặc URL. Phiên gắn với tab; dữ liệu phân quyền luôn do API xác nhận.
 - Socket.IO và HTTP chat dùng phiên opaque do WSS lưu/xác thực trong SQLite. API bootstrap danh tính và dữ liệu chat ban đầu; FE giữ phiên WSS tối đa 24 giờ trong `sessionStorage`, gắn với phiên đăng nhập của tab. Reconnect, gửi tin, tải lịch sử, đánh dấu đã đọc và presence đi thẳng tới WSS, tiếp tục hoạt động khi API mất kết nối. Đăng nhập mới/cấp lại phiên hết hạn và mở cuộc trò chuyện từ nghiệp vụ sản phẩm vẫn cần API.
 - Ảnh được resize/nén WebP trong browser và upload trực tiếp lên storage bằng URL có thời hạn. WSS cấp phiên upload ảnh/tệp chat và phục vụ attachment bằng credential WSS; file riêng tư hiển thị bằng object URL, thu hồi khi unmount. Các ảnh sản phẩm/avatar/review vẫn dùng API chính.
@@ -32,7 +34,7 @@ API phải cho phép origin frontend trong CORS; WSS phải cho phép cùng orig
 
 ## Khung chat và hỗ trợ
 
-Trang `/chats` dùng giao diện riêng toàn màn hình, có tìm kiếm và lọc chưa đọc; nền sáng/tối trung tính, vùng tin nhắn và ô nhập cùng chiều rộng dễ đọc. Trên điện thoại, khung tự điều chỉnh theo bàn phím; nút `+` mở gửi ảnh/tệp và tag admin. Bong bóng ở góc dưới mọi trang mở cùng chức năng chat trong khung nổi; trên điện thoại khung này mở toàn màn hình. Thu nhỏ giữ cuộc trò chuyện, bản nháp và dữ liệu đã tải; tin mới chỉ được đánh dấu đã đọc khi khung đang mở. Nút mở rộng chuyển đến đúng cuộc trò chuyện đang xem.
+Trang `/chats` dùng giao diện riêng toàn màn hình, có tìm kiếm và lọc chưa đọc; nền sáng/tối trung tính, vùng tin nhắn và ô nhập cùng chiều rộng dễ đọc. Các liên kết mở trang tin nhắn và nút mở rộng khung nổi mở tab mới, giữ đúng tài khoản của tab nguồn và không đưa token vào URL. Chuyển cuộc trò chuyện bên trong trang chat vẫn dùng dữ liệu đã tải. Trên điện thoại, khung tự điều chỉnh theo bàn phím; nút `+` mở gửi ảnh/tệp và tag admin. Bong bóng ở góc dưới mọi trang mở cùng chức năng chat trong khung nổi; trên điện thoại khung này mở toàn màn hình. Thu nhỏ giữ cuộc trò chuyện, bản nháp và dữ liệu đã tải; tin mới chỉ được đánh dấu đã đọc khi khung đang mở. Các trang và form không tự kéo vị trí cuộn; khung chat vẫn cuộn theo tin nhắn mới.
 
 **Deal Hay Admin** luôn đứng đầu danh sách, kể cả khi tìm kiếm. WSS tạo phòng hỗ trợ riêng với các tài khoản quản trị thật đang hoạt động; nếu chưa đồng bộ được quản trị viên, hàng hỗ trợ hiển thị chưa sẵn sàng. Người chưa đăng nhập có thể mở bong bóng và đăng nhập để bắt đầu.
 
@@ -49,7 +51,7 @@ npm run lint
 npm run build
 ```
 
-Build cần `NEXT_PUBLIC_API_URL` hợp lệ; không cần API đang chạy vì dữ liệu được tải sau khi browser mount. Các page/layout server chỉ tạo khung giao diện, metadata và tham số điều hướng.
+Build cần `NEXT_PUBLIC_API_URL` hợp lệ; không cần API đang chạy. Catalog công khai dùng GET phía server tại thời điểm request, có thời hạn chờ và fallback; dữ liệu tài khoản/tương tác tiếp tục được tải trên browser.
 
 Hướng dẫn ảnh: [browser-image-uploads.md](../deal-hay-api/docs/browser-image-uploads.md). Realtime: [socketio-validation.md](docs/socketio-validation.md).
 

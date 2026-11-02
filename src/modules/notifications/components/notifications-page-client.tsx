@@ -1,6 +1,7 @@
 "use client"
 
 import { Surface } from "@/components/ui/surface"
+import type { ReactNode } from "react"
 
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState, useTransition } from "react"
@@ -14,6 +15,8 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 
 import { FormSubmitButton } from "@/components/form-submit-button"
+import { ChatPageLink } from "@/components/chat-page-link"
+import { parseChatNavigationTarget } from "@/modules/chats/lib/chat-navigation"
 import { DataPagination } from "@/components/layout/data-pagination"
 import { EmptyState } from "@/components/layout/empty-state"
 import { PageHeader } from "@/components/layout/page-header"
@@ -47,6 +50,29 @@ import {
   notificationAppealSchema,
   type NotificationAppealValues,
 } from "@/modules/notifications/schemas/notifications"
+
+function NotificationActionLink({
+  href,
+  onClick,
+  children,
+}: {
+  href: string
+  onClick: () => void
+  children: ReactNode
+}) {
+  const DestinationLink = parseChatNavigationTarget(href.split(/[?#]/, 1)[0])
+    ? ChatPageLink
+    : Link
+  return (
+    <DestinationLink
+      href={href}
+      onClick={onClick}
+      className={buttonVariants({ size: "sm", variant: "outline" })}
+    >
+      {children}
+    </DestinationLink>
+  )
+}
 
 function NotificationAppealForm({
   notificationId,
@@ -332,18 +358,14 @@ export function NotificationsPageClient({
               </p>
               <div className="flex flex-wrap gap-3">
                 {notification.action_url ? (
-                  <Link
+                  <NotificationActionLink
                     href={notification.action_url}
                     onClick={() => {
                       void readVisible([notification.id]).catch(() => {})
                     }}
-                    className={buttonVariants({
-                      size: "sm",
-                      variant: "outline",
-                    })}
                   >
                     <ExternalLinkIcon /> Xem chi tiết
-                  </Link>
+                  </NotificationActionLink>
                 ) : null}
               </div>
               <Accordion>

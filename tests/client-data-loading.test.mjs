@@ -94,10 +94,10 @@ function mount(t) {
         })
     },
   }
-  const render = (key, loader) => {
+  const render = (key, loader, options) => {
     cursor = 0
     effects = []
-    const result = renderQueryHook(key, loader)
+    const result = renderQueryHook(key, loader, options)
     for (const effect of effects) effect()
     return result
   }
@@ -169,4 +169,66 @@ test("a delayed 401 from the previous account cannot redirect a new session befo
   assert.deepEqual(render("profile", async () => ({ user: "b" })).data, {
     user: "b",
   })
+})
+
+test("a public server snapshot renders immediately and revalidates the current browser viewer", async (t) => {
+  const { render } = mount(t)
+  const request = deferred()
+  const publicSnapshot = { name: "Sản phẩm công khai", canReview: false }
+  const options = { initialData: publicSnapshot }
+  let requestedAs
+  const load = () => {
+    requestedAs = globalThis.__queryToken
+    return request.promise
+  }
+  assert.deepEqual(render("product", load, options).data, publicSnapshot)
+  assert.equal(requestedAs, "account-a")
+  request.resolve({ ...publicSnapshot, canReview: true })
+  await flush()
+  assert.equal(render("product", load, options).data.canReview, true)
+})
+
+test("server seeds belong to their route and are not restored over an account change", async (t) => {
+  const { render } = mount(t)
+  const first = deferred()
+  const next = deferred()
+  render("old-product", () => first.promise, {
+    initialData: { id: "old-public-product" },
+  })
+  const options = { initialData: { id: "new-public-product" } }
+  assert.deepEqual(render("new-product", () => next.promise, options).data, {
+    id: "new-public-product",
+  })
+  first.resolve({ id: "old-private-product" })
+  await flush()
+  assert.deepEqual(render("new-product", () => next.promise, options).data, {
+    id: "new-public-product",
+  })
+  next.resolve({ id: "new-private-product" })
+  await flush()
+  globalThis.__queryToken = "account-b"
+  window.dispatchEvent(new Event("session"))
+  assert.equal(
+    render("new-product", async () => ({ id: "account-b" }), options).data,
+    undefined
+  )
+  await flush()
+  assert.deepEqual(
+    render("new-product", async () => ({ id: "account-b" }), options).data,
+    { id: "account-b" }
+  )
+})
+
+test("a failed server load provides a readable fallback and the browser can recover", async (t) => {
+  const { render } = mount(t)
+  const request = deferred()
+  const options = { initialError: "Không thể tải nội dung." }
+  const initial = render("home", () => request.promise, options)
+  assert.equal(initial.data, undefined)
+  assert.equal(initial.error.message, options.initialError)
+  request.resolve({ products: ["Recovered product"] })
+  await flush()
+  const recovered = render("home", () => request.promise, options)
+  assert.deepEqual(recovered.data, { products: ["Recovered product"] })
+  assert.equal(recovered.error, undefined)
 })

@@ -2,7 +2,7 @@
 
 import { Surface } from "@/components/ui/surface"
 
-import { useId, useRef, useState, useTransition } from "react"
+import { useId, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
   CopyIcon,
@@ -60,7 +60,6 @@ export function ShopCouponManager({
 }) {
   const router = useRouter()
   const prefix = useId()
-  const formRef = useRef<HTMLFormElement>(null)
   const [editing, setEditing] = useState<ShopCoupon | null | undefined>(
     undefined
   )
@@ -76,9 +75,6 @@ export function ShopCouponManager({
     setErrors({})
     setSearch("")
     setDeleteId(null)
-    requestAnimationFrame(() =>
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
-    )
   }
 
   function save(event: React.FormEvent<HTMLFormElement>) {
@@ -245,7 +241,6 @@ export function ShopCouponManager({
           <CardContent>
             <form
               key={editing?.id ?? "new"}
-              ref={formRef}
               onSubmit={save}
               className="space-y-6"
             >

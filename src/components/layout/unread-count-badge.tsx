@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { type Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { UnreadCounts } from "@/types/auth"
+import { ChatPageLink } from "@/components/chat-page-link"
 
 export function UnreadCountBadge({
   className,
@@ -55,9 +56,11 @@ export function UnreadNavigationLink({
 }) {
   const { unreadCounts } = useRealtime()
   const count = kind ? unreadCounts[kind] : 0
+  const NavigationLink =
+    href === "/chats" || href.startsWith("/chats/") ? ChatPageLink : Link
 
   return (
-    <Link
+    <NavigationLink
       href={href}
       aria-label={count > 0 ? `${label}, ${count} chưa đọc` : label}
       className={buttonVariants({
@@ -68,6 +71,6 @@ export function UnreadNavigationLink({
     >
       {children ?? label}
       <UnreadCountBadge className={badgeClassName} count={count} />
-    </Link>
+    </NavigationLink>
   )
 }

@@ -18,6 +18,8 @@ const widgets = moduleUrl(`
   export const DropdownMenu='menu-root',DropdownMenuTrigger='menu-trigger',DropdownMenuContent='menu-content',DropdownMenuGroup='menu-group',DropdownMenuLabel='menu-label',DropdownMenuItem='menu-item',DropdownMenuSeparator='separator'
   export const Sheet='sheet-root',SheetContent='sheet-content',SheetDescription='sheet-description',SheetHeader='sheet-header',SheetTitle='sheet-title',SheetTrigger='sheet-trigger'
   export const Button='button',Brand='brand',MobileNavigation='mobile-navigation',NotificationSoundToggle='sound-toggle',SignOutButton='sign-out',ThemeToggle='theme-toggle',UnreadCountBadge='unread-badge',UnreadNavigationLink='unread-link',UserAvatar='avatar',ServerPing='ping',Separator='separator',Card='card',CardContent='card-content'
+  export const ChatPageLink='chat-link'
+  export const BadgeCheckIcon='badge-check',HeartHandshakeIcon='heart-handshake'
 `)
 function load(file) {
   const source = ts.transpileModule(
@@ -44,6 +46,7 @@ const { SiteHeader } = await load("../src/components/layout/site-header.tsx")
 const { MobileNavigation } = await load(
   "../src/components/layout/mobile-navigation.tsx"
 )
+const { SiteFooter } = await load("../src/components/layout/site-footer.tsx")
 function nodes(node) {
   if (!node || typeof node !== "object") return []
   return [
@@ -120,4 +123,20 @@ test("account and mobile menus activate only their ping probe and retain sound a
   assert.equal(tree.find(({ type }) => type === "ping").props.active, true)
   assert.ok(tree.some(({ type }) => type === "sound-toggle"))
   assert.ok(tree.some(({ type }) => type === "sign-out"))
+})
+
+test("desktop, mobile and footer chat entries use the shared new-tab link", () => {
+  globalThis.__siteNavigation = {
+    user: user("customer"),
+    path: "/",
+    open: false,
+  }
+  for (const tree of [
+    nodes(SiteHeader()),
+    nodes(MobileNavigation({ user: user("customer") })),
+    nodes(SiteFooter()),
+  ]) {
+    const entry = tree.find((node) => node.props?.href === "/chats")
+    assert.equal(entry.type, "chat-link")
+  }
 })

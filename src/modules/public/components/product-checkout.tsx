@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useTransition } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useWatch } from "react-hook-form"
 import {
@@ -24,8 +23,9 @@ import {
 import { toast } from "sonner"
 
 import { AddressFields } from "@/components/address-fields"
+import { ChatPageLink } from "@/components/chat-page-link"
 import { MediaImage } from "@/components/media-image"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -55,6 +55,8 @@ import {
 import { applyServerErrors } from "@/lib/form-utils"
 import { formatCurrency, formatDate } from "@/lib/format"
 import { getAuthPageHref } from "@/lib/auth-redirect"
+import { getAccessToken } from "@/lib/session"
+import { reserveChatPage } from "@/modules/chats/lib/chat-navigation"
 import {
   loadDiscountCodesAction,
   saveDiscountCodeAction,
@@ -87,9 +89,9 @@ export function ProductCheckout({
   stock: number
   initialDiscountCode?: string
 }) {
-  const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [messagePending, startMessageTransition] = useTransition()
+  const [chatHref, setChatHref] = useState<string | null>(null)
   const [completedOrder, setCompletedOrder] = useState<{
     number: string
     total: number
@@ -288,13 +290,28 @@ export function ProductCheckout({
       toast.error("Sản phẩm chưa có biến thể đang bán để tư vấn.")
       return
     }
+    const account = getAccessToken()
+    const page = reserveChatPage()
     startMessageTransition(async () => {
-      const state = await startChatAction(shop.code, product.id, variant?.id)
-      if (state.success && state.data) {
-        router.push(`/chats/${encodeURIComponent(state.data.conversationSlug)}`)
-      } else {
+      try {
+        const state = await startChatAction(shop.code, product.id, variant?.id)
+        if (getAccessToken() !== account) {
+          page?.close()
+          return
+        }
+        if (state.success && state.data) {
+          const href = `/chats/${encodeURIComponent(state.data.conversationSlug)}`
+          if (!page?.navigate(href)) setChatHref(href)
+        } else {
+          page?.close()
+          toast.error(
+            state.message || "Không thể mở cuộc trò chuyện với cửa hàng."
+          )
+        }
+      } catch {
+        page?.close()
         toast.error(
-          state.message || "Không thể mở cuộc trò chuyện với cửa hàng."
+          "Không thể mở cuộc trò chuyện với cửa hàng. Vui lòng thử lại."
         )
       }
     })
@@ -302,8 +319,7 @@ export function ProductCheckout({
 
   useEffect(() => {
     if (!completedOrder) return
-    successHeading.current?.focus()
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    successHeading.current?.focus({ preventScroll: true })
   }, [completedOrder])
 
   useEffect(() => {
@@ -603,22 +619,35 @@ export function ProductCheckout({
               {` · Số lượng: ${completedOrder.quantity}`}
             </p>
           </div>
-          <Button
-            className="w-full"
-            size="lg"
-            variant="outline"
-            disabled={messagePending}
-            onClick={openProductChat}
-          >
-            {messagePending ? (
-              <LoaderCircleIcon className="animate-spin" />
-            ) : (
-              <MessageCircleIcon />
-            )}
-            {messagePending
-              ? "Đang mở cuộc trò chuyện..."
-              : "Nhắn với shop về đơn hàng"}
-          </Button>
+          {chatHref ? (
+            <ChatPageLink
+              href={chatHref}
+              className={buttonVariants({
+                variant: "outline",
+                size: "lg",
+                className: "w-full",
+              })}
+            >
+              <MessageCircleIcon /> Mở tin nhắn trong tab mới
+            </ChatPageLink>
+          ) : (
+            <Button
+              className="w-full"
+              size="lg"
+              variant="outline"
+              disabled={messagePending}
+              onClick={openProductChat}
+            >
+              {messagePending ? (
+                <LoaderCircleIcon className="animate-spin" />
+              ) : (
+                <MessageCircleIcon />
+              )}
+              {messagePending
+                ? "Đang mở cuộc trò chuyện..."
+                : "Nhắn với shop về đơn hàng"}
+            </Button>
+          )}
         </Surface>
         <Link
           href={`/shops/${encodeURIComponent(shop.code)}`}
@@ -1320,22 +1349,35 @@ export function ProductCheckout({
                 Kiểm tra thông tin giao hàng và tổng tiền trước khi xác nhận.
               </p>
             </Section>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-11 w-full"
-              disabled={pending || messagePending || shippingRewardPending}
-              onClick={openProductChat}
-            >
-              {messagePending ? (
-                <LoaderCircleIcon className="animate-spin" />
-              ) : (
-                <MessageCircleIcon />
-              )}
-              {messagePending
-                ? "Đang mở cuộc trò chuyện..."
-                : "Cần hỗ trợ? Nhắn với shop"}
-            </Button>
+            {chatHref ? (
+              <ChatPageLink
+                href={chatHref}
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "lg",
+                  className: "w-full",
+                })}
+              >
+                <MessageCircleIcon /> Mở tin nhắn trong tab mới
+              </ChatPageLink>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 w-full"
+                disabled={pending || messagePending || shippingRewardPending}
+                onClick={openProductChat}
+              >
+                {messagePending ? (
+                  <LoaderCircleIcon className="animate-spin" />
+                ) : (
+                  <MessageCircleIcon />
+                )}
+                {messagePending
+                  ? "Đang mở cuộc trò chuyện..."
+                  : "Cần hỗ trợ? Nhắn với shop"}
+              </Button>
+            )}
           </aside>
         </form>
       </Form>

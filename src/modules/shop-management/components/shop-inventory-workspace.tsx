@@ -142,7 +142,7 @@ export function ShopInventoryWorkspace({
   useEffect(() => {
     if (!pending && focusAfterScan.current) {
       focusAfterScan.current = false
-      scanInput.current?.focus()
+      scanInput.current?.focus({ preventScroll: true })
     }
   }, [pending])
 
@@ -259,7 +259,7 @@ export function ShopInventoryWorkspace({
       setCode("")
       if (scanInput.current) {
         scanInput.current.value = ""
-        scanInput.current.focus()
+        scanInput.current.focus({ preventScroll: true })
       }
       if (!queue.snapshot().running && !paused) drainScans()
     } catch (error) {
@@ -739,7 +739,10 @@ export function ShopInventoryWorkspace({
                                   )
                                 if (scanQueue.current.snapshot().queued)
                                   drainScans()
-                                else scanInput.current?.focus()
+                                else
+                                  scanInput.current?.focus({
+                                    preventScroll: true,
+                                  })
                               }}
                             >
                               Bỏ qua mã lỗi này

@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 
 import { getProduct } from "@/api/catalog/queries"
+import type { ProductResponse } from "@/api/catalog/types"
 import { ImagePreview } from "@/components/image-preview"
 import { EmptyState } from "@/components/layout/empty-state"
 import { Badge } from "@/components/ui/badge"
@@ -40,20 +41,33 @@ export function ProductPageContainer({
   productSlug,
   initialDiscountCode,
   initialVariantId,
+  initialData,
+  initialError,
 }: {
   shopUserCode: string
   productSlug: string
   initialDiscountCode?: string
   initialVariantId?: string
+  initialData?: ProductResponse
+  initialError?: string
 }) {
   const { data, error } = useApiQuery(
     JSON.stringify(["product", shopUserCode, productSlug]),
-    () => getProduct(shopUserCode, productSlug)
+    () => getProduct(shopUserCode, productSlug),
+    { initialData, initialError }
   )
   if (!data) return <QueryPlaceholder error={error} />
 
   return (
-    <div className="space-y-10">
+    <div
+      className="space-y-10"
+      data-catalog-content="ready"
+      data-ad-eligible={
+        data.product.name.trim() && data.product.description?.trim()
+          ? "true"
+          : undefined
+      }
+    >
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>

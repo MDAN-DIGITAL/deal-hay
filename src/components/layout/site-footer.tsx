@@ -7,6 +7,7 @@ import {
 
 import { Separator } from "@/components/ui/separator"
 import { Brand } from "@/components/ui/brand"
+import { ChatPageLink } from "@/components/chat-page-link"
 
 const footerLinks = [
   { href: "/", label: "Khám phá sản phẩm" },
@@ -35,15 +36,19 @@ export function SiteFooter() {
             className="grid gap-2 text-sm text-muted-foreground"
             aria-label="Liên kết cuối trang"
           >
-            {footerLinks.map((item) => (
-              <Link
-                key={item.href}
-                className="w-fit transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:outline-ring"
-                href={item.href}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {footerLinks.map((item) => {
+              const NavigationLink =
+                item.href === "/chats" ? ChatPageLink : Link
+              return (
+                <NavigationLink
+                  key={item.href}
+                  className="w-fit transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:outline-ring"
+                  href={item.href}
+                >
+                  {item.label}
+                </NavigationLink>
+              )
+            })}
           </nav>
         </div>
 

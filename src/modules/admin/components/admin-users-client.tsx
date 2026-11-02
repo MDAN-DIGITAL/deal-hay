@@ -1,7 +1,6 @@
 "use client"
 
-import { useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useTransition } from "react"
 import {
   LockIcon,
   LockOpenIcon,
@@ -14,7 +13,8 @@ import { DataPagination } from "@/components/layout/data-pagination"
 import { EmptyState } from "@/components/layout/empty-state"
 import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { ChatPageLink } from "@/components/chat-page-link"
 import {
   Card,
   CardContent,
@@ -38,6 +38,8 @@ import {
 import { AdminNavigation } from "@/modules/admin/components/admin-navigation"
 import type { User } from "@/types/auth"
 import type { PaginatedResponse } from "@/types/common"
+import { getAccessToken } from "@/lib/session"
+import { reserveChatPage } from "@/modules/chats/lib/chat-navigation"
 
 const roleLabels: Record<string, string> = {
   administrator: "Quản trị viên",
@@ -53,7 +55,11 @@ export function AdminUsersClient({
   currentUserId: string
 }) {
   const [pending, startTransition] = useTransition()
-  const router = useRouter()
+  const [chatLink, setChatLink] = useState<{
+    userId: string
+    ownerId: string
+    href: string
+  } | null>(null)
 
   return (
     <div className="space-y-8">
@@ -119,29 +125,67 @@ export function AdminUsersClient({
                       <TableCell className="text-right">
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           {user.id !== currentUserId ? (
-                            <Button
-                              aria-label={`Nhắn tin với ${user.full_name}`}
-                              disabled={pending}
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                startTransition(async () => {
-                                  const state = await startAdminChatAction(
-                                    user.id
-                                  )
-                                  if (state.success && state.conversationSlug) {
-                                    router.push(
-                                      `/chats/${state.conversationSlug}`
-                                    )
-                                  } else {
-                                    toast.error(state.message)
-                                  }
-                                })
-                              }
-                            >
-                              <MessageCircleIcon />
-                              <span className="hidden lg:inline">Nhắn tin</span>
-                            </Button>
+                            chatLink?.userId === user.id &&
+                            chatLink.ownerId === currentUserId ? (
+                              <ChatPageLink
+                                href={chatLink.href}
+                                className={buttonVariants({
+                                  size: "sm",
+                                  variant: "outline",
+                                })}
+                              >
+                                <MessageCircleIcon /> Mở cuộc trò chuyện
+                              </ChatPageLink>
+                            ) : (
+                              <Button
+                                aria-label={`Nhắn tin với ${user.full_name}`}
+                                disabled={pending}
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const account = getAccessToken()
+                                  const reserved = reserveChatPage()
+                                  setChatLink(null)
+                                  startTransition(async () => {
+                                    try {
+                                      const state = await startAdminChatAction(
+                                        user.id
+                                      )
+                                      if (getAccessToken() !== account) {
+                                        reserved?.close()
+                                        return
+                                      }
+                                      if (
+                                        state.success &&
+                                        state.conversationSlug
+                                      ) {
+                                        const href = `/chats/${encodeURIComponent(state.conversationSlug)}`
+                                        if (reserved) reserved.navigate(href)
+                                        else
+                                          setChatLink({
+                                            userId: user.id,
+                                            ownerId: currentUserId,
+                                            href,
+                                          })
+                                      } else {
+                                        reserved?.close()
+                                        toast.error(state.message)
+                                      }
+                                    } catch {
+                                      reserved?.close()
+                                      toast.error(
+                                        "Không thể mở cuộc trò chuyện. Vui lòng thử lại."
+                                      )
+                                    }
+                                  })
+                                }}
+                              >
+                                <MessageCircleIcon />
+                                <span className="hidden lg:inline">
+                                  Nhắn tin
+                                </span>
+                              </Button>
+                            )
                           ) : null}
                           {user.role !== "administrator" ? (
                             <Button
