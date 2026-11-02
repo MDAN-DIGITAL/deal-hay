@@ -216,6 +216,34 @@ test("a rejected WSS credential is removed without logging out the API account",
   assert.equal(state.token, "account-a")
 })
 
+test("WSS requests forward cancellation so push settings cannot stall logout", async (t) => {
+  await sessions.getWssSession()
+  const controller = new AbortController()
+  let started
+  const fetching = new Promise((resolve) => {
+    started = resolve
+  })
+  t.mock.method(globalThis, "fetch", (_url, options) => {
+    assert.equal(options.signal, controller.signal)
+    started()
+    return new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () =>
+        reject(options.signal.reason)
+      )
+    })
+  })
+  const request = wssFetch({
+    path: "/push/subscriptions",
+    method: "DELETE",
+    body: { endpoint: "https://push.example.test/subscription" },
+    signal: controller.signal,
+  })
+  await fetching
+  controller.abort()
+  await assert.rejects(request, { name: "AbortError" })
+  assert.ok(await sessions.cachedWssSession())
+})
+
 test("logout revokes only the WSS-owned session then clears its local cache", async (t) => {
   await sessions.getWssSession()
   const calls = []

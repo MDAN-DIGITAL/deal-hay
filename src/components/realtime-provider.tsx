@@ -26,6 +26,7 @@ import {
   loadSocketSessionAction,
 } from "@/modules/realtime/actions"
 import { useNotificationSound } from "@/modules/realtime/hooks/use-notification-sound"
+import { useBackgroundNotifications } from "@/modules/realtime/hooks/use-background-notifications"
 import { useUnreadTabTitle } from "@/modules/realtime/hooks/use-unread-tab-title"
 import {
   chatToastHref,
@@ -49,6 +50,9 @@ type RealtimeContextValue = RealtimeConnection & {
   synchronizeUnreadCounts: () => Promise<void>
   notificationSoundEnabled: boolean
   toggleNotificationSound: () => void
+  testNotificationSound: () => Promise<boolean>
+  soundReady: boolean
+  backgroundNotifications: ReturnType<typeof useBackgroundNotifications>
 }
 
 const RealtimeContext = createContext<RealtimeContextValue | null>(null)
@@ -123,7 +127,11 @@ export function RealtimeProvider({
     notificationSoundEnabled,
     toggleNotificationSound,
     playNotificationSound,
+    testNotificationSound,
+    soundReady,
   } = useNotificationSound(currentUserId)
+  const backgroundNotifications = useBackgroundNotifications(currentUserId)
+  const backgroundEnabled = backgroundNotifications.enabled
   useUnreadTabTitle(
     currentUserId ? unreadCounts.messages + unreadCounts.notifications : 0
   )
@@ -328,7 +336,8 @@ export function RealtimeProvider({
               ...previous,
               messages: previous.messages + 1,
             }))
-            playNotificationSound(`message:${payload.id}`)
+            if (!backgroundEnabled)
+              playNotificationSound(`message:${payload.id}`)
             const senderName = toastPreview(
               "name" in payload.sender ? payload.sender.name : undefined
             )
@@ -403,7 +412,8 @@ export function RealtimeProvider({
               ...previous,
               notifications: previous.notifications + 1,
             }))
-            playNotificationSound(`notification:${payload.id}`)
+            if (!backgroundEnabled)
+              playNotificationSound(`notification:${payload.id}`)
             showRealtimeToast({
               id: `notification:${payload.id}`,
               title:
@@ -454,6 +464,7 @@ export function RealtimeProvider({
     }
   }, [
     currentUserId,
+    backgroundEnabled,
     generation,
     loadingConfig,
     playNotificationSound,
@@ -473,6 +484,9 @@ export function RealtimeProvider({
       synchronizeUnreadCounts,
       notificationSoundEnabled,
       toggleNotificationSound,
+      testNotificationSound,
+      soundReady,
+      backgroundNotifications,
     }),
     [
       connection,
@@ -483,6 +497,9 @@ export function RealtimeProvider({
       synchronizeUnreadCounts,
       notificationSoundEnabled,
       toggleNotificationSound,
+      testNotificationSound,
+      soundReady,
+      backgroundNotifications,
     ]
   )
 

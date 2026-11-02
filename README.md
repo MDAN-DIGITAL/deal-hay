@@ -42,3 +42,13 @@ npm run build
 Build cần `NEXT_PUBLIC_API_URL` hợp lệ; không cần API đang chạy vì dữ liệu được tải sau khi browser mount. Các page/layout server chỉ tạo khung giao diện, metadata và tham số điều hướng.
 
 Hướng dẫn ảnh: [browser-image-uploads.md](../deal-hay-api/docs/browser-image-uploads.md). Realtime: [socketio-validation.md](docs/socketio-validation.md).
+
+## Âm thanh và thông báo nền
+
+Bấm biểu tượng loa ở thanh đầu trang để bật âm thanh trên web hoặc dùng **Nghe thử**. Trình duyệt cần một lần tương tác để mở audio; cài đặt âm thanh được lưu riêng cho từng tài khoản. Thông báo trong trang vẫn có avatar và mở đúng cuộc trò chuyện khi bấm vào.
+
+Để nhận thông báo khi đổi tab, chuyển ứng dụng hoặc đóng trang, cấu hình `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` ở WSS theo [hướng dẫn WSS](../deal-hay-wss/README.md), deploy cả WSS và frontend qua HTTPS, rồi bấm **Bật thông báo nền** và chọn **Cho phép**. Frontend lấy public key qua endpoint WSS có xác thực; private key chỉ nằm trên WSS. Không cần thêm biến VAPID vào Vercel. Sau khi thay cặp khóa, người dùng cần bật lại thông báo trên thiết bị.
+
+Trên iPhone/iPad, dùng iOS/iPadOS 16.4 trở lên, thêm web vào **Màn hình chính**, mở ứng dụng từ biểu tượng vừa thêm rồi bật thông báo. Âm thanh thông báo nền dùng cài đặt của hệ điều hành; chế độ Im lặng/Không làm phiền, quyền thông báo của trình duyệt và cài đặt pin có thể ngăn âm thanh hoặc trì hoãn nhận tin. Web không thể ép phát tiếng khi thiết bị chặn âm thanh.
+
+Service worker `/notification-worker.js` chỉ lưu tài khoản nhận thông báo và mã chống trùng; không cache trang riêng tư, token hoặc dữ liệu API. Đăng xuất/tắt thông báo sẽ xóa liên kết tài khoản, đóng thẻ thông báo cũ và hủy endpoint ngay trên trình duyệt kể cả khi máy chủ mất kết nối. Đổi tài khoản không tự bật thông báo cho người mới. Khi bật thông báo nền, tin mới dùng âm thanh hệ thống cả khi đang xem web; lần gửi lại cùng một thông báo chỉ cập nhật thẻ im lặng để tránh phát tiếng trùng.

@@ -20,6 +20,8 @@ const inter = Inter({
 const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
 export const siteMetadata: Metadata = {
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Deal Hay", statusBarStyle: "default" },
   title: {
     default: "Deal Hay",
     template: "%s | Deal Hay",

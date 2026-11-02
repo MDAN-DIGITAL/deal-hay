@@ -8,6 +8,7 @@ export async function wssFetch<T>({
   body,
   headers,
   searchParams,
+  signal,
 }: ApiRequestOptions): Promise<T> {
   if (!path.startsWith("/") || path.startsWith("//") || /[?#\\]/.test(path))
     throw new Error("Invalid WSS request path")
@@ -42,6 +43,7 @@ export async function wssFetch<T>({
       credentials: "omit",
       redirect: "error",
       cache: "no-store",
+      signal,
     }
   )
   const data =

@@ -27,8 +27,11 @@ const dependencies = moduleUrl(`
   export const useNotificationSound=()=>({
     notificationSoundEnabled:!globalThis.__toastHarness.muted,
     toggleNotificationSound:()=>{},
+    testNotificationSound:async()=>true,
+    soundReady:true,
     playNotificationSound:(id)=>{if(!globalThis.__toastHarness.muted)globalThis.__toastHarness.sounds.push(id)}
   })
+  export const useBackgroundNotifications=()=>globalThis.__toastHarness.background
   export const createSocketRealtimeClient=()=>globalThis.__toastHarness.client
 `)
 const jsx = moduleUrl(
@@ -62,6 +65,7 @@ const imports = {
   "@/modules/chats/actions": dependencies,
   "@/modules/realtime/actions": dependencies,
   "@/modules/realtime/hooks/use-notification-sound": dependencies,
+  "@/modules/realtime/hooks/use-background-notifications": dependencies,
   "@/modules/realtime/hooks/use-unread-tab-title": dependencies,
   "@/lib/socket-realtime-client": dependencies,
   "@/components/realtime-toast": dependencies,
@@ -93,6 +97,7 @@ async function mount(t, { muted = false } = {}) {
   const channels = new Map()
   const state = {
     muted,
+    background: { enabled: false },
     toasts: [],
     sounds: [],
     destinations: [],
@@ -202,6 +207,50 @@ const message = (overrides = {}) => ({
   attachment: null,
   product: null,
   ...overrides,
+})
+
+test("enabled Web Push owns the sound in both background and foreground without duplicate web chimes", async (t) => {
+  const page = await mount(t)
+  const previousDocument = globalThis.document
+  globalThis.document = { visibilityState: "hidden", hasFocus: () => false }
+  t.after(() => {
+    globalThis.document = previousDocument
+  })
+  page.background.enabled = true
+  page.render()
+  await settle()
+  page.emit("message", message({ id: "background-message" }))
+  page.emit("notification", {
+    id: "background-notification",
+    title: "Thông báo mới",
+    read_at: null,
+  })
+  assert.equal(page.toasts.length, 2)
+  assert.deepEqual(
+    page.sounds,
+    [],
+    "hidden clients leave sound to the system notification"
+  )
+  globalThis.document.visibilityState = "visible"
+  globalThis.document.hasFocus = () => true
+  page.emit("message", message({ id: "foreground-message" }))
+  assert.deepEqual(page.sounds, [])
+  page.background.enabled = false
+  page.render()
+  await settle()
+  page.emit("message", message({ id: "web-chime-restored" }))
+  assert.deepEqual(page.sounds, ["message:web-chime-restored"])
+})
+
+test("a background tab without Web Push still plays its unlocked web sound", async (t) => {
+  const page = await mount(t)
+  const previousDocument = globalThis.document
+  globalThis.document = { visibilityState: "hidden", hasFocus: () => false }
+  t.after(() => {
+    globalThis.document = previousDocument
+  })
+  page.emit("message", message({ id: "background-fallback" }))
+  assert.deepEqual(page.sounds, ["message:background-fallback"])
 })
 
 test("incoming chat includes the sender avatar and opens its exact message even while sound is muted", async (t) => {
