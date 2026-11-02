@@ -34,6 +34,12 @@ const eslintConfig = defineConfig([
           message:
             "Use Input or Checkbox from @/components/ui. Native file inputs are the only exception.",
         },
+        {
+          selector:
+            "JSXOpeningElement[name.name='Input']:has(JSXAttribute[name.name='type'][value.value=/^(date|datetime-local|month|week|time)$/])",
+          message:
+            "Use DatePicker from @/components/ui/date-picker instead of a browser date/time picker.",
+        },
       ],
     },
   },

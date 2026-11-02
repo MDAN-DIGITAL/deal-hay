@@ -10,6 +10,7 @@ Mọi control và cách trình bày bề mặt được định nghĩa trong `sr
 | --- | --- |
 | Nút, link dạng nút, bộ lọc | `Button`, `buttonVariants`, variant `filter` |
 | Ô nhập, tìm kiếm, soạn tin | `Input`, `Textarea`, `InputGroup` variant `search`/`composer` |
+| Chọn ngày, ngày và giờ | `DatePicker`, prop `withTime` để chọn cả giờ/phút; ghép `Calendar` + `Popover` + `Select`, không dùng picker native |
 | Checkbox và lựa chọn | `Checkbox`, `RadioGroup`, `Select`, `NativeSelect`, `Combobox` |
 | Thẻ nội dung có tiêu đề | `Card` và các phần `CardHeader`, `CardContent`, `CardFooter`; hoặc `Section` |
 | Khung nhỏ, form, hàng danh sách | `Surface` với variant `default`, `muted`, `inset`, `dashed`, `danger` |
@@ -26,6 +27,8 @@ Mọi control và cách trình bày bề mặt được định nghĩa trong `sr
 
 Nút mặc định, input và select cao 40px. Ô nhập giữ chữ 16px trên điện thoại để tránh zoom khi focus. Màu `action` và `action-foreground` dành cho nút chính và tin nhắn gửi; màu `primary` dành cho link, icon và điểm nhấn, tự điều chỉnh độ tương phản ở giao diện tối.
 
+`DatePicker` dùng [cách ghép Calendar và Popover của shadcn](https://ui.shadcn.com/docs/components/base/date-picker), hiển thị tiếng Việt và chọn giờ/phút bằng `Select` khi có `withTime`. Prop `value`/`defaultValue` và giá trị form qua `name` có dạng local `YYYY-MM-DD` hoặc `YYYY-MM-DDTHH:mm`; giá trị rỗng là `""`. Chỉ đổi sang ISO UTC ở bước gửi API bằng helper ngày giờ, không cắt chuỗi UTC để lấy ngày local. Có thể bấm Hôm nay, Xóa và dùng bàn phím; popup tự giữ trong vùng màn hình.
+
 ## shadcn/ui
 
 Đã cài toàn bộ component của registry shadcn Base UI/Vega bằng:
@@ -40,7 +43,7 @@ Khi bổ sung hoặc cập nhật shadcn, xem lại diff trước khi giữ thay
 
 ## Kiểm tra tính thống nhất
 
-ESLint cấm `button`, `select`, `textarea`, input hiển thị và import trực tiếp Base UI ở ngoài `components/ui`. Input file native là ngoại lệ để tích hợp trình duyệt; nó chỉ phục vụ chọn tệp và được ẩn sau nút chung.
+ESLint cấm `button`, `select`, `textarea`, input hiển thị và import trực tiếp Base UI ở ngoài `components/ui`; đồng thời chặn `Input` với type ngày/giờ native để dùng `DatePicker`. Input file native là ngoại lệ để tích hợp trình duyệt; nó chỉ phục vụ chọn tệp và được ẩn sau nút chung.
 
 ```sh
 npm run lint

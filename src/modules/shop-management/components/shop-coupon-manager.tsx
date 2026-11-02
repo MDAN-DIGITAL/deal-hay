@@ -25,6 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -36,15 +37,8 @@ import {
   type ShopCouponValues,
 } from "@/modules/shop-management/schemas/shop-coupon"
 import { formatCurrency, formatDate } from "@/lib/format"
+import { parseLocalDateTime, toLocalDateTimeValue } from "@/lib/date-time"
 import type { ShopCoupon, ShopProduct } from "@/types/shop"
-
-function localDate(value: string | null): string {
-  if (!value) return ""
-  const date = new Date(value)
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
-    .toISOString()
-    .slice(0, 16)
-}
 
 function couponStatus(coupon: ShopCoupon): string {
   if (!coupon.is_active) return "Đang tắt"
@@ -92,8 +86,12 @@ export function ShopCouponManager({
     const data = new FormData(event.currentTarget)
     const nullableNumber = (key: string) =>
       data.get(key) ? Number(data.get(key)) : null
-    const isoDate = (key: string) =>
-      data.get(key) ? new Date(String(data.get(key))).toISOString() : null
+    const isoDate = (key: string) => {
+      const localValue = String(data.get(key) ?? "")
+      return localValue
+        ? (parseLocalDateTime(localValue)?.toISOString() ?? localValue)
+        : null
+    }
     const values: ShopCouponValues = {
       name: String(data.get("name") ?? ""),
       discount_type:
@@ -151,7 +149,11 @@ export function ShopCouponManager({
   )
   const error = (key: string) =>
     errors[key]?.[0] ? (
-      <p className="text-sm text-destructive" role="alert">
+      <p
+        id={`${prefix}-${key}-error`}
+        className="text-sm text-destructive"
+        role="alert"
+      >
         {errors[key]?.[0]}
       </p>
     ) : null
@@ -159,7 +161,7 @@ export function ShopCouponManager({
     name: string,
     label: string,
     defaultValue: string | number,
-    type = "number",
+    type: "number" | "text" = "number",
     optional = false
   ) => (
     <div className="space-y-2">
@@ -179,6 +181,22 @@ export function ShopCouponManager({
         }
         step={type === "number" ? 1 : undefined}
         aria-invalid={Boolean(errors[name])}
+        aria-describedby={errors[name] ? `${prefix}-${name}-error` : undefined}
+      />
+      {error(name)}
+    </div>
+  )
+  const dateField = (name: "starts_at" | "ends_at", label: string) => (
+    <div className="space-y-2">
+      <Label htmlFor={`${prefix}-${name}`}>{label}</Label>
+      <DatePicker
+        withTime
+        id={`${prefix}-${name}`}
+        name={name}
+        defaultValue={toLocalDateTimeValue(editing?.[name] ?? null)}
+        disabled={pending}
+        aria-invalid={Boolean(errors[name])}
+        aria-describedby={errors[name] ? `${prefix}-${name}-error` : undefined}
       />
       {error(name)}
     </div>
@@ -299,20 +317,8 @@ export function ShopCouponManager({
                     "number",
                     true
                   )}
-                  {field(
-                    "starts_at",
-                    "Bắt đầu (tùy chọn)",
-                    localDate(editing?.starts_at ?? null),
-                    "datetime-local",
-                    true
-                  )}
-                  {field(
-                    "ends_at",
-                    "Kết thúc (tùy chọn)",
-                    localDate(editing?.ends_at ?? null),
-                    "datetime-local",
-                    true
-                  )}
+                  {dateField("starts_at", "Bắt đầu (tùy chọn)")}
+                  {dateField("ends_at", "Kết thúc (tùy chọn)")}
                 </div>
                 <fieldset className="space-y-3">
                   <legend className="font-medium">
