@@ -38,7 +38,7 @@ type RewardedAdCallbacks = {
 
 let activeAd: RewardedAdController | null = null
 
-// Call only from an explicit "watch for free shipping" action after consent.
+// Call only from an explicit "watch for free shipping" action.
 // GPT's grant event is a browser signal, not signed server-side verification.
 export function requestGoogleRewardedAd(
   adUnitPath: string,

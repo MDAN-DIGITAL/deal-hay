@@ -26,8 +26,6 @@ function transpile(path, imports = {}) {
 
 const configUrl = transpile("../src/config/advertising.ts")
 const config = await import(configUrl)
-const consentUrl = transpile("../src/lib/advertising-consent.ts")
-const consent = await import(consentUrl)
 const adsenseUrl = transpile("../src/lib/google-adsense.ts", {
   "@/config/advertising": configUrl,
 })
@@ -76,7 +74,6 @@ const { StorefrontAdvertising } = await import(
       { react: hooksUrl }
     ),
     "@/lib/google-adsense": adsenseUrl,
-    "@/lib/advertising-consent": consentUrl,
   })
 )
 // A small document model verifies observable insertion behavior without
@@ -228,39 +225,22 @@ function withDocument(document, callback) {
   }
 }
 
-function elements(node) {
-  if (Array.isArray(node)) return node.flatMap(elements)
-  if (!node || typeof node !== "object") return []
-  return [node, ...elements(node.props?.children)]
-}
-
-function textContent(node) {
-  if (typeof node === "string" || typeof node === "number") return String(node)
-  if (Array.isArray(node)) return node.map(textContent).join("")
-  return node?.props ? textContent(node.props.children) : ""
-}
-
-function advertisingComponent(initialConsent, options = {}) {
+function advertisingComponent(options = {}) {
   hooks.reset()
   const document = new Document()
   document.adEligible = options.eligible ?? true
-  document.cookie =
-    options.currentCookie ??
-    (initialConsent
-      ? consent.serializeAdvertisingConsent(initialConsent, true)
-      : "")
-  let reloads = 0
-  let tree
+  document.cookie = options.cookie ?? ""
+  let reloads = 0,
+    tree
   const window = Object.assign(new Events(), {
     location: {
       protocol: "https:",
       pathname: options.pathname ?? "/",
       reload: () => {
-        reloads += 1
+        reloads++
       },
     },
   })
-
   function inBrowser(callback) {
     const previous = globalThis.window
     globalThis.window = window
@@ -271,40 +251,25 @@ function advertisingComponent(initialConsent, options = {}) {
       else globalThis.window = previous
     }
   }
-
   function render() {
     return inBrowser(() => {
       hooks.beginRender()
-      tree = StorefrontAdvertising({ initialConsent })
+      tree = StorefrontAdvertising()
       hooks.flushEffects()
       return tree
     })
   }
-
   render()
   return {
     document,
     render,
-    dispatch(type, properties = {}) {
-      const target = type === "visibilitychange" ? document : window
-      inBrowser(() => target.dispatchEvent({ type, ...properties }))
-    },
-    unmount() {
-      inBrowser(() => hooks.cleanupEffects())
-    },
+    dispatch: (type) => inBrowser(() => window.dispatchEvent({ type })),
+    unmount: () => inBrowser(() => hooks.cleanupEffects()),
     get tree() {
       return tree
     },
     get reloads() {
       return reloads
-    },
-    click(label) {
-      const button = elements(tree).find(
-        (element) => element.type === "button" && textContent(element) === label
-      )
-      assert.ok(button, `Button is available: ${label}`)
-      inBrowser(() => button.props.onClick())
-      render()
     },
   }
 }
@@ -357,98 +322,52 @@ test("a fresh storefront document initializes its own publisher script", () => {
   }
 })
 
-test("only current explicit consent values authorize advertising", () => {
+test("advertising starts automatically on eligible content without a cookie prompt", () => {
+  const component = advertisingComponent()
+  assert.equal(component.document.scripts.length, 1)
   assert.equal(
-    consent.ADVERTISING_CONSENT_COOKIE,
-    "deal-hay-advertising-consent"
-  )
-  assert.equal(consent.ADVERTISING_CONSENT_MAX_AGE, 15_552_000)
-  assert.equal(consent.parseAdvertisingConsent("v2:accepted"), "accepted")
-  assert.equal(consent.parseAdvertisingConsent("v2:declined"), "declined")
-  for (const value of [
-    undefined,
+    component.document.cookie,
     "",
-    "accepted",
-    "true",
-    "v0:accepted",
-    "v1:accepted",
-    "v1:declined",
-    "v3:accepted",
-    "v2:Accepted",
-    "v2:accepted ",
-    "v2:accepted; extra=1",
-  ]) {
-    assert.equal(consent.parseAdvertisingConsent(value), null, String(value))
-  }
+    "loading the page does not write a user consent record"
+  )
+  assert.equal(component.tree, null)
+  component.render()
+  assert.equal(component.document.scripts.length, 1)
 })
 
-test("consent cookies persist the selected choice across routes with appropriate browser attributes", () => {
-  for (const value of ["accepted", "declined"]) {
-    const secure = consent.serializeAdvertisingConsent(value, true)
-    assert.match(
-      secure,
-      new RegExp(`^${consent.ADVERTISING_CONSENT_COOKIE}=v2:${value}(?:;|$)`)
-    )
-    assert.match(secure, /(?:^|;)\s*Path=\//i)
-    assert.match(secure, /(?:^|;)\s*Max-Age=15552000(?:;|$)/i)
-    assert.match(secure, /(?:^|;)\s*SameSite=Lax(?:;|$)/i)
-    assert.match(secure, /(?:^|;)\s*Secure(?:;|$)/i)
-    assert.doesNotMatch(
-      consent.serializeAdvertisingConsent(value, false),
-      /(?:^|;)\s*Secure(?:;|$)/i
-    )
-  }
-})
-
-test("reads only the advertising cookie from the current document cookie header", () => {
-  const name = consent.ADVERTISING_CONSENT_COOKIE
-  assert.equal(
-    consent.readAdvertisingConsent(
-      `session=abc; ${name}=v2:accepted; theme=dark`
-    ),
-    "accepted"
-  )
-  assert.equal(
-    consent.readAdvertisingConsent(`${name}=v2:declined`),
-    "declined"
-  )
+test("legacy cookie choices do not block the new default or cause reloads", () => {
   for (const cookie of [
-    "",
-    "session=v2:accepted",
-    `${name}-other=v2:accepted`,
-    `${name}=v0:accepted`,
-    `${name}=garbage`,
+    "deal-hay-advertising-consent=v2:accepted",
+    "deal-hay-advertising-consent=v2:declined",
+    "deal-hay-advertising-consent=garbage",
   ]) {
-    assert.equal(consent.readAdvertisingConsent(cookie), null, cookie)
+    const component = advertisingComponent({ cookie })
+    assert.equal(component.document.scripts.length, 1)
+    assert.equal(component.document.cookie, cookie)
+    assert.equal(component.tree, null)
+    for (const event of ["focus", "pageshow"]) component.dispatch(event)
+    component.render()
+    assert.equal(component.reloads, 0)
+    assert.equal(component.document.scripts.length, 1)
+    component.unmount()
   }
 })
 
-test("no provider scripts execute before consent or after an initial refusal", () => {
-  for (const initial of [null, "declined"]) {
-    const component = advertisingComponent(initial)
-    assert.equal(component.document.scripts.length, 0, String(initial))
-    assert.equal(
-      elements(component.tree).filter((element) => element.type === "script")
-        .length,
-      0
-    )
-    if (initial === null) component.click("Chỉ dùng cookie cần thiết")
-    assert.equal(component.document.scripts.length, 0)
-  }
-})
-
-test("accepted cookies cannot initialize ads on loading, empty or failed catalog content", () => {
-  const component = advertisingComponent("accepted", { eligible: false })
+test("empty, loading and failed content cannot start ads; recovered content starts once", () => {
+  const component = advertisingComponent({ eligible: false })
   assert.equal(component.document.scripts.length, 0)
   assert.equal(component.tree, null)
   component.document.adEligible = true
   component.render()
   assert.equal(component.document.scripts.length, 1)
+  component.document.adEligible = false
+  component.render()
+  component.document.adEligible = true
   component.render()
   assert.equal(component.document.scripts.length, 1)
 })
 
-test("checkout and account routes cannot initialize publisher ads even if a content marker is present", () => {
+test("checkout and account routes cannot initialize publisher ads even with a catalog marker", () => {
   for (const pathname of [
     "/sign-in",
     "/profile",
@@ -457,126 +376,9 @@ test("checkout and account routes cannot initialize publisher ads even if a cont
     "/admin/users",
     "/shops/SHOP/products/product/checkout",
   ]) {
-    const component = advertisingComponent("accepted", { pathname })
+    const component = advertisingComponent({ pathname })
     assert.equal(component.document.scripts.length, 0, pathname)
     assert.equal(component.tree, null, pathname)
-  }
-})
-
-test("accepting cookie advertising loads scripts once and persists the decision", () => {
-  const component = advertisingComponent(null)
-  component.click("Đồng ý cookie quảng cáo")
-  assert.equal(component.document.scripts.length, 1)
-  assert.equal(
-    component.document.cookie,
-    consent.serializeAdvertisingConsent("accepted", true)
-  )
-  component.render()
-  component.click("Tùy chọn cookie quảng cáo")
-  component.click("Đồng ý cookie quảng cáo")
-  assert.equal(component.document.scripts.length, 1)
-  assert.equal(component.reloads, 0)
-})
-
-test("accepting advertising cookies from another storefront component synchronizes the existing storefront without a reload", () => {
-  const component = advertisingComponent(null)
-  component.document.cookie = consent.serializeAdvertisingConsent(
-    "accepted",
-    true
-  )
-  component.dispatch(consent.ADVERTISING_CONSENT_CHANGE_EVENT)
-  component.render()
-  assert.equal(component.document.scripts.length, 1)
-  assert.equal(component.reloads, 0)
-  assert.ok(!textContent(component.tree).includes("Đồng ý cookie quảng cáo"))
-  component.dispatch(consent.ADVERTISING_CONSENT_CHANGE_EVENT)
-  component.render()
-  assert.equal(component.document.scripts.length, 1)
-})
-
-test("withdrawing consent reloads the document to stop previously installed provider listeners", () => {
-  const component = advertisingComponent("accepted")
-  assert.equal(component.document.scripts.length, 1)
-  component.click("Tùy chọn cookie quảng cáo")
-  component.click("Chỉ dùng cookie cần thiết")
-  assert.equal(
-    component.document.cookie,
-    consent.serializeAdvertisingConsent("declined", true)
-  )
-  assert.equal(component.reloads, 1)
-  const refreshed = advertisingComponent("declined")
-  assert.equal(refreshed.document.scripts.length, 0)
-})
-
-test("browser consent is loaded before advertising can initialize", async () => {
-  const component = advertisingComponent("accepted", {
-    currentCookie: consent.serializeAdvertisingConsent("declined", true),
-  })
-  await new Promise((resolve) => queueMicrotask(resolve))
-  assert.equal(component.document.scripts.length, 0)
-  assert.equal(component.reloads, 0)
-})
-
-for (const event of ["focus", "visibilitychange", "pageshow"]) {
-  test(`a ${event} event applies consent revoked in another document before continuing advertising`, () => {
-    const component = advertisingComponent("accepted")
-    assert.equal(component.document.scripts.length, 1)
-    const scripts = [...component.document.scripts]
-    component.document.cookie = consent.serializeAdvertisingConsent(
-      "declined",
-      true
-    )
-    component.dispatch(event, { persisted: true })
-    assert.equal(component.reloads, 1)
-    component.render()
-    assert.deepEqual(
-      component.document.scripts,
-      scripts,
-      "no provider placement reinitializes while the document reloads"
-    )
-  })
-}
-
-test("removing the consent cookie requires a fresh document when a tab resumes", () => {
-  const component = advertisingComponent("accepted")
-  component.document.cookie = "session=abc"
-  component.dispatch("focus")
-  assert.equal(component.reloads, 1)
-})
-
-test("multiple resume events request only one reload after external consent withdrawal", () => {
-  const component = advertisingComponent("accepted")
-  const scripts = [...component.document.scripts]
-  component.document.cookie = consent.serializeAdvertisingConsent(
-    "declined",
-    true
-  )
-  for (const event of ["visibilitychange", "focus", "pageshow"])
-    component.dispatch(event, { persisted: true })
-  assert.equal(component.reloads, 1)
-  assert.deepEqual(component.document.scripts, scripts)
-})
-
-test("unmounting advertising removes consent synchronization event handlers", () => {
-  const component = advertisingComponent("accepted")
-  component.unmount()
-  component.document.cookie = consent.serializeAdvertisingConsent(
-    "declined",
-    true
-  )
-  for (const event of ["focus", "visibilitychange", "pageshow"])
-    component.dispatch(event, { persisted: true })
-  assert.equal(component.reloads, 0)
-})
-
-test("storefront advertising renders no external advertising link for any consent choice", () => {
-  for (const initialConsent of [null, "declined", "accepted"]) {
-    const component = advertisingComponent(initialConsent)
-    const links = elements(component.tree).filter(
-      (element) => element.type === "a"
-    )
-    assert.ok(links.every((link) => link.props.href === "/privacy"))
-    assert.ok(links.every((link) => link.props.target !== "_blank"))
   }
 })
 

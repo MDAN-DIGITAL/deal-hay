@@ -92,8 +92,6 @@ const hooksUrl = moduleUrl(`
   }
 `)
 const hooks = await import(hooksUrl)
-const consentUrl = transpile("../src/lib/advertising-consent.ts")
-const consent = await import(consentUrl)
 const actionsUrl = moduleUrl(`
   export let state
   export function configure(next) { state = next }
@@ -134,7 +132,6 @@ const { ShippingRewardOffer } = await import(
     "@/lib/auth-redirect": moduleUrl(
       'export const getAuthPageHref = (path, next) => path + "?next=" + encodeURIComponent(next)'
     ),
-    "@/lib/advertising-consent": consentUrl,
     "@/lib/google-rewarded-ads": adsUrl,
     "@/modules/public/components/shipping-advertisement": moduleUrl(
       'export const ShippingAdvertisement = "shipping-advertisement"'
@@ -197,11 +194,7 @@ function component(options = {}) {
     ...options.actions,
   }
   actions.configure(state)
-  const document = {
-    cookie: options.accepted
-      ? consent.serializeAdvertisingConsent("accepted", true)
-      : "",
-  }
+  const document = { cookie: options.cookie ?? "" }
   const received = []
   const redeemingChanges = []
   const visibilityChanges = []
@@ -260,18 +253,6 @@ function component(options = {}) {
       await hooks.settle()
       render()
     },
-    chooseConsent(accepted) {
-      document.cookie = consent.serializeAdvertisingConsent(
-        accepted ? "accepted" : "declined",
-        true
-      )
-      const child = elements(tree).find(
-        (element) => element.type === "shipping-advertisement"
-      )
-      assert.ok(child, "consent panel is available")
-      inBrowser(() => child.props.onConsentChange(accepted))
-      render()
-    },
     click(label) {
       const button = this.buttons.find((element) =>
         textContent(element).includes(label)
@@ -298,7 +279,7 @@ function component(options = {}) {
   }
 }
 
-test("mount and cookie consent do not start a rewarded session or redeem a code", async () => {
+test("mount enables the voluntary watch button without starting a session or redeeming a code", async () => {
   const panel = component()
   await panel.settle()
   assert.deepEqual(panel.state.loads, [["shop-1", "product-one"]])
@@ -306,11 +287,11 @@ test("mount and cookie consent do not start a rewarded session or redeem a code"
   assert.equal(panel.state.redeems.length, 0)
   assert.equal(ads.requests.length, 0)
 
-  panel.chooseConsent(true)
-  await panel.settle()
-  assert.equal(panel.state.starts.length, 0)
-  assert.equal(panel.state.redeems.length, 0)
-  assert.equal(ads.requests.length, 0)
+  const watch = panel.buttons.find((button) =>
+    textContent(button).includes("Xem quảng cáo để nhận mã miễn ship")
+  )
+  assert.ok(watch)
+  assert.equal(watch.props.disabled, false)
 })
 
 test("explicit watch creates one session and uses its current rewarded unit", async () => {
@@ -319,7 +300,6 @@ test("explicit watch creates one session and uses its current rewarded unit", as
     actions: { start: async () => success(currentView) },
   })
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   assert.deepEqual(panel.state.starts, [["shop-1", "product-one"]])
   assert.equal(ads.requests.length, 1)
@@ -333,7 +313,6 @@ test("only the rewarded grant callback redeems the earned session", async () => 
   const earned = view()
   const panel = component({ actions: { start: async () => success(earned) } })
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   panel.emit("onVisibleChange", true)
   assert.equal(panel.state.redeems.length, 0)
@@ -349,7 +328,6 @@ test("only the rewarded grant callback redeems the earned session", async () => 
 test("closing without a grant awards nothing and permits another voluntary attempt", async () => {
   const panel = component()
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   const first = panel.request
   panel.emit("onClosed", false)
@@ -366,7 +344,6 @@ test("closing without a grant awards nothing and permits another voluntary attem
 test("no-fill or an unavailable ad cannot award a shipping code", async () => {
   const panel = component()
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   panel.emit("onError", "Hiện chưa có quảng cáo phù hợp.")
   await panel.settle()
@@ -380,7 +357,6 @@ test("cancelling a pending session releases checkout and ignores its late respon
   const session = deferred()
   const panel = component({ actions: { start: () => session.promise } })
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   assert.equal(panel.state.starts.length, 1)
   assert.equal(panel.redeemingChanges.at(-1), true)
@@ -400,7 +376,6 @@ test("cancelling a pending session releases checkout and ignores its late respon
 test("cancelling an active ad destroys it, releases checkout, and ignores a late grant", async () => {
   const panel = component()
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   const request = panel.request
   assert.equal(request.destroyed, false)
@@ -432,7 +407,6 @@ test("failed redemption retries the same earned session without another advertis
     },
   })
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   panel.emit("onGranted")
   panel.emit("onClosed", true)
@@ -461,7 +435,6 @@ test("a thrown redemption action preserves the earned session for retry", async 
     },
   })
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   panel.emit("onGranted")
   panel.emit("onClosed", true)
@@ -479,7 +452,6 @@ test("unmount ignores a late session response before any Google request", async 
   const session = deferred()
   const panel = component({ actions: { start: () => session.promise } })
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   assert.equal(panel.state.starts.length, 1)
   assert.equal(ads.requests.length, 0)
@@ -496,7 +468,6 @@ test("unmount ignores a late session response before any Google request", async 
 test("unmount destroys the ad and ignores callbacks from its former session", async () => {
   const panel = component()
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   const request = panel.request
   panel.unmount()
@@ -508,37 +479,21 @@ test("unmount destroys the ad and ignores callbacks from its former session", as
   assert.equal(panel.received.length, 0)
 })
 
-test("revoking cookies while the session starts prevents the Google request", async () => {
-  const session = deferred()
-  const panel = component({ actions: { start: () => session.promise } })
+test("legacy cookie refusal does not block an explicitly requested rewarded ad", async () => {
+  const panel = component({
+    cookie: "deal-hay-advertising-consent=v2:declined",
+  })
   await panel.settle()
-  panel.chooseConsent(true)
-  await panel.watch()
-  panel.chooseConsent(false)
-  session.resolve(success(view()))
-  await Promise.resolve()
-  await panel.settle()
+  assert.equal(panel.state.starts.length, 0)
   assert.equal(ads.requests.length, 0)
-  assert.equal(panel.state.redeems.length, 0)
-})
-
-test("withdrawing consent destroys an active ad and invalidates its late grant", async () => {
-  const panel = component()
-  await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
-  const request = panel.request
-  panel.chooseConsent(false)
-  assert.equal(request.destroyed, true)
-  request.callbacks.onGranted()
-  await panel.settle()
+  assert.equal(panel.state.starts.length, 1)
+  assert.equal(ads.requests.length, 1)
   assert.equal(panel.state.redeems.length, 0)
-  assert.equal(panel.received.length, 0)
-  assert.equal(panel.visibilityChanges.at(-1), false)
 })
 
 test("an available code removes the watch action and never requests an advertisement", async () => {
-  const panel = component({ accepted: true, code: code() })
+  const panel = component({ code: code() })
   await panel.settle()
   assert.match(panel.text, /Đã lưu mã SHIP-ABC/)
   assert.equal(panel.buttons.length, 0)
@@ -554,7 +509,6 @@ test("an expired session response cannot request Google or redeem a code", async
   }
   const panel = component({ actions: { start: async () => success(expired) } })
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   await panel.settle()
   assert.equal(ads.requests.length, 0)
@@ -567,7 +521,6 @@ test("a session that expires while the ad is shown cannot be redeemed", async ()
   const earned = view()
   const panel = component({ actions: { start: async () => success(earned) } })
   await panel.settle()
-  panel.chooseConsent(true)
   await panel.watch()
   const originalNow = Date.now
   try {
@@ -592,7 +545,6 @@ test("an expired or used code returned from redemption is never applied", async 
       actions: { redeem: async () => success(invalid) },
     })
     await panel.settle()
-    panel.chooseConsent(true)
     await panel.watch()
     panel.emit("onGranted")
     panel.emit("onClosed", true)

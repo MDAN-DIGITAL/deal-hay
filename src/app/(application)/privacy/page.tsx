@@ -15,8 +15,8 @@ export default function PrivacyPage() {
           Khi sử dụng Deal Hay, bạn có thể cung cấp email, họ tên, số điện
           thoại, địa chỉ, ảnh đại diện, thông tin cửa hàng, đơn hàng, đánh giá,
           tin nhắn, mã giảm giá đã lưu và tệp đính kèm. Phiên đăng nhập được lưu
-          riêng theo tab trình duyệt; cookie được dùng để lưu lựa chọn quảng
-          cáo.
+          riêng theo tab trình duyệt. Các nhà cung cấp bên thứ ba có thể sử dụng
+          cookie theo nội dung được mô tả dưới đây.
         </p>
       </section>
       <section className="space-y-2">
@@ -51,9 +51,9 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-xl font-semibold">5. Quảng cáo</h2>
         <p>
-          Khi bạn đồng ý cookie quảng cáo, các trang mua sắm có thể tải quảng
-          cáo của Google. Bạn có thể tự chọn xem quảng cáo có thưởng để nhận ưu
-          đãi vận chuyển theo điều kiện được hiển thị trước khi xem.
+          Quảng cáo Google được bật mặc định trên các trang mua sắm có nội dung
+          phù hợp. Bạn có thể tự chọn xem quảng cáo có thưởng để nhận ưu đãi vận
+          chuyển theo điều kiện được hiển thị trước khi xem.
         </p>
         <p>
           Google và các đối tác quảng cáo có thể sử dụng cookie, địa chỉ IP,
@@ -80,12 +80,12 @@ export default function PrivacyPage() {
           .
         </p>
         <p>
-          Bạn có thể đồng ý hoặc từ chối tại hộp lựa chọn quảng cáo và đổi lựa
-          chọn qua nút Tùy chọn cookie quảng cáo trên các trang mua sắm. Script
-          quảng cáo chỉ tải sau khi bạn đồng ý. Lựa chọn được lưu bằng cookie
-          trong 180 ngày; khi rút lại đồng ý, trang tải lại để dừng quảng cáo.
-          Bạn có thể xóa cookie quảng cáo đã lưu trong cài đặt trình duyệt. Việc
-          từ chối không ảnh hưởng đến khả năng mua sắm và đặt hàng.
+          Deal Hay không hiển thị hộp hỏi cookie riêng và không ghi nhận việc
+          tải trang là một lần người dùng chủ động đồng ý. Bạn có thể quản lý
+          hoặc xóa cookie trong cài đặt trình duyệt và điều chỉnh tùy chọn quảng
+          cáo tại Google. Quảng cáo có thưởng chỉ bắt đầu khi bạn bấm nút xem;
+          bạn vẫn có thể đặt hàng với phí vận chuyển thông thường khi bỏ qua
+          quảng cáo.
         </p>
       </section>
       <Link className="inline-block text-primary underline" href="/sign-up">

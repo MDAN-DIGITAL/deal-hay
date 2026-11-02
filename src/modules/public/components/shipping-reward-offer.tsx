@@ -1,13 +1,12 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import Link from "next/link"
 import { PlayIcon, RefreshCwIcon, TicketPercentIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Surface } from "@/components/ui/surface"
 import { getAuthPageHref } from "@/lib/auth-redirect"
-import { readAdvertisingConsent } from "@/lib/advertising-consent"
 import {
   requestGoogleRewardedAd,
   type RewardedAdController,
@@ -46,7 +45,6 @@ export function ShippingRewardOffer({
   const [offer, setOffer] = useState<ShippingOffer | null>(null)
   const [earnedView, setEarnedView] = useState<ShippingRewardView | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [consent, setConsent] = useState(false)
   const [watching, setWatching] = useState(false)
   const [loading, startLoading] = useTransition()
   const [redeeming, startRedeeming] = useTransition()
@@ -84,21 +82,6 @@ export function ShippingRewardOffer({
       onAdVisibleChange(false)
     }
   }, [shopCode, productSlug, reload, onRedeemingChange, onAdVisibleChange])
-
-  const onConsentChange = useCallback(
-    (accepted: boolean) => {
-      setConsent(accepted)
-      if (!accepted) {
-        attempt.current += 1
-        controller.current?.destroy()
-        controller.current = null
-        watchingRef.current = false
-        setWatching(false)
-        onAdVisibleChange(false)
-      }
-    },
-    [onAdVisibleChange]
-  )
 
   function redeem(view: ShippingRewardView) {
     if (disabled || redeemingRef.current || hasCode) return
@@ -154,8 +137,7 @@ export function ShippingRewardOffer({
       redeemingRef.current ||
       hasCode ||
       !offer?.available ||
-      !offer.rewarded_ad_unit_path ||
-      readAdvertisingConsent(document.cookie) !== "accepted"
+      !offer.rewarded_ad_unit_path
     )
       return
 
@@ -176,11 +158,6 @@ export function ShippingRewardOffer({
         watchingRef.current = false
         setWatching(false)
         setError(session.message)
-        return
-      }
-      if (readAdvertisingConsent(document.cookie) !== "accepted") {
-        watchingRef.current = false
-        setWatching(false)
         return
       }
       const view = session.data
@@ -268,18 +245,12 @@ export function ShippingRewardOffer({
             tại Hà Nội khi đạt điều kiện. Mỗi mã dùng một lần cho sản phẩm này,
             trên tài khoản của bạn.
           </p>
-          <ShippingAdvertisement onConsentChange={onConsentChange} />
+          <ShippingAdvertisement />
           <Button
             type="button"
             className="w-full"
             onClick={() => (earnedView ? redeem(earnedView) : void watch())}
-            disabled={
-              disabled ||
-              loading ||
-              redeeming ||
-              watching ||
-              (!earnedView && !consent)
-            }
+            disabled={disabled || loading || redeeming || watching}
           >
             <PlayIcon />{" "}
             {redeeming
