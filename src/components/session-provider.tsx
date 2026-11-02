@@ -29,11 +29,16 @@ function isRealtimePage(pathname: string): boolean {
   )
 }
 const SessionContext = createContext<
-  SessionResponse & { loading: boolean; offlineChat: boolean }
+  SessionResponse & {
+    loading: boolean
+    offlineChat: boolean
+    accountLoading: boolean
+  }
 >({
   ...guest,
   loading: true,
   offlineChat: false,
+  accountLoading: true,
 })
 export function SessionProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
@@ -42,6 +47,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     ...guest,
     loading: true,
     offlineChat: false,
+    accountLoading: true,
   })
   useEffect(() => {
     let disposed = false
@@ -67,15 +73,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
                 },
                 loading: false,
                 offlineChat: true,
+                accountLoading: true,
               }))
           })
       void getCurrentSession()
         .then((data) => {
           accountResolved = true
           if (!disposed && request === revision)
-            setSession({ ...data, loading: false, offlineChat: false })
+            setSession({
+              ...data,
+              loading: false,
+              offlineChat: false,
+              accountLoading: false,
+            })
         })
         .catch(async () => {
+          accountResolved = true
           const fallback = chatPage
             ? await getCachedChatSession().catch(() => null)
             : null
@@ -90,13 +103,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
                     },
                     loading: false,
                     offlineChat: true,
+                    accountLoading: false,
                   }
-                : { ...previous, loading: false }
+                : { ...previous, loading: false, accountLoading: false }
             )
         })
     }
     const changeSession = () => {
-      setSession({ ...guest, loading: true, offlineChat: false })
+      setSession({
+        ...guest,
+        loading: true,
+        offlineChat: false,
+        accountLoading: true,
+      })
       load()
     }
     load()
@@ -126,13 +145,21 @@ export function AuthGuard({
   admin?: boolean
   redirectTo?: string
 }) {
-  const { user, loading, offlineChat } = useSession()
+  const { user, loading, offlineChat, accountLoading } = useSession()
   const pathname = usePathname()
   const chatPage = isRealtimePage(pathname)
-  const allowedUser = offlineChat && (admin || !chatPage) ? null : user
+  // WSS validates its own administrators for the diagnostics endpoints. This
+  // exception grants no access to account, shop or other admin business pages.
+  const allowedUser =
+    offlineChat && (!chatPage || (admin && pathname !== "/diagnostics"))
+      ? null
+      : user
+  const awaitingAccount =
+    accountLoading &&
+    (!allowedUser || (admin && allowedUser.role !== "administrator"))
   const router = useRouter()
   useEffect(() => {
-    if (loading) return
+    if (loading || awaitingAccount) return
     if (!allowedUser)
       router.replace(
         getAuthPageHref(
@@ -142,9 +169,10 @@ export function AuthGuard({
       )
     else if (admin && allowedUser.role !== "administrator")
       router.replace("/forbidden")
-  }, [allowedUser, loading, admin, redirectTo, router])
+  }, [allowedUser, loading, awaitingAccount, admin, redirectTo, router])
   if (
     loading ||
+    awaitingAccount ||
     !allowedUser ||
     (admin && allowedUser.role !== "administrator")
   )

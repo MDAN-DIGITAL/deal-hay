@@ -39,6 +39,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useSpeedtest } from "@/modules/diagnostics/hooks/use-speedtest"
+import { ServerResourcesPanel } from "@/modules/diagnostics/components/server-resources-panel"
 import type {
   SpeedtestPhase,
   SpeedtestState,
@@ -282,7 +283,7 @@ function SpeedGauge({
       </p>
       {showStart ? (
         <p className="mt-2 text-center text-xs text-muted-foreground">
-          Đo cả hai máy chủ · Tối đa khoảng 80 MiB / lượt
+          Đo cả hai máy chủ · Dùng nhiều luồng truyền dữ liệu
         </p>
       ) : null}
     </div>
@@ -433,9 +434,11 @@ export function DiagnosticsClient() {
     <TooltipProvider delay={200}>
       <div className="mx-auto w-full max-w-6xl space-y-6">
         <PageHeader
-          title="Đo tốc độ kết nối"
-          description="Đo lần lượt kết nối từ thiết bị của bạn tới DealHay Backend và DealHay WSS."
+          title="Máy chủ và kết nối"
+          description="Theo dõi tài nguyên và đo kết nối tới DealHay Backend và DealHay WSS."
         />
+
+        <ServerResourcesPanel />
 
         <div
           aria-label="Kết quả theo máy chủ"

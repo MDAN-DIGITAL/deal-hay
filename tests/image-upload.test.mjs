@@ -487,3 +487,203 @@ test("storage URLs require HTTPS except loopback and reject embedded credentials
   ])
     assert.throws(() => storageUploadUrl(url))
 })
+
+const settleUntil = async (predicate) => {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (predicate()) return
+    await new Promise(setImmediate)
+  }
+  assert.fail("Expected asynchronous upload progress did not settle")
+}
+function heldUploads(t) {
+  const pending = []
+  let active = 0,
+    peak = 0
+  t.mock.method(globalThis.XMLHttpRequest.prototype, "send", function (body) {
+    this.body = body
+    state.uploads.push(this)
+    active++
+    peak = Math.max(peak, active)
+    pending.push((status = 200) => {
+      active--
+      this.status = status
+      this.responseURL = this.url
+      this.response = new ArrayBuffer(0)
+      this.upload.onprogress?.({
+        lengthComputable: true,
+        loaded: body.size,
+        total: body.size,
+      })
+      this.onload()
+    })
+  })
+  return {
+    pending,
+    get active() {
+      return active
+    },
+    get peak() {
+      return peak
+    },
+  }
+}
+
+test("multiple image PUTs overlap up to four and out-of-order completion preserves gallery references", async (t) => {
+  const held = heldUploads(t)
+  const form = new FormData()
+  for (let i = 0; i < 9; i++)
+    form.append(
+      i === 0 ? "image" : "gallery_images",
+      new File(["source"], i + ".jpg", { type: "image/jpeg" })
+    )
+  const progress = []
+  const result = prepareImageUploads(form, "product", (snapshot) =>
+    progress.push(snapshot)
+  )
+  await settleUntil(() => held.pending.length === 4)
+  assert.equal(state.uploads.length, 4)
+  assert.equal(held.peak, 4)
+  assert.ok(
+    progress.some(
+      (snapshot) =>
+        snapshot.files.filter((file) => file.stage === "uploading").length === 4
+    )
+  )
+  while (state.uploads.length < 9 || held.active) {
+    held.pending.pop()?.()
+    await new Promise(setImmediate)
+  }
+  const output = await result
+  assert.equal(output.get("primary_image_upload"), "batch-0-token-0")
+  assert.deepEqual(
+    output.getAll("gallery_image_uploads"),
+    Array.from({ length: 8 }, (_, i) => "batch-0-token-" + (i + 1))
+  )
+  assert.deepEqual(
+    grants.batches[0].uploads.map((file) => file.filename),
+    Array.from({ length: 9 }, (_, i) => i + ".webp")
+  )
+  assert.equal(progress.at(-1).percent, 100)
+  assert.equal(progress.at(-1).completed, 9)
+})
+
+test("decode memory is bounded to two bitmaps across forms while completed images can upload", async (t) => {
+  const pending = []
+  let active = 0,
+    peak = 0,
+    started = 0,
+    overlap = false
+  t.mock.method(globalThis, "createImageBitmap", async () => {
+    active++
+    started++
+    peak = Math.max(peak, active)
+    return new Promise((resolve) =>
+      pending.push(() =>
+        resolve({
+          width: 4000,
+          height: 3000,
+          close() {
+            active--
+          },
+        })
+      )
+    )
+  })
+  const send = globalThis.XMLHttpRequest.prototype.send
+  t.mock.method(globalThis.XMLHttpRequest.prototype, "send", function (body) {
+    if (active > 0) overlap = true
+    return send.call(this, body)
+  })
+  const first = new FormData()
+  first.set("image", original())
+  const second = new FormData()
+  for (let i = 0; i < 5; i++) second.append("gallery_images", original())
+  const results = Promise.all([
+    prepareImageUploads(first, "product"),
+    prepareImageUploads(second, "product"),
+  ])
+  await settleUntil(() => pending.length === 2)
+  assert.equal(started, 2)
+  while (started < 6 || active) {
+    pending.shift()?.()
+    await new Promise(setImmediate)
+  }
+  await results
+  assert.equal(peak, 2)
+  assert.equal(overlap, true)
+  assert.equal(state.uploads.length, 6)
+})
+
+test("a failed PUT stops queued work and discards reservations only after active PUTs settle", async (t) => {
+  const held = heldUploads(t),
+    form = new FormData()
+  for (let i = 0; i < 7; i++) form.append("gallery_images", original())
+  let finished = false
+  const result = prepareImageUploads(form, "product").then(
+    () => assert.fail("Failure expected"),
+    (error) => {
+      finished = true
+      return error
+    }
+  )
+  await settleUntil(() => held.pending.length === 4)
+  held.pending.shift()(403)
+  await new Promise(setImmediate)
+  assert.equal(finished, false)
+  assert.deepEqual(grants.discarded, [])
+  assert.equal(state.uploads.length, 4)
+  while (held.pending.length) held.pending.pop()()
+  const failure = await result
+  assert.ok(failure.errors.gallery_images)
+  assert.equal(state.uploads.length, 4)
+  assert.equal(held.active, 0)
+  assert.deepEqual(grants.discarded, [
+    Array.from({ length: 7 }, (_, i) => "batch-0-token-" + i),
+  ])
+  await new Promise(setImmediate)
+  assert.equal(state.uploads.length, 4)
+})
+
+test("fifty chat images use one batch reservation and preserve attachment order", async () => {
+  const form = new FormData()
+  for (let i = 0; i < 50; i++) form.append("attachment", original())
+  const output = await prepareImageUploads(form, "chat")
+  assert.equal(grants.batches.length, 1)
+  assert.equal(grants.batches[0].uploads.length, 50)
+  assert.equal(output.getAll("attachment").length, 50)
+  assert.deepEqual(
+    output.getAll("attachment"),
+    Array.from(
+      { length: 50 },
+      (_, i) => "https://media.example.test/owner/chat/" + i + ".webp"
+    )
+  )
+  assert.ok(state.uploads.every((xhr) => xhr.body.size <= 20 * 1024))
+})
+
+test("parallel uploads retry a temporary failure with the same bytes and reservation", async (t) => {
+  const delays = []
+  t.mock.method(globalThis, "setTimeout", (resolve, delay) => {
+    delays.push(delay)
+    queueMicrotask(resolve)
+  })
+  state.statuses = [503]
+  const form = new FormData()
+  for (let i = 0; i < 6; i++) form.append("gallery_images", original())
+  const output = await prepareImageUploads(form, "product")
+  assert.deepEqual(delays, [1000])
+  assert.equal(grants.batches.length, 1)
+  assert.equal(state.uploads.length, 7)
+  const first = state.uploads[0]
+  const retry = state.uploads.find(
+    (upload, index) => index > 0 && upload.url === first.url
+  )
+  assert.ok(retry)
+  assert.equal(retry.body, first.body)
+  assert.deepEqual(retry.headers, first.headers)
+  assert.deepEqual(grants.discarded, [])
+  assert.deepEqual(
+    output.getAll("gallery_image_uploads"),
+    Array.from({ length: 6 }, (_, i) => "batch-0-token-" + i)
+  )
+})

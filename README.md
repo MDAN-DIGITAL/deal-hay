@@ -30,7 +30,8 @@ API phải cho phép origin frontend trong CORS; WSS phải cho phép cùng orig
 - `SessionProvider`/`AuthGuard`: lấy user từ API. Token lưu trong `sessionStorage`, giữ qua reload cùng tab và được xóa khi đăng xuất hoặc API trả 401 cho phiên hiện tại. Token không được ghi vào cookie hoặc URL. Phiên gắn với tab; dữ liệu phân quyền luôn do API xác nhận.
 - Socket.IO và HTTP chat dùng phiên opaque do WSS lưu/xác thực trong SQLite. API bootstrap danh tính và dữ liệu chat ban đầu; FE giữ phiên WSS tối đa 24 giờ trong `sessionStorage`, gắn với phiên đăng nhập của tab. Reconnect, gửi tin, tải lịch sử, đánh dấu đã đọc và presence đi thẳng tới WSS, tiếp tục hoạt động khi API mất kết nối. Đăng nhập mới/cấp lại phiên hết hạn và mở cuộc trò chuyện từ nghiệp vụ sản phẩm vẫn cần API.
 - Ảnh được resize/nén WebP trong browser và upload trực tiếp lên storage bằng URL có thời hạn. WSS cấp phiên upload ảnh/tệp chat và phục vụ attachment bằng credential WSS; file riêng tư hiển thị bằng object URL, thu hồi khi unmount. Các ảnh sản phẩm/avatar/review vẫn dùng API chính.
-- Speedtest đo lần lượt DealHay Backend và DealHay WSS, hiển thị ping/jitter/download/upload riêng cho từng máy chủ. Mỗi máy chủ cấp grant ngay trước lượt đo của mình; với phiên WSS đã lưu, trang chat và diagnostics vẫn mở được khi API lỗi, nhưng không cấp quyền trang nghiệp vụ/quản trị. Browser truyền dữ liệu trực tiếp tới máy chủ được đo; không cần thêm biến Vercel. Một máy chủ lỗi vẫn tiếp tục đo bên còn lại; tối đa khoảng 80 MiB cho hai máy chủ.
+- Speedtest đo lần lượt DealHay Backend và DealHay WSS, hiển thị ping/jitter/download/upload riêng cho từng máy chủ. Mỗi máy chủ cấp grant ngay trước lượt đo của mình; phiên WSS đã xác thực cho phép mở chat và diagnostics khi API lỗi, riêng diagnostics vẫn yêu cầu quản trị viên. Không cấp quyền trang nghiệp vụ/quản trị khác bằng phiên dự phòng. Browser truyền dữ liệu trực tiếp tới máy chủ được đo; không cần thêm biến Vercel. Một máy chủ lỗi vẫn tiếp tục đo bên còn lại; lượt đo dùng nhiều luồng và không giới hạn tổng dữ liệu.
+- Diagnostics lấy CPU/RAM/ổ đĩa/OS từ API và WSS độc lập mỗi 5 giây, tạm ngừng khi tab bị ẩn. Số liệu có thời điểm, cửa sổ lấy mẫu và phạm vi container/host/filesystem; chỉ admin được gọi endpoint. Không suy đoán hạn mức của gói hosting khi nhà cung cấp không công bố. Xem [server-resources.md](docs/server-resources.md).
 
 ## Khung chat và hỗ trợ
 
@@ -54,6 +55,7 @@ npm run build
 Build cần `NEXT_PUBLIC_API_URL` hợp lệ; không cần API đang chạy. Catalog công khai dùng GET phía server tại thời điểm request, có thời hạn chờ và fallback; dữ liệu tài khoản/tương tác tiếp tục được tải trên browser.
 
 Hướng dẫn ảnh: [browser-image-uploads.md](../deal-hay-api/docs/browser-image-uploads.md). Realtime: [socketio-validation.md](docs/socketio-validation.md).
+Upload nhiều ảnh: [image-upload-concurrency.md](docs/image-upload-concurrency.md).
 
 ## Âm thanh và thông báo nền
 

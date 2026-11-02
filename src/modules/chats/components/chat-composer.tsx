@@ -49,6 +49,7 @@ import { sendMessageAction } from "@/modules/chats/actions"
 import {
   chatSendAttempts,
   prepareChatSendAttempt,
+  prepareChatImageAttempts,
   type ChatSendAttempt,
 } from "@/modules/chats/lib/chat-send-attempt"
 import { uploadChatFile } from "@/lib/chat-upload"
@@ -184,6 +185,25 @@ export function ChatComposer({
       })
       attemptRef.current = attempts
       startTransition(async () => {
+        const prepared = await runUploadAction(async () => {
+          await prepareChatImageAttempts(attempts, (input) =>
+            prepareUploads(input, "chat")
+          )
+          return { success: true as const, message: "" }
+        })
+        if (!prepared.success) {
+          const hasFieldErrors = applyServerErrors(
+            {
+              ...prepared.errors,
+              ...(prepared.errors?.attachment
+                ? { attachments: prepared.errors.attachment }
+                : {}),
+            },
+            form.setError
+          )
+          if (!hasFieldErrors && prepared.message) toast.error(prepared.message)
+          return
+        }
         for (const attempt of attempts) {
           const state = await runUploadAction(async () => {
             const payload = await prepareChatSendAttempt(

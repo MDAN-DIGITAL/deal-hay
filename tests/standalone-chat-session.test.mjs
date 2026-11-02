@@ -158,7 +158,8 @@ test("an offline chat identity never grants access to admin or non-chat routes",
   )
   globalThis.__standaloneSession.path = "/private/profile"
   assert.equal(render(AuthGuard, { children: "profile" }).type, "loading")
-  assert.equal(globalThis.__standaloneSession.destinations.length, 2)
+  assert.equal(globalThis.__standaloneSession.value.accountLoading, true)
+  assert.deepEqual(globalThis.__standaloneSession.destinations, [])
 })
 
 test("a valid cached WSS identity also opens diagnostics without granting business permissions", async (t) => {
@@ -171,9 +172,93 @@ test("a valid cached WSS identity also opens diagnostics without granting busine
   assert.equal(globalThis.__standaloneSession.value.offlineChat, true)
   assert.equal(render(AuthGuard, { children: "diagnostics" }), "diagnostics")
   assert.equal(
+    render(AuthGuard, { children: "diagnostics", admin: true }),
+    "diagnostics"
+  )
+  assert.deepEqual(globalThis.__standaloneSession.destinations, [])
+})
+
+test("diagnostics does not redirect while its verified WSS admin is waiting for the API", async (t) => {
+  globalThis.__standaloneSession.path = "/diagnostics"
+  window.location.pathname = "/diagnostics"
+  const account = deferred()
+  state.account = account.promise
+  const hooks = component()
+  t.after(() => hooks.dispose())
+  render(SessionProvider, { children: "diagnostics" }, hooks)
+  await settle()
+  render(SessionProvider, { children: "diagnostics" }, hooks)
+  assert.equal(
+    render(AuthGuard, { children: "diagnostics", admin: true }),
+    "diagnostics"
+  )
+  assert.deepEqual(globalThis.__standaloneSession.destinations, [])
+  account.resolve({
+    ...state.fallback,
+    user: { ...state.fallback.user, full_name: "API admin" },
+  })
+  await settle()
+  render(SessionProvider, { children: "diagnostics" }, hooks)
+  assert.equal(globalThis.__standaloneSession.value.offlineChat, false)
+  assert.equal(globalThis.__standaloneSession.value.accountLoading, false)
+  assert.equal(
+    render(AuthGuard, { children: "diagnostics", admin: true }),
+    "diagnostics"
+  )
+  assert.deepEqual(globalThis.__standaloneSession.destinations, [])
+})
+
+test("a provisional non-admin profile waits for the API without a forbidden-page bounce", async (t) => {
+  globalThis.__standaloneSession.path = "/diagnostics"
+  const account = deferred()
+  state.account = account.promise
+  state.fallback = {
+    ...state.fallback,
+    user: { ...state.fallback.user, role: "customer" },
+  }
+  const hooks = component()
+  t.after(() => hooks.dispose())
+  render(SessionProvider, { children: "diagnostics" }, hooks)
+  await settle()
+  render(SessionProvider, { children: "diagnostics" }, hooks)
+  assert.equal(
+    render(AuthGuard, { children: "diagnostics", admin: true }).type,
+    "loading"
+  )
+  assert.deepEqual(globalThis.__standaloneSession.destinations, [])
+  account.resolve({
+    ...state.fallback,
+    user: { ...state.fallback.user, role: "administrator" },
+  })
+  await settle()
+  render(SessionProvider, { children: "diagnostics" }, hooks)
+  assert.equal(
+    render(AuthGuard, { children: "diagnostics", admin: true }),
+    "diagnostics"
+  )
+  assert.deepEqual(globalThis.__standaloneSession.destinations, [])
+})
+
+test("API outage keeps WSS-only diagnostics available without permitting other admin routes", async (t) => {
+  globalThis.__standaloneSession.path = "/diagnostics"
+  state.account = Promise.reject(new Error("API offline"))
+  const hooks = component()
+  t.after(() => hooks.dispose())
+  render(SessionProvider, { children: "diagnostics" }, hooks)
+  await settle()
+  render(SessionProvider, { children: "diagnostics" }, hooks)
+  assert.equal(globalThis.__standaloneSession.value.accountLoading, false)
+  assert.equal(
+    render(AuthGuard, { children: "diagnostics", admin: true }),
+    "diagnostics"
+  )
+  assert.deepEqual(globalThis.__standaloneSession.destinations, [])
+  globalThis.__standaloneSession.path = "/admin/users"
+  assert.equal(
     render(AuthGuard, { children: "admin", admin: true }).type,
     "loading"
   )
+  assert.equal(globalThis.__standaloneSession.destinations.length, 1)
 })
 test("a non-chat page cannot bootstrap its identity from a cached chat profile", async (t) => {
   globalThis.__standaloneSession.path = "/private/profile"

@@ -168,6 +168,33 @@ test("upload sessions accept WebP and iOS JPEG or PNG fallbacks with the same 20
     }
   }
 })
+test("chat reserves fifty images in one request and rejects larger batches before contacting storage", async () => {
+  const uploads = Array.from({ length: 50 }, (_, i) => ({
+    size: 1024,
+    content_type: "image/webp",
+    filename: `${i}.webp`,
+  }))
+  const result = await requestImageUploadsAction("chat", uploads)
+  assert.equal(result.success, true)
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].path, "/chat-uploads/images")
+  assert.deepEqual(calls[0].body.uploads, uploads)
+  assert.deepEqual(
+    result.data.tokens,
+    Array.from({ length: 50 }, (_, i) => `token-${i}`)
+  )
+  assert.equal(
+    (await requestImageUploadsAction("chat", [...uploads, uploads[0]])).success,
+    false
+  )
+  assert.equal(calls.length, 1)
+  for (const purpose of ["avatar", "review"])
+    assert.equal(
+      (await requestImageUploadsAction(purpose, uploads.slice(0, 2))).success,
+      false
+    )
+  assert.equal(calls.length, 1)
+})
 test("unknown session fields are stripped and malformed storage headers release reservations", async () => {
   state.response = {
     uploads: [

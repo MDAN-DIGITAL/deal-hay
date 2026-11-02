@@ -62,7 +62,7 @@ export async function requestImageUploadsAction(
       })
     )
     .min(1)
-    .max(purpose === "product" ? 51 : 1)
+    .max(purpose === "product" ? 51 : purpose === "chat" ? 50 : 1)
     .safeParse(uploads)
   if (!parsed.success) {
     return { success: false, message: "Thông tin tải ảnh không hợp lệ." }

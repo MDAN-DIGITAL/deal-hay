@@ -25,16 +25,30 @@ export type ImageUploadProgress = {
   files: (FileProgress & { name: string; field: string; index: number })[]
 }
 
-// Bound browser decode memory and concurrent storage uploads across forms.
-let uploadQueue: Promise<void> = Promise.resolve()
-function uploadOneAtATime<T>(action: () => Promise<T>): Promise<T> {
-  const next = uploadQueue.then(action)
-  uploadQueue = next.then(
-    () => {},
-    () => {}
-  )
-  return next
+// Separate limits let a form decode while another uploads, without keeping an
+// unbounded number of full camera bitmaps or storage requests alive.
+function taskPool(limit: number) {
+  let active = 0
+  const waiting: (() => void)[] = []
+  return async function run<T>(action: () => Promise<T>): Promise<T> {
+    await new Promise<void>((resolve) => {
+      const enter = () => {
+        active++
+        resolve()
+      }
+      if (active < limit) enter()
+      else waiting.push(enter)
+    })
+    try {
+      return await action()
+    } finally {
+      active--
+      waiting.shift()?.()
+    }
+  }
 }
+const prepareInPool = taskPool(2)
+const uploadInPool = taskPool(4)
 
 function uploadImage(
   session: ImageUploadSession,
@@ -167,35 +181,46 @@ export async function prepareImageUploads(
     for (const [field, value] of entries) payload.append(field, value)
     return payload
   }
-  if (images.length > (purpose === "product" ? 51 : 1)) {
+  if (
+    images.length > (purpose === "product" ? 51 : purpose === "chat" ? 50 : 1)
+  ) {
     throw new UploadError("Số lượng ảnh vượt quá giới hạn cho phép.")
   }
 
   const processed: File[] = []
-  for (const [position, { field, file }] of images.entries()) {
-    try {
-      const image = await uploadOneAtATime(async () => {
-        Object.assign(progress[position], { stage: "processing", percent: 0 })
-        publish()
-        return prepareBrowserImage(file, purpose)
+  let preparationFailure: Error | undefined
+  const preparationOutcomes = await Promise.allSettled(
+    images.map(({ field, file }, position) =>
+      prepareInPool(async () => {
+        if (preparationFailure) return
+        try {
+          Object.assign(progress[position], { stage: "processing", percent: 0 })
+          publish()
+          const image = await prepareBrowserImage(file, purpose)
+          processed[position] = image
+          Object.assign(progress[position], {
+            stage: "queued",
+            percent: 30,
+            total: image.size,
+          })
+          publish()
+        } catch (error) {
+          Object.assign(progress[position], { stage: "error" })
+          publish()
+          preparationFailure ??= imageUploadError(
+            field,
+            file.name,
+            error instanceof Error ? error.message : "Không thể xử lý ảnh."
+          )
+        }
       })
-      processed.push(image)
-      Object.assign(progress[position], {
-        stage: "queued",
-        percent: 30,
-        total: image.size,
-      })
-      publish()
-    } catch (error) {
-      Object.assign(progress[position], { stage: "error" })
-      publish()
-      throw imageUploadError(
-        field,
-        file.name,
-        error instanceof Error ? error.message : "Không thể xử lý ảnh."
-      )
-    }
-  }
+    )
+  )
+  if (preparationFailure) throw preparationFailure
+  const failedPreparation = preparationOutcomes.find(
+    (outcome) => outcome.status === "rejected"
+  )
+  if (failedPreparation?.status === "rejected") throw failedPreparation.reason
 
   const sessions = await requestImageUploadsAction(
     purpose,
@@ -208,70 +233,80 @@ export async function prepareImageUploads(
   if (!sessions.success || !sessions.data) {
     throw new UploadError(sessions.message || uploadFallback, sessions.errors)
   }
-  const stagedTokens = sessions.data.tokens
+  const sessionData = sessions.data
+  const stagedTokens = sessionData.tokens
   const references = new Map<number, string>()
   try {
     if (
-      sessions.data.uploads.length !== images.length ||
+      sessionData.uploads.length !== images.length ||
       stagedTokens.length !== images.length
     ) {
       throw new Error("Không thể chuẩn bị đủ phiên tải ảnh.")
     }
-    for (const [
-      position,
-      { field, file: original, index },
-    ] of images.entries()) {
-      const file = processed[position]
-      const session = sessions.data.uploads[position]
-      const update = (update: FileProgress) => {
-        Object.assign(progress[position], update)
-        publish()
-      }
-      await uploadOneAtATime(async () => {
-        for (let attempt = 0; ; attempt++) {
+    let uploadFailure: unknown
+    const outcomes = await Promise.allSettled(
+      images.map(({ field, file: original, index }, position) =>
+        uploadInPool(async () => {
+          if (uploadFailure) return
+          const file = processed[position]
+          const session = sessionData.uploads[position]
+          const update = (update: FileProgress) => {
+            Object.assign(progress[position], update)
+            publish()
+          }
           try {
+            for (let attempt = 0; ; attempt++) {
+              if (uploadFailure) return
+              try {
+                update({
+                  stage: "uploading",
+                  percent: 30,
+                  loaded: 0,
+                  total: file.size,
+                })
+                await uploadImage(session, file, field, original.name, update)
+                break
+              } catch (error) {
+                const retryable =
+                  error instanceof Error &&
+                  (error.message === uploadFallback ||
+                    ("status" in error &&
+                      [408, 429, 500, 502, 503, 504].includes(
+                        Number(error.status)
+                      )))
+                if (!retryable || attempt >= 2) {
+                  update({
+                    stage: "error",
+                    percent: 30,
+                    loaded: 0,
+                    total: file.size,
+                  })
+                  throw error
+                }
+                await new Promise((resolve) =>
+                  setTimeout(resolve, 1000 * (attempt + 1))
+                )
+              }
+            }
             update({
-              stage: "uploading",
-              percent: 30,
-              loaded: 0,
+              stage: "complete",
+              percent: 100,
+              loaded: file.size,
               total: file.size,
             })
-            await uploadImage(session, file, field, original.name, update)
-            break
           } catch (error) {
-            const retryable =
-              error instanceof Error &&
-              (error.message === uploadFallback ||
-                ("status" in error &&
-                  [408, 429, 500, 502, 503, 504].includes(
-                    Number(error.status)
-                  )))
-            if (!retryable || attempt >= 2) {
-              update({
-                stage: "error",
-                percent: 30,
-                loaded: 0,
-                total: file.size,
-              })
-              throw error
-            }
-            await new Promise((resolve) =>
-              setTimeout(resolve, 1000 * (attempt + 1))
-            )
+            uploadFailure ??= error
+            throw error
           }
-        }
-        update({
-          stage: "complete",
-          percent: 100,
-          loaded: file.size,
-          total: file.size,
+          references.set(
+            index,
+            purpose === "product" ? session.token : session.asset_url
+          )
         })
-      })
-      references.set(
-        index,
-        purpose === "product" ? session.token : session.asset_url
       )
-    }
+    )
+    const failed = outcomes.find((outcome) => outcome.status === "rejected")
+    if (failed?.status === "rejected") throw failed.reason
   } catch (error) {
     await discardProductImageUploadsAction(stagedTokens, purpose)
     throw error

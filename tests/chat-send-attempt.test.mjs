@@ -15,10 +15,14 @@ const source = ts.transpileModule(
     },
   }
 ).outputText
-const { chatSendAttempt, prepareChatSendAttempt, chatSendAttempts } =
-  await import(
-    `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
-  )
+const {
+  chatSendAttempt,
+  prepareChatSendAttempt,
+  chatSendAttempts,
+  prepareChatImageAttempts,
+} = await import(
+  `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
+)
 
 test("an unchanged draft keeps its identifier until confirmed success or an actual payload change", () => {
   const attachment = new File(["image"], "image.webp", { type: "image/webp" })
@@ -213,4 +217,95 @@ test("a fifty-photo selection prepares fifty distinct stable attempts without lo
     })
   }
   assert.equal(preparedFiles, 50)
+})
+
+test("concurrent fifty-image preparation shares one batch and reuses uploaded references for ordered sends and retries", async () => {
+  const attachments = Array.from(
+    { length: 50 },
+    (_, i) => new File([String(i)], i + ".jpg", { type: "image/jpeg" })
+  )
+  const attempts = chatSendAttempts([], {
+    conversationSlug: "thread",
+    body: "Caption",
+    attachments,
+    replyToId: "reply",
+    mentionAdminIds: ["admin"],
+  })
+  let uploads = 0
+  const prepare = async (form) => {
+    uploads++
+    assert.deepEqual(form.getAll("attachment"), attachments)
+    const result = new FormData()
+    for (let i = 0; i < 50; i++)
+      result.append("attachment", "https://media.example/" + i + ".webp")
+    return result
+  }
+  await Promise.all([
+    prepareChatImageAttempts(attempts, prepare),
+    prepareChatImageAttempts(attempts, prepare),
+  ])
+  assert.equal(uploads, 1)
+  const sent = []
+  for (const attempt of attempts) {
+    const payload = await prepareChatSendAttempt(attempt, async () =>
+      assert.fail("A prepared photo must not upload again")
+    )
+    sent.push(payload.get("attachment"))
+    assert.equal(payload.get("client_message_id"), attempt.clientMessageId)
+  }
+  assert.deepEqual(
+    sent,
+    Array.from({ length: 50 }, (_, i) => "https://media.example/" + i + ".webp")
+  )
+  assert.equal(attempts[0].prepared.get("body"), "Caption")
+  assert.equal(attempts[0].prepared.get("reply_to_id"), "reply")
+  assert.deepEqual(attempts[0].prepared.getAll("mention_admin_ids"), ["admin"])
+  assert.equal(attempts[1].prepared.has("body"), false)
+  await prepareChatImageAttempts(attempts.slice(7), async () =>
+    assert.fail("Partial retry keeps remaining references")
+  )
+  assert.equal(uploads, 1)
+})
+
+test("a failed image batch clears every preparation promise and retries with unchanged message IDs", async () => {
+  const files = [
+    new File(["a"], "a.jpg", { type: "image/jpeg" }),
+    new File(["b"], "b.png", { type: "image/png" }),
+  ]
+  const attempts = chatSendAttempts([], {
+    conversationSlug: "thread",
+    body: "Caption",
+    attachments: files,
+  })
+  const ids = attempts.map((a) => a.clientMessageId)
+  await assert.rejects(
+    prepareChatImageAttempts(attempts, async () => {
+      throw new Error("Storage unavailable")
+    }),
+    /Storage unavailable/
+  )
+  assert.ok(attempts.every((a) => !a.preparing && !a.prepared))
+  await prepareChatImageAttempts(attempts, async () => {
+    const out = new FormData()
+    out.append("attachment", "https://media.example/a.webp")
+    out.append("attachment", "https://media.example/b.webp")
+    return out
+  })
+  assert.deepEqual(
+    attempts.map((a) => a.clientMessageId),
+    ids
+  )
+  assert.ok(attempts.every((a) => a.prepared && !a.preparing))
+})
+
+test("text and ordinary files do not reserve image upload sessions", async () => {
+  const attempts = chatSendAttempts([], {
+    conversationSlug: "thread",
+    body: "Document",
+    attachments: [new File(["doc"], "doc.txt", { type: "text/plain" })],
+  })
+  await prepareChatImageAttempts(attempts, async () =>
+    assert.fail("Non-image files must use their file upload flow")
+  )
+  assert.equal(attempts[0].prepared, undefined)
 })
