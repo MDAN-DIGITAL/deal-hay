@@ -47,6 +47,7 @@ export function ChatsPageContainer({
       onConversationChange={onConversationChange}
       admins={data.admins}
       conversationSnapshots={data.conversationSnapshots}
+      conversationAliases={data.conversationAliases}
       conversations={data.conversations}
       currentUserId={currentUserId}
       selectedConversation={data.selectedConversation}

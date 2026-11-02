@@ -1,4 +1,4 @@
-import type { SelectedConversation } from "@/types/chat"
+import type { SelectedConversation, ConversationAlias } from "@/types/chat"
 
 export const CHAT_NAVIGATION_EVENT = "dealhay:chat-navigation"
 
@@ -41,8 +41,15 @@ export function parseChatNavigationTarget(
 
 export function resolveChatNavigationTarget(
   conversations: ReadonlyMap<string, SelectedConversation>,
-  target: ChatNavigationTarget
+  target: ChatNavigationTarget,
+  aliases: readonly ConversationAlias[] = []
 ): SelectedConversation | undefined {
+  const alias = aliases.find((item) =>
+    target.conversationId
+      ? item.id === target.conversationId
+      : item.slug === target.conversationSlug
+  )
+  if (alias) return conversations.get(alias.target_id)
   if (target.conversationId) return conversations.get(target.conversationId)
   return [...conversations.values()].find(
     ({ slug }) => slug === target.conversationSlug

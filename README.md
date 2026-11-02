@@ -32,7 +32,7 @@ API phải cho phép origin frontend trong CORS; WSS phải cho phép cùng orig
 
 ## Khung chat và hỗ trợ
 
-Trang `/chats` dùng toàn bộ màn hình trên điện thoại, tự điều chỉnh theo bàn phím và có vùng nhập tin nhắn lớn hơn. Bong bóng ở góc dưới mọi trang mở cùng chức năng chat trong khung nổi; trên điện thoại khung này mở toàn màn hình. Thu nhỏ giữ cuộc trò chuyện, bản nháp và dữ liệu đã tải; tin mới chỉ được đánh dấu đã đọc khi khung đang mở. Nút mở rộng chuyển đến đúng cuộc trò chuyện đang xem.
+Trang `/chats` dùng giao diện riêng toàn màn hình, có tìm kiếm và lọc chưa đọc; nền sáng/tối trung tính, vùng tin nhắn và ô nhập cùng chiều rộng dễ đọc. Trên điện thoại, khung tự điều chỉnh theo bàn phím; nút `+` mở gửi ảnh/tệp và tag admin. Bong bóng ở góc dưới mọi trang mở cùng chức năng chat trong khung nổi; trên điện thoại khung này mở toàn màn hình. Thu nhỏ giữ cuộc trò chuyện, bản nháp và dữ liệu đã tải; tin mới chỉ được đánh dấu đã đọc khi khung đang mở. Nút mở rộng chuyển đến đúng cuộc trò chuyện đang xem.
 
 **Deal Hay Admin** luôn đứng đầu danh sách, kể cả khi tìm kiếm. WSS tạo phòng hỗ trợ riêng với các tài khoản quản trị thật đang hoạt động; nếu chưa đồng bộ được quản trị viên, hàng hỗ trợ hiển thị chưa sẵn sàng. Người chưa đăng nhập có thể mở bong bóng và đăng nhập để bắt đầu.
 

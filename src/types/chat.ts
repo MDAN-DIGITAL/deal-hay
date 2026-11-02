@@ -53,6 +53,7 @@ export type ChatMessage = {
 }
 
 export type ConversationSummary = {
+  is_support_history?: boolean
   id: string
   slug: string
   is_support?: boolean
@@ -75,4 +76,11 @@ export type SelectedConversation = ConversationSummary & {
     has_more: boolean
     next_cursor: string | null
   }
+}
+
+export type ConversationAlias = {
+  id: string
+  slug: string
+  target_id: string
+  target_slug: string
 }

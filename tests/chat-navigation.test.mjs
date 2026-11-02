@@ -92,6 +92,47 @@ test("ordinary slug navigation and invalid links cannot accidentally select a di
   )
 })
 
+test("saved links for an empty retired support room resolve to its original private history", () => {
+  const target = {
+    id: "real-support",
+    slug: "earlier-admin-chat",
+    messages: [{ id: "kept-message" }],
+  }
+  const cache = new Map([[target.id, target]])
+  const aliases = [
+    {
+      id: "empty-support",
+      slug: "generated-room",
+      target_id: target.id,
+      target_slug: target.slug,
+    },
+  ]
+  assert.equal(
+    resolveChatNavigationTarget(
+      cache,
+      { conversationId: "empty-support", messageId: "kept-message" },
+      aliases
+    ),
+    target
+  )
+  assert.equal(
+    resolveChatNavigationTarget(
+      cache,
+      { conversationSlug: "generated-room" },
+      aliases
+    ),
+    target
+  )
+  assert.equal(
+    resolveChatNavigationTarget(
+      new Map(),
+      { conversationId: "empty-support" },
+      aliases
+    ),
+    undefined
+  )
+})
+
 function browser(t, path) {
   const window = new EventTarget()
   window.location = new URL(path, "https://dealhay.example")

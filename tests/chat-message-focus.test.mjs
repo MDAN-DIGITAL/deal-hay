@@ -37,7 +37,7 @@ const widgets = moduleUrl(`
   export const Item='item',ItemContent='item-content',ItemDescription='item-description',ItemMedia='item-media',ItemTitle='item-title'
   export const Message='message-node',MessageAvatar='message-avatar',MessageContent='message-content',MessageGroup='message-group'
   export const ChatImageAttachment='attachment',DownloadAttachment='download',ChatReplyPreview='reply'
-  export const CheckCheckIcon='read',CheckIcon='sent',LoaderCircleIcon='loading',ReplyIcon='reply-icon'
+  export const CheckCheckIcon='read',CheckIcon='sent',LoaderCircleIcon='loading',MessageCircleIcon='chat-icon',ReplyIcon='reply-icon'
   export const toast={info:()=>{},error:()=>{}}
   export const cn=(...values)=>values.filter(Boolean).join(' ')
   export const formatCurrency=String,formatDate=String,formatShortDate=String

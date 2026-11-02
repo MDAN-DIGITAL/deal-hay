@@ -33,6 +33,9 @@ const widgets = moduleUrl(`
   export const EmptyState='empty',Badge='badge',Button='button',Card='card',CardContent='card-content',UserAvatar='avatar'
   export const ChatAttachmentProvider='attachments',ChatComposer='composer',ChatConversationList='conversation-list',ChatMessageList='messages'
   export const ArrowLeftIcon='arrow',HouseIcon='house',LoaderCircleIcon='loading',WifiIcon='wifi',WifiOffIcon='offline'
+  export const CheckCheckIcon='checks',MessageCircleIcon='message-icon',MoreHorizontalIcon='more',RefreshCwIcon='refresh',ShieldCheckIcon='shield'
+  export const NotificationSoundToggle='sound-toggle',ThemeToggle='theme-toggle'
+  export const DropdownMenu='dropdown',DropdownMenuContent='dropdown-content',DropdownMenuItem='dropdown-item',DropdownMenuTrigger='dropdown-trigger'
   export const buttonVariants=()=>''
   export const toast={error:()=>{},success:()=>{}}
   export const heartbeatPresenceAction=async(id)=>globalThis.__chatPanel.heartbeats.push(id)
@@ -58,10 +61,13 @@ for (const name of [
   "lucide-react",
   "sonner",
   "@/components/layout/empty-state",
+  "@/components/layout/notification-sound-toggle",
+  "@/components/layout/theme-toggle",
   "@/components/realtime-provider",
   "@/components/ui/badge",
   "@/components/ui/button",
   "@/components/ui/card",
+  "@/components/ui/dropdown-menu",
   "@/components/user-avatar",
   "@/modules/chats/actions",
   "@/modules/chats/components/chat-image-attachment",
@@ -323,8 +329,8 @@ test("full-page chat fits the visible mobile keyboard area and removes viewport 
   assert.equal(page.frame.style.top, "48px")
   page.desktop.matches = true
   page.desktop.dispatchEvent(new Event("change"))
-  assert.equal(page.frame.style.top, "96px")
-  assert.equal(page.frame.style.height, "272px")
+  assert.equal(page.frame.style.top, "48px")
+  assert.equal(page.frame.style.height, "320px")
   page.unmount()
   assert.equal(page.rootClasses.contains("overflow-hidden"), false)
   assert.equal(page.bodyClasses.contains("overflow-hidden"), false)

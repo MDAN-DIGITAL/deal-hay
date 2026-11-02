@@ -339,6 +339,8 @@ export function reconcileChatState(
   return {
     ...state,
     admins: snapshot.admins ?? state.admins,
+    conversationAliases:
+      snapshot.conversationAliases ?? state.conversationAliases,
     conversations,
     conversationCache: cache,
     selectedConversation: selectedId

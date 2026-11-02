@@ -322,3 +322,39 @@ test("the chat page preloads all conversations in one snapshot request", async (
   assert.deepEqual(result.selectedConversation, selected)
   assert.deepEqual(result.admins, [{ id: "admin", name: "Support" }])
 })
+
+test("an old generated support link selects preloaded legacy history through its alias", async (t) => {
+  await sessions.getWssSession()
+  const selected = {
+    id: "original-room",
+    slug: "original-admin-chat",
+    counterpart: { id: "admin" },
+    messages: [{ id: "kept-history" }],
+    messages_pagination: { has_more: false, next_cursor: null },
+  }
+  const aliases = [
+    {
+      id: "empty-room",
+      slug: "empty-generated-room",
+      target_id: selected.id,
+      target_slug: selected.slug,
+    },
+  ]
+  let calls = 0
+  t.mock.method(globalThis, "fetch", async () => {
+    calls++
+    return Response.json({
+      conversations: [selected],
+      conversationSnapshots: [selected],
+      conversationAliases: aliases,
+      selectedConversation: null,
+    })
+  })
+  const result = await queries.getChats("empty-generated-room")
+  assert.equal(calls, 1)
+  assert.equal(result.selectedConversation.id, selected.id)
+  assert.deepEqual(result.selectedConversation.messages, [
+    { id: "kept-history" },
+  ])
+  assert.deepEqual(result.conversationAliases, aliases)
+})

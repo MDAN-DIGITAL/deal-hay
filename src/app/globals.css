@@ -130,3 +130,46 @@
     @apply bg-primary/20 text-foreground;
   }
 }
+
+/* Chat has a quiet neutral canvas; the storefront keeps its warm brand palette. */
+.chat-surface {
+    --background: #f7f8fa;
+    --foreground: #20232b;
+    --card: #ffffff;
+    --card-foreground: #20232b;
+    --popover: #ffffff;
+    --popover-foreground: #20232b;
+    --primary: #c84b1f;
+    --primary-foreground: #ffffff;
+    --secondary: #f0f2f5;
+    --secondary-foreground: #333842;
+    --muted: #f0f2f5;
+    --muted-foreground: #687181;
+    --accent: #f8ede7;
+    --accent-foreground: #a83e1d;
+    --border: #e7e9ed;
+    --input: #e0e4e9;
+    --ring: #c84b1f;
+    --chat-outgoing: #c84b1f;
+}
+
+.dark .chat-surface {
+    --background: #15171c;
+    --foreground: #eef0f4;
+    --card: #1c1f26;
+    --card-foreground: #eef0f4;
+    --popover: #23262e;
+    --popover-foreground: #eef0f4;
+    --primary: #f08c65;
+    --primary-foreground: #1a1b20;
+    --secondary: #272b34;
+    --secondary-foreground: #e4e7ee;
+    --muted: #252932;
+    --muted-foreground: #9da5b4;
+    --accent: #3a2a26;
+    --accent-foreground: #f8ad8f;
+    --border: #2b3039;
+    --input: #343b47;
+    --ring: #f08c65;
+    --chat-outgoing: #c84b1f;
+}

@@ -137,7 +137,7 @@ function FloatingChatWidget({
       <Dialog.Portal keepMounted>
         <Dialog.Popup
           ref={popup}
-          className="fixed top-[var(--chat-viewport-top,0px)] left-0 z-50 flex h-[var(--chat-viewport-height,100dvh)] w-full min-w-0 flex-col overflow-hidden bg-background shadow-2xl outline-none sm:top-auto sm:right-6 sm:bottom-24 sm:left-auto sm:h-[min(720px,calc(100dvh-7.5rem))] sm:w-[420px] sm:max-w-[calc(100vw-3rem)] sm:rounded-2xl sm:border"
+          className="chat-surface fixed top-[var(--chat-viewport-top,0px)] left-0 z-50 flex h-[var(--chat-viewport-height,100dvh)] w-full min-w-0 flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none sm:top-auto sm:right-6 sm:bottom-24 sm:left-auto sm:h-[min(720px,calc(100dvh-7.5rem))] sm:w-[420px] sm:max-w-[calc(100vw-3rem)] sm:rounded-2xl sm:border"
         >
           <div className="flex shrink-0 items-center gap-3 border-b bg-primary/5 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">

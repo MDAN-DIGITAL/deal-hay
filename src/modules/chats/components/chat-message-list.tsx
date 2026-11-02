@@ -13,11 +13,11 @@ import {
   CheckCheckIcon,
   CheckIcon,
   LoaderCircleIcon,
+  MessageCircleIcon,
   ReplyIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 
-import { EmptyState } from "@/components/layout/empty-state"
 import { MediaImage } from "@/components/media-image"
 import { Button } from "@/components/ui/button"
 import {
@@ -296,11 +296,11 @@ export function ChatMessageList({
       ref={containerRef}
       className="min-h-0 flex-1 overflow-hidden bg-background"
     >
-      <ScrollArea className="h-full min-h-0">
-        <MessageGroup className="mx-auto w-full max-w-5xl gap-0 px-3 py-4 sm:px-6">
+      <ScrollArea className="h-full min-h-0 [&_[data-slot=scroll-area-viewport]]:flex [&_[data-slot=scroll-area-viewport]]:flex-col [&_[data-slot=scroll-area-viewport]>div]:flex [&_[data-slot=scroll-area-viewport]>div]:flex-1 [&_[data-slot=scroll-area-viewport]>div]:flex-col">
+        <MessageGroup className="mx-auto w-full max-w-[920px] flex-1 justify-end gap-0 px-3 py-4 sm:px-6 sm:py-5">
           {startIndex > 0 || pagination.has_more ? (
             <Button
-              className="self-center"
+              className="mb-3 self-center rounded-full border-border/70 px-4 text-xs text-muted-foreground"
               disabled={isLoadingOlder}
               size="sm"
               variant="outline"
@@ -314,10 +314,20 @@ export function ChatMessageList({
           ) : null}
 
           {messages.length === 0 ? (
-            <EmptyState
-              title="Chưa có tin nhắn"
-              description="Hãy gửi lời chào để bắt đầu cuộc trò chuyện."
-            />
+            <div className="mx-auto flex min-h-64 max-w-xs flex-col items-center justify-center gap-4 px-4 py-10 text-center">
+              <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <MessageCircleIcon className="size-7" />
+              </span>
+              <div className="space-y-1.5">
+                <h3 className="text-base font-semibold">
+                  Bắt đầu cuộc trò chuyện
+                </h3>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Gửi lời chào, đặt câu hỏi hoặc chia sẻ ảnh để trao đổi dễ dàng
+                  hơn.
+                </p>
+              </div>
+            </div>
           ) : null}
 
           {visibleMessages.map((message, index) => {
@@ -343,12 +353,20 @@ export function ChatMessageList({
             return (
               <Fragment key={message.id}>
                 {showDate ? (
-                  <div className="flex justify-center pt-2 pb-3">
-                    <span className="rounded-full bg-muted/60 px-3 py-1 text-[11px] text-muted-foreground">
+                  <div className="flex items-center gap-3 px-2 py-3 first:pt-0">
+                    <span
+                      aria-hidden="true"
+                      className="h-px flex-1 bg-border/60"
+                    />
+                    <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
                       {day === formatShortDate(new Date().toISOString())
                         ? "Hôm nay"
                         : day}
                     </span>
+                    <span
+                      aria-hidden="true"
+                      className="h-px flex-1 bg-border/60"
+                    />
                   </div>
                 ) : null}
                 <Message
@@ -359,8 +377,8 @@ export function ChatMessageList({
                   }}
                   align={fromCurrentUser ? "end" : "start"}
                   className={cn(
-                    "items-end gap-2 rounded-xl text-base transition-colors outline-none",
-                    continuesPrevious ? "mt-1" : "mt-3",
+                    "items-end gap-2 rounded-xl text-base transition-colors outline-none sm:text-[15px]",
+                    continuesPrevious ? "mt-1" : "mt-2.5",
                     highlightedMessageId === message.id &&
                       "bg-primary/10 ring-2 ring-primary/30"
                   )}
@@ -388,7 +406,7 @@ export function ChatMessageList({
                   ) : null}
                   <MessageContent
                     className={cn(
-                      "w-fit max-w-[calc(100%-2.25rem)] gap-1 sm:max-w-[75%]",
+                      "w-fit max-w-[85%] gap-1 sm:max-w-[78%]",
                       fromCurrentUser ? "items-end" : "items-start"
                     )}
                   >
@@ -400,10 +418,10 @@ export function ChatMessageList({
                     >
                       <div
                         className={cn(
-                          "max-w-full min-w-0 overflow-hidden rounded-2xl",
+                          "max-w-full min-w-0 overflow-hidden rounded-2xl border shadow-xs",
                           fromCurrentUser
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted/70 text-foreground",
+                            ? "border-transparent bg-[var(--chat-outgoing)] text-white"
+                            : "border-border/70 bg-card text-foreground",
                           continuesPrevious &&
                             (fromCurrentUser
                               ? "rounded-tr-md"
@@ -467,7 +485,7 @@ export function ChatMessageList({
                           </div>
                         ) : null}
                         {showBody ? (
-                          <div className="px-3.5 py-2 text-base leading-relaxed wrap-break-word whitespace-pre-wrap">
+                          <div className="px-3.5 py-2 text-base leading-relaxed wrap-break-word whitespace-pre-wrap sm:text-[15px]">
                             {message.body}
                           </div>
                         ) : null}
@@ -501,7 +519,7 @@ export function ChatMessageList({
                       </Button>
                     </div>
                     {!continuesNext ? (
-                      <div className="flex items-center gap-1 px-1 pb-1 text-[10px] leading-4 text-muted-foreground">
+                      <div className="flex items-center gap-1 px-1 pb-0.5 text-[11px] leading-4 text-muted-foreground">
                         <time
                           dateTime={message.created_at ?? undefined}
                           title={
@@ -518,7 +536,7 @@ export function ChatMessageList({
                           message.read_at ? (
                             <CheckCheckIcon
                               aria-label="Đã xem"
-                              className="size-3.5 text-muted-foreground"
+                              className="size-3.5 text-primary"
                             />
                           ) : (
                             <CheckIcon

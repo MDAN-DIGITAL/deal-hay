@@ -2,9 +2,11 @@ import type {
   ConversationSummary,
   SelectedConversation,
   ChatMessage,
+  ConversationAlias,
 } from "@/types/chat"
 
 export type ChatsResponse = {
+  conversationAliases?: ConversationAlias[]
   conversations: ConversationSummary[]
   selectedConversation: SelectedConversation | null
   conversationSnapshots?: SelectedConversation[]

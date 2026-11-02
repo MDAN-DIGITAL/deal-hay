@@ -5,8 +5,13 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import type { ConnectionStatus } from "@/lib/realtime-client"
 import {
   ArrowLeftIcon,
+  CheckCheckIcon,
   HouseIcon,
   LoaderCircleIcon,
+  MessageCircleIcon,
+  MoreHorizontalIcon,
+  RefreshCwIcon,
+  ShieldCheckIcon,
   WifiIcon,
   WifiOffIcon,
 } from "lucide-react"
@@ -16,11 +21,18 @@ import type {
   ChatHistoryResponse,
   ChatMessagesReadEvent,
 } from "@/api/chats/types"
-import { EmptyState } from "@/components/layout/empty-state"
+import { NotificationSoundToggle } from "@/components/layout/notification-sound-toggle"
+import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { useRealtime } from "@/components/realtime-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { UserAvatar } from "@/components/user-avatar"
 import {
   heartbeatPresenceAction,
@@ -59,20 +71,29 @@ import type {
 function RealtimeStatusBadge({ status }: { status: ConnectionStatus }) {
   if (status === "connected") {
     return (
-      <Badge variant="secondary">
-        <WifiIcon /> Trực tiếp
+      <Badge
+        variant="outline"
+        className="gap-1.5 border-0 bg-transparent px-0 text-[11px] font-normal text-muted-foreground"
+      >
+        <span className="size-1.5 rounded-full bg-emerald-500" /> Đã kết nối
       </Badge>
     )
   }
   if (status === "connecting" || status === "reconnecting") {
     return (
-      <Badge variant="outline">
+      <Badge
+        variant="outline"
+        className="border-0 px-0 text-[11px] font-normal"
+      >
         <LoaderCircleIcon className="animate-spin" /> Đang kết nối
       </Badge>
     )
   }
   return (
-    <Badge variant="destructive">
+    <Badge
+      variant="destructive"
+      className="border-0 px-0 text-[11px] font-normal"
+    >
       <WifiOffIcon /> Mất kết nối
     </Badge>
   )
@@ -83,6 +104,7 @@ export function ChatsPageClient({
   selectedConversation,
   currentUserId,
   conversationSnapshots = [],
+  conversationAliases = [],
   admins = [],
   embedded = false,
   active = true,
@@ -92,6 +114,7 @@ export function ChatsPageClient({
   selectedConversation: SelectedConversation | null
   currentUserId: string
   conversationSnapshots?: SelectedConversation[]
+  conversationAliases?: import("@/types/chat").ConversationAlias[]
   admins?: { id: string; name: string }[]
   embedded?: boolean
   active?: boolean
@@ -104,6 +127,7 @@ export function ChatsPageClient({
         conversations,
         selectedConversation,
         conversationSnapshots,
+        conversationAliases,
         admins,
       },
       currentUserId
@@ -149,7 +173,8 @@ export function ChatsPageClient({
     if (!navigation.target) return
     const conversation = resolveChatNavigationTarget(
       state.conversationCache,
-      navigation.target
+      navigation.target,
+      state.conversationAliases
     )
     if (
       conversation?.id === state.selectedConversation?.id &&
@@ -170,6 +195,7 @@ export function ChatsPageClient({
     navigation,
     openedConversationSlugs,
     state.conversationCache,
+    state.conversationAliases,
     state.selectedConversation?.id,
   ])
 
@@ -254,7 +280,8 @@ export function ChatsPageClient({
     if (!target?.conversationId && !target?.conversationSlug) return
     const conversation = resolveChatNavigationTarget(
       state.conversationCache,
-      target
+      target,
+      state.conversationAliases
     )
     if (
       conversation &&
@@ -265,7 +292,12 @@ export function ChatsPageClient({
     if (requestedNavigation.current === navigation.requestId) return
     requestedNavigation.current = navigation.requestId
     synchronize()
-  }, [navigation, state.conversationCache, synchronize])
+  }, [
+    navigation,
+    state.conversationCache,
+    state.conversationAliases,
+    synchronize,
+  ])
 
   const markAsRead = useCallback(
     (showConfirmation = false, socketId?: string) => {
@@ -525,20 +557,17 @@ export function ChatsPageClient({
     const frame = frameRef.current
     const viewport = window.visualViewport
     if (!frame || !viewport) return
-    const desktop = window.matchMedia("(min-width: 1024px)")
     const resize = () => {
-      const top = Math.max(desktop.matches ? 96 : 0, viewport.offsetTop)
+      const top = Math.max(0, viewport.offsetTop)
       frame.style.top = `${top}px`
       frame.style.height = `${Math.max(0, viewport.height + viewport.offsetTop - top)}px`
     }
     resize()
     viewport.addEventListener("resize", resize)
     viewport.addEventListener("scroll", resize)
-    desktop.addEventListener("change", resize)
     return () => {
       viewport.removeEventListener("resize", resize)
       viewport.removeEventListener("scroll", resize)
-      desktop.removeEventListener("change", resize)
       frame.style.removeProperty("top")
       frame.style.removeProperty("height")
     }
@@ -551,65 +580,47 @@ export function ChatsPageClient({
         data-chat-layout={embedded ? "embedded" : "page"}
         className={
           embedded
-            ? "flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background"
-            : "fixed inset-x-0 top-0 z-50 h-dvh overflow-hidden bg-background lg:top-24 lg:z-30 lg:h-[calc(100dvh-6rem)]"
+            ? "chat-surface flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background text-foreground"
+            : "chat-surface fixed inset-x-0 top-0 z-40 h-dvh overflow-hidden bg-background text-foreground"
         }
       >
-        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-col">
-          {!embedded ? (
+        <div className="flex h-full min-h-0 w-full flex-col">
+          <Card className="min-h-0 flex-1 gap-0 overflow-hidden rounded-none border-0 bg-background py-0 shadow-none">
             <div
-              className={
-                activeConversation
-                  ? "hidden shrink-0 items-center justify-between gap-3 border-b px-5 py-3 lg:flex"
-                  : "flex shrink-0 items-center justify-between gap-3 border-b px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 lg:px-5"
-              }
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <Link
-                  href="/"
-                  aria-label="Về trang chủ"
-                  className={buttonVariants({ size: "icon", variant: "ghost" })}
-                >
-                  <HouseIcon />
-                </Link>
-                <h1 className="font-heading text-xl font-semibold">Tin nhắn</h1>
-              </div>
-              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                <RealtimeStatusBadge status={status} />
-                {(status === "failed" || status === "disconnected") && (
-                  <Button variant="outline" size="sm" onClick={reconnect}>
-                    Kết nối lại
-                  </Button>
-                )}
-                {status === "connected" && synchronizationFailed && (
-                  <Button variant="outline" size="sm" onClick={synchronize}>
-                    Đồng bộ lại
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : null}
-          <Card className="min-h-0 flex-1 gap-0 overflow-hidden rounded-none border-0 py-0 shadow-none">
-            <div
-              className={`grid h-full min-h-0 overflow-hidden ${embedded ? "" : "lg:grid-cols-[360px_minmax(0,1fr)]"}`}
+              className={`grid h-full min-h-0 overflow-hidden ${embedded ? "" : "md:grid-cols-[304px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]"}`}
             >
               <aside
-                className={`${activeConversation ? (embedded ? "hidden" : "hidden lg:flex") : "flex"} min-h-0 flex-col overflow-hidden ${embedded ? "" : "lg:border-r"}`}
+                className={`${activeConversation ? (embedded ? "hidden" : "hidden md:flex") : "flex"} min-h-0 flex-col overflow-hidden bg-card ${embedded ? "" : "md:border-r"}`}
               >
                 <ChatConversationList
                   conversations={conversationItems}
                   selectedConversationId={activeConversation?.id}
                   onSelect={selectConversation}
+                  embedded={embedded}
                 />
+                {!embedded ? (
+                  <div className="flex shrink-0 items-center justify-between gap-2 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                    <Link
+                      href="/"
+                      className="flex items-center gap-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <HouseIcon className="size-4" /> Về Deal Hay
+                    </Link>
+                    <div className="flex items-center gap-1">
+                      <ThemeToggle />
+                      <NotificationSoundToggle />
+                    </div>
+                  </div>
+                ) : null}
               </aside>
 
               <section
-                className={`${activeConversation ? "flex" : embedded ? "hidden" : "hidden lg:flex"} min-h-0 min-w-0 flex-col overflow-hidden`}
+                className={`${activeConversation ? "flex" : embedded ? "hidden" : "hidden md:flex"} min-h-0 min-w-0 flex-col overflow-hidden`}
               >
                 {activeConversation ? (
                   <>
                     <div
-                      className={`flex shrink-0 items-center justify-between gap-3 border-b px-3 pb-3 ${embedded ? "pt-3" : "pt-[max(0.75rem,env(safe-area-inset-top))] lg:pt-3"} sm:px-4`}
+                      className={`flex shrink-0 items-center justify-between gap-3 border-b bg-card px-3 pb-3 ${embedded ? "pt-3" : "pt-[max(0.75rem,env(safe-area-inset-top))] md:pt-3"} md:px-6`}
                     >
                       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                         <Link
@@ -619,8 +630,10 @@ export function ChatsPageClient({
                             selectConversation()
                           }}
                           className={buttonVariants({
-                            className: embedded ? "" : "lg:hidden",
-                            size: "icon",
+                            className: embedded
+                              ? "rounded-xl"
+                              : "rounded-xl md:hidden",
+                            size: "icon-lg",
                             variant: "ghost",
                           })}
                         >
@@ -633,14 +646,27 @@ export function ChatsPageClient({
                           src={activeConversation.counterpart.avatar_url}
                         />
                         <div className="min-w-0">
-                          <p className="truncate text-base font-semibold">
-                            {activeConversation.counterpart.name}
+                          <p className="flex min-w-0 items-center gap-1.5 text-[15px] font-semibold">
+                            <span className="truncate">
+                              {activeConversation.counterpart.name}
+                            </span>
+                            {activeConversation.is_support ? (
+                              <ShieldCheckIcon
+                                className="size-3.5 shrink-0 text-primary"
+                                aria-label="Hỗ trợ chính thức"
+                              />
+                            ) : null}
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
-                            {activeConversation.counterpart.is_online
-                              ? "Đang hoạt động"
-                              : "Không trực tuyến"}
-                            {activeConversation.participants?.some(
+                            {activeConversation.is_support
+                              ? activeConversation.counterpart.is_online
+                                ? "Đội ngũ hỗ trợ đang trực tuyến"
+                                : "Đội ngũ hỗ trợ khách hàng"
+                              : activeConversation.counterpart.is_online
+                                ? "Đang hoạt động"
+                                : "Không trực tuyến"}
+                            {!activeConversation.is_support &&
+                            activeConversation.participants?.some(
                               (person) => person.is_admin
                             )
                               ? ` · Admin: ${activeConversation.participants
@@ -651,7 +677,68 @@ export function ChatsPageClient({
                           </p>
                         </div>
                       </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <div className="hidden sm:block">
+                          <RealtimeStatusBadge status={status} />
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            render={
+                              <Button
+                                aria-label="Tùy chọn cuộc trò chuyện"
+                                title="Tùy chọn cuộc trò chuyện"
+                                size="icon-lg"
+                                variant="ghost"
+                                className="rounded-xl"
+                              />
+                            }
+                          >
+                            <MoreHorizontalIcon />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="chat-surface min-w-56"
+                          >
+                            <DropdownMenuItem
+                              onClick={() => markAsRead(true, socketId)}
+                            >
+                              <CheckCheckIcon /> Đánh dấu đã đọc
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={synchronize}>
+                              <RefreshCwIcon /> Đồng bộ tin nhắn
+                            </DropdownMenuItem>
+                            {status === "failed" ||
+                            status === "disconnected" ? (
+                              <DropdownMenuItem onClick={reconnect}>
+                                <WifiIcon /> Kết nối lại
+                              </DropdownMenuItem>
+                            ) : null}
+                            <DropdownMenuItem render={<Link href="/" />}>
+                              <HouseIcon /> Về trang chủ
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
+                    {status !== "connected" || synchronizationFailed ? (
+                      <div
+                        role="status"
+                        className="flex shrink-0 items-center justify-center gap-3 border-b bg-card/70 px-4 py-2 text-xs text-muted-foreground"
+                      >
+                        <RealtimeStatusBadge status={status} />
+                        <button
+                          type="button"
+                          className="font-medium text-primary hover:underline"
+                          onClick={
+                            status === "connected" ? synchronize : reconnect
+                          }
+                        >
+                          {status === "connected"
+                            ? "Đồng bộ lại"
+                            : "Thử kết nối lại"}
+                        </button>
+                      </div>
+                    ) : null}
 
                     <ChatMessageList
                       key={`messages-${activeConversation.id}`}
@@ -676,11 +763,20 @@ export function ChatsPageClient({
                     />
                   </>
                 ) : (
-                  <CardContent className="flex h-full items-center justify-center p-6">
-                    <EmptyState
-                      title="Chọn một cuộc trò chuyện"
-                      description="Nội dung trao đổi với người bán hoặc khách hàng sẽ hiển thị tại đây."
-                    />
+                  <CardContent className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+                    <span className="flex size-20 items-center justify-center rounded-3xl border bg-card shadow-sm">
+                      <MessageCircleIcon className="size-9 text-primary" />
+                    </span>
+                    <div className="max-w-72 space-y-2">
+                      <h2 className="text-xl font-semibold tracking-tight">
+                        Cuộc trò chuyện của bạn
+                      </h2>
+                      <p className="text-sm leading-6 text-muted-foreground">
+                        Chọn một cuộc trò chuyện để nhắn tin với cửa hàng hoặc
+                        nhận hỗ trợ từ Deal Hay.
+                      </p>
+                    </div>
+                    <RealtimeStatusBadge status={status} />
                   </CardContent>
                 )}
                 {[...openedConversationSlugs].map((slug) => {
