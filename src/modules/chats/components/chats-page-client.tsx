@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import type { ConnectionStatus } from "@/lib/realtime-client"
 import {
   ArrowLeftIcon,
+  HouseIcon,
   LoaderCircleIcon,
   WifiIcon,
   WifiOffIcon,
@@ -16,7 +17,6 @@ import type {
   ChatMessagesReadEvent,
 } from "@/api/chats/types"
 import { EmptyState } from "@/components/layout/empty-state"
-import { PageHeader } from "@/components/layout/page-header"
 import { useRealtime } from "@/components/realtime-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -84,13 +84,20 @@ export function ChatsPageClient({
   currentUserId,
   conversationSnapshots = [],
   admins = [],
+  embedded = false,
+  active = true,
+  onConversationChange,
 }: {
   conversations: ConversationSummary[]
   selectedConversation: SelectedConversation | null
   currentUserId: string
   conversationSnapshots?: SelectedConversation[]
   admins?: { id: string; name: string }[]
+  embedded?: boolean
+  active?: boolean
+  onConversationChange?: (slug?: string) => void
 }) {
+  const frameRef = useRef<HTMLDivElement>(null)
   const [state, setState] = useState(() =>
     createChatState(
       {
@@ -121,6 +128,7 @@ export function ChatsPageClient({
     requestId: number
   }>({ target: null, requestId: 0 })
   useEffect(() => {
+    if (embedded) return
     const restoreSelection = () => {
       const target = parseChatNavigationTarget(
         window.location.pathname,
@@ -135,7 +143,7 @@ export function ChatsPageClient({
       window.removeEventListener("popstate", restoreSelection)
       window.removeEventListener(CHAT_NAVIGATION_EVENT, restoreSelection)
     }
-  }, [])
+  }, [embedded])
 
   useEffect(() => {
     if (!navigation.target) return
@@ -165,18 +173,25 @@ export function ChatsPageClient({
     state.selectedConversation?.id,
   ])
 
-  const selectConversation = useCallback((slug?: string) => {
-    setState((current) => selectChatConversation(current, slug))
-    if (slug)
-      setOpenedConversationSlugs((current) => new Set([...current, slug]))
-    navigateToChat(
-      slug ? `/chats/${encodeURIComponent(slug)}` : "/chats",
-      () => {}
-    )
-  }, [])
+  const selectConversation = useCallback(
+    (slug?: string) => {
+      setState((current) => selectChatConversation(current, slug))
+      if (slug)
+        setOpenedConversationSlugs((current) => new Set([...current, slug]))
+      if (!embedded)
+        navigateToChat(
+          slug ? `/chats/${encodeURIComponent(slug)}` : "/chats",
+          () => {}
+        )
+    },
+    [embedded]
+  )
 
   const conversationItems = state.conversations
   const activeConversation = state.selectedConversation
+  useEffect(() => {
+    onConversationChange?.(activeConversation?.slug)
+  }, [activeConversation?.slug, onConversationChange])
   const [, startReadTransition] = useTransition()
   const [synchronizationFailed, setSynchronizationFailed] = useState(false)
   const [replyDrafts, setReplyDrafts] = useState<Record<string, ChatReply>>({})
@@ -255,6 +270,7 @@ export function ChatsPageClient({
   const markAsRead = useCallback(
     (showConfirmation = false, socketId?: string) => {
       if (
+        !active ||
         !conversationId ||
         !conversationSlug ||
         reading.current.has(conversationId)
@@ -294,6 +310,7 @@ export function ChatsPageClient({
       })
     },
     [
+      active,
       conversationId,
       conversationSlug,
       currentUserId,
@@ -388,8 +405,8 @@ export function ChatsPageClient({
 
   const { socketId, status, reconnect } = useChatRealtime({
     currentUserId,
-    selectedConversationId: activeConversation?.id,
-    counterpartId: activeConversation?.counterpart.id,
+    selectedConversationId: active ? activeConversation?.id : undefined,
+    counterpartId: active ? activeConversation?.counterpart.id : undefined,
     onMessage: handleIncomingMessage,
     onMessagesRead: handleMessagesRead,
     onPresenceChange: handlePresenceChange,
@@ -455,7 +472,9 @@ export function ChatsPageClient({
   useEffect(() => {
     const pulse = () => {
       if (document.visibilityState === "visible")
-        void heartbeatPresenceAction(activeConversation?.id)
+        void heartbeatPresenceAction(
+          active ? activeConversation?.id : undefined
+        )
     }
     pulse()
     const interval = window.setInterval(pulse, heartbeatIntervalSeconds * 1000)
@@ -464,7 +483,7 @@ export function ChatsPageClient({
       window.clearInterval(interval)
       document.removeEventListener("visibilitychange", pulse)
     }
-  }, [activeConversation?.id, heartbeatIntervalSeconds])
+  }, [active, activeConversation?.id, heartbeatIntervalSeconds])
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -486,6 +505,7 @@ export function ChatsPageClient({
   }, [activeConversation?.unread_count, markAsRead, socketId])
 
   useEffect(() => {
+    if (embedded) return
     const root = document.documentElement
     const body = document.body
     const rootWasLocked = root.classList.contains("overflow-hidden")
@@ -498,41 +518,83 @@ export function ChatsPageClient({
       if (!rootWasLocked) root.classList.remove("overflow-hidden")
       if (!bodyWasLocked) body.classList.remove("overflow-hidden")
     }
-  }, [])
+  }, [embedded])
+
+  useEffect(() => {
+    if (embedded) return
+    const frame = frameRef.current
+    const viewport = window.visualViewport
+    if (!frame || !viewport) return
+    const desktop = window.matchMedia("(min-width: 1024px)")
+    const resize = () => {
+      const top = Math.max(desktop.matches ? 96 : 0, viewport.offsetTop)
+      frame.style.top = `${top}px`
+      frame.style.height = `${Math.max(0, viewport.height + viewport.offsetTop - top)}px`
+    }
+    resize()
+    viewport.addEventListener("resize", resize)
+    viewport.addEventListener("scroll", resize)
+    desktop.addEventListener("change", resize)
+    return () => {
+      viewport.removeEventListener("resize", resize)
+      viewport.removeEventListener("scroll", resize)
+      desktop.removeEventListener("change", resize)
+      frame.style.removeProperty("top")
+      frame.style.removeProperty("height")
+    }
+  }, [embedded])
 
   return (
     <ChatAttachmentProvider messages={state.knownMessages.values()}>
-      <div className="fixed inset-x-0 top-16 bottom-0 z-30 overflow-hidden bg-background lg:top-24">
-        <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col gap-0 px-0 py-0 sm:gap-3 sm:px-4 sm:py-3 lg:gap-6 lg:px-8 lg:py-6">
-          <div
-            className={
-              activeConversation ? "hidden lg:block" : "px-4 py-3 sm:p-0"
-            }
-          >
-            <PageHeader
-              title="Tin nhắn"
-              description="Trao đổi trực tiếp với cửa hàng và nhận phản hồi ngay khi có tin nhắn mới."
-              actions={
-                <div className="flex flex-wrap items-center gap-2">
-                  <RealtimeStatusBadge status={status} />
-                  {(status === "failed" || status === "disconnected") && (
-                    <Button variant="outline" size="sm" onClick={reconnect}>
-                      Kết nối lại
-                    </Button>
-                  )}
-                  {status === "connected" && synchronizationFailed && (
-                    <Button variant="outline" size="sm" onClick={synchronize}>
-                      Đồng bộ lại
-                    </Button>
-                  )}
-                </div>
+      <div
+        ref={frameRef}
+        data-chat-layout={embedded ? "embedded" : "page"}
+        className={
+          embedded
+            ? "flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background"
+            : "fixed inset-x-0 top-0 z-50 h-dvh overflow-hidden bg-background lg:top-24 lg:z-30 lg:h-[calc(100dvh-6rem)]"
+        }
+      >
+        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-col">
+          {!embedded ? (
+            <div
+              className={
+                activeConversation
+                  ? "hidden shrink-0 items-center justify-between gap-3 border-b px-5 py-3 lg:flex"
+                  : "flex shrink-0 items-center justify-between gap-3 border-b px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 lg:px-5"
               }
-            />
-          </div>
-          <Card className="min-h-0 flex-1 gap-0 overflow-hidden rounded-none border-x-0 border-b-0 py-0 sm:rounded-xl sm:border">
-            <div className="grid h-full min-h-0 overflow-hidden lg:grid-cols-[340px_minmax(0,1fr)]">
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <Link
+                  href="/"
+                  aria-label="Về trang chủ"
+                  className={buttonVariants({ size: "icon", variant: "ghost" })}
+                >
+                  <HouseIcon />
+                </Link>
+                <h1 className="font-heading text-xl font-semibold">Tin nhắn</h1>
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                <RealtimeStatusBadge status={status} />
+                {(status === "failed" || status === "disconnected") && (
+                  <Button variant="outline" size="sm" onClick={reconnect}>
+                    Kết nối lại
+                  </Button>
+                )}
+                {status === "connected" && synchronizationFailed && (
+                  <Button variant="outline" size="sm" onClick={synchronize}>
+                    Đồng bộ lại
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : null}
+          <Card className="min-h-0 flex-1 gap-0 overflow-hidden rounded-none border-0 py-0 shadow-none">
+            <div
+              className={`grid h-full min-h-0 overflow-hidden ${embedded ? "" : "lg:grid-cols-[360px_minmax(0,1fr)]"}`}
+            >
               <aside
-                className={`${activeConversation ? "hidden lg:flex" : "flex"} min-h-0 flex-col overflow-hidden border-r`}
+                className={`${activeConversation ? (embedded ? "hidden" : "hidden lg:flex") : "flex"} min-h-0 flex-col overflow-hidden ${embedded ? "" : "lg:border-r"}`}
               >
                 <ChatConversationList
                   conversations={conversationItems}
@@ -542,11 +604,13 @@ export function ChatsPageClient({
               </aside>
 
               <section
-                className={`${activeConversation ? "flex" : "hidden lg:flex"} min-h-0 flex-col overflow-hidden`}
+                className={`${activeConversation ? "flex" : embedded ? "hidden" : "hidden lg:flex"} min-h-0 min-w-0 flex-col overflow-hidden`}
               >
                 {activeConversation ? (
                   <>
-                    <div className="flex shrink-0 items-center justify-between gap-3 border-b px-3 py-3 sm:px-4">
+                    <div
+                      className={`flex shrink-0 items-center justify-between gap-3 border-b px-3 pb-3 ${embedded ? "pt-3" : "pt-[max(0.75rem,env(safe-area-inset-top))] lg:pt-3"} sm:px-4`}
+                    >
                       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                         <Link
                           href="/chats"
@@ -555,8 +619,8 @@ export function ChatsPageClient({
                             selectConversation()
                           }}
                           className={buttonVariants({
-                            className: "lg:hidden",
-                            size: "icon-sm",
+                            className: embedded ? "" : "lg:hidden",
+                            size: "icon",
                             variant: "ghost",
                           })}
                         >
@@ -569,7 +633,7 @@ export function ChatsPageClient({
                           src={activeConversation.counterpart.avatar_url}
                         />
                         <div className="min-w-0">
-                          <p className="truncate font-medium">
+                          <p className="truncate text-base font-semibold">
                             {activeConversation.counterpart.name}
                           </p>
                           <p className="truncate text-xs text-muted-foreground">

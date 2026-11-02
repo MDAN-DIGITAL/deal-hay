@@ -216,6 +216,44 @@ test("a rejected WSS credential is removed without logging out the API account",
   assert.equal(state.token, "account-a")
 })
 
+test("a RAM database restart renews its scoped credential once and retries the chat request", async (t) => {
+  await sessions.getWssSession()
+  state.response = { ...state.response, token: "b".repeat(64) }
+  const credentials = []
+  t.mock.method(globalThis, "fetch", async (_url, options) => {
+    const credential = options.headers.get("Authorization")
+    credentials.push(credential)
+    return credential === `Bearer ${"a".repeat(64)}`
+      ? Response.json({ message: "Session revoked" }, { status: 401 })
+      : Response.json({ conversations: [] })
+  })
+  assert.deepEqual(await wssFetch({ path: "/chats" }), { conversations: [] })
+  assert.deepEqual(credentials, [
+    `Bearer ${"a".repeat(64)}`,
+    `Bearer ${"b".repeat(64)}`,
+  ])
+  assert.equal(state.apiCalls.length, 2)
+  assert.equal((await sessions.cachedWssSession()).token, "b".repeat(64))
+  assert.equal(state.token, "account-a")
+})
+
+test("a repeatedly rejected WSS session stops after one renewal", async (t) => {
+  await sessions.getWssSession()
+  let calls = 0
+  t.mock.method(globalThis, "fetch", async () => {
+    calls++
+    return Response.json({ message: "Session revoked" }, { status: 401 })
+  })
+  await assert.rejects(
+    wssFetch({ path: "/chats" }),
+    (error) => error.status === 401
+  )
+  assert.equal(calls, 2)
+  assert.equal(state.apiCalls.length, 2)
+  assert.equal(await sessions.cachedWssSession(), null)
+  assert.equal(state.token, "account-a")
+})
+
 test("WSS requests forward cancellation so push settings cannot stall logout", async (t) => {
   await sessions.getWssSession()
   const controller = new AbortController()

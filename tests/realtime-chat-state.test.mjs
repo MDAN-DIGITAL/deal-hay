@@ -117,6 +117,47 @@ test("a socket message appears immediately and moves its conversation to the top
   assert.deepEqual(olderState.selectedConversation.messages, [])
 })
 
+test("Deal Hay Admin remains pinned through incoming messages, thread switches and refreshed snapshots", () => {
+  const support = summary({
+    id: "support-room",
+    slug: "deal-hay-admin-support",
+    is_support: true,
+    updated_at: timestamp(0),
+    counterpart: {
+      id: "admin",
+      name: "Deal Hay Admin",
+      avatar_url: null,
+      is_online: false,
+      is_shop: false,
+    },
+  })
+  const data = snapshot({ otherConversations: [support] })
+  data.conversationSnapshots = [
+    {
+      ...support,
+      messages: [],
+      messages_pagination: { has_more: false, next_cursor: null },
+    },
+    data.selectedConversation,
+  ]
+  const initial = createChatState(data, currentUserId)
+  assert.equal(initial.conversations[0].id, support.id)
+  const incoming = receiveChatMessage(
+    initial,
+    message("new-shop-message", 50),
+    currentUserId
+  )
+  assert.equal(incoming.conversations[0].id, support.id)
+  const selected = selectChatConversation(incoming, support.slug)
+  assert.equal(selected.selectedConversation.is_support, true)
+  const refreshed = reconcileChatState(selected, {
+    ...data,
+    conversations: [...incoming.conversations].reverse(),
+  })
+  assert.equal(refreshed.conversations[0].id, support.id)
+  assert.equal(refreshed.selectedConversation.is_support, true)
+})
+
 test("duplicate socket events and an HTTP response do not duplicate a message or its unread count", () => {
   const incoming = message("m1", 1)
   const state = receiveChatMessage(

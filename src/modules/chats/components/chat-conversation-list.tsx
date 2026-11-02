@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
-import { MessageCircleIcon, SearchIcon } from "lucide-react"
+import { MessageCircleIcon, SearchIcon, ShieldCheckIcon } from "lucide-react"
 
 import { EmptyState } from "@/components/layout/empty-state"
 import { Badge } from "@/components/ui/badge"
@@ -32,16 +32,21 @@ export function ChatConversationList({
   onSelect: (slug: string) => void
 }) {
   const [query, setQuery] = useState("")
+  const support = conversations.find((conversation) => conversation.is_support)
   const filteredConversations = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("vi")
-    if (!normalized) return conversations
-
-    return conversations.filter((conversation) =>
-      `${conversation.counterpart.name} ${conversation.last_message ?? ""}`
-        .toLocaleLowerCase("vi")
-        .includes(normalized)
+    return conversations.filter(
+      (conversation) =>
+        !conversation.is_support &&
+        (!normalized ||
+          `${conversation.counterpart.name} ${conversation.last_message ?? ""}`
+            .toLocaleLowerCase("vi")
+            .includes(normalized))
     )
   }, [conversations, query])
+  const visibleConversations = support
+    ? [support, ...filteredConversations]
+    : filteredConversations
 
   return (
     <>
@@ -50,15 +55,16 @@ export function ChatConversationList({
           <MessageCircleIcon className="size-5 text-primary" />
           Cuộc trò chuyện
           <Badge className="ml-auto" variant="secondary">
-            {conversations.length}
+            {conversations.length + (support ? 0 : 1)}
           </Badge>
         </div>
-        <InputGroup>
+        <InputGroup className="h-11">
           <InputGroupAddon>
             <SearchIcon />
           </InputGroupAddon>
           <InputGroupInput
             aria-label="Tìm cuộc trò chuyện"
+            className="h-11 text-base md:text-base"
             placeholder="Tìm theo tên hoặc tin nhắn..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -68,11 +74,30 @@ export function ChatConversationList({
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-1 p-2">
-          {filteredConversations.map((conversation) => {
+          {!support ? (
+            <Item className="rounded-xl bg-primary/5" aria-disabled="true">
+              <ItemMedia>
+                <UserAvatar name="Deal Hay Admin" size="lg" src={null} />
+              </ItemMedia>
+              <ItemContent className="min-w-0">
+                <ItemTitle className="text-base">Deal Hay Admin</ItemTitle>
+                <ItemDescription className="line-clamp-1">
+                  Bộ phận hỗ trợ chưa sẵn sàng
+                </ItemDescription>
+              </ItemContent>
+              <ShieldCheckIcon
+                aria-label="Hỗ trợ chính thức"
+                className="size-5 shrink-0 text-primary"
+              />
+            </Item>
+          ) : null}
+          {visibleConversations.map((conversation) => {
             const selected = selectedConversationId === conversation.id
+            const isSupport = conversation.is_support
             return (
               <Item
                 key={conversation.id}
+                className={isSupport ? "rounded-xl bg-primary/5" : "rounded-xl"}
                 render={
                   <Link
                     href={`/chats/${conversation.slug}`}
@@ -113,10 +138,23 @@ export function ChatConversationList({
                     />
                   </div>
                 </ItemMedia>
-                <ItemContent>
-                  <ItemTitle>{conversation.counterpart.name}</ItemTitle>
+                <ItemContent className="min-w-0">
+                  <ItemTitle className="text-base">
+                    {isSupport
+                      ? "Deal Hay Admin"
+                      : conversation.counterpart.name}
+                    {isSupport ? (
+                      <ShieldCheckIcon
+                        aria-label="Hỗ trợ chính thức"
+                        className="size-4 shrink-0 text-primary"
+                      />
+                    ) : null}
+                  </ItemTitle>
                   <ItemDescription className="line-clamp-1">
-                    {conversation.last_message ?? "Bắt đầu cuộc trò chuyện"}
+                    {conversation.last_message ??
+                      (isSupport
+                        ? "Nhắn tin để được hỗ trợ"
+                        : "Bắt đầu cuộc trò chuyện")}
                   </ItemDescription>
                 </ItemContent>
                 {conversation.unread_count > 0 ? (
@@ -132,7 +170,7 @@ export function ChatConversationList({
                 title={
                   query
                     ? "Không tìm thấy cuộc trò chuyện"
-                    : "Chưa có cuộc trò chuyện"
+                    : "Chưa có cuộc trò chuyện khác"
                 }
                 description={
                   query

@@ -55,6 +55,7 @@ export type ChatMessage = {
 export type ConversationSummary = {
   id: string
   slug: string
+  is_support?: boolean
   counterpart: {
     id: string
     name: string

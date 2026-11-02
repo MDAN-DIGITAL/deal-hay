@@ -17,6 +17,13 @@ export type ChatState = ChatsResponse & {
   readReceipts: ReadonlyMap<string, ChatMessagesReadEvent>
 }
 
+function compareConversations(a: ConversationSummary, b: ConversationSummary) {
+  return (
+    Number(!!b.is_support) - Number(!!a.is_support) ||
+    (b.updated_at ?? "").localeCompare(a.updated_at ?? "")
+  )
+}
+
 export function createChatState(
   data: ChatsResponse,
   viewerId?: string
@@ -32,6 +39,7 @@ export function createChatState(
   const messages = [...snapshots.values()].flatMap(({ messages }) => messages)
   return {
     ...data,
+    conversations: [...data.conversations].sort(compareConversations),
     viewerId,
     conversationCache: snapshots,
     messageIds: new Set(messages.map(({ id }) => id)),
@@ -143,7 +151,7 @@ export function receiveChatMessage(
   }
   const conversations = state.conversations
     .map(update)
-    .sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""))
+    .sort(compareConversations)
   const selected = state.selectedConversation
   const cache = new Map(state.conversationCache)
   const cached = cache.get(message.conversation_id)
@@ -265,9 +273,7 @@ export function reconcileChatState(
   })
   const fullSnapshot = Array.isArray(snapshot.conversationSnapshots)
   if (!fullSnapshot) conversations.push(...current.values())
-  conversations.sort((a, b) =>
-    (b.updated_at ?? "").localeCompare(a.updated_at ?? "")
-  )
+  conversations.sort(compareConversations)
   const previous = state.selectedConversation
   const snapshots = new Map(
     (snapshot.conversationSnapshots ?? []).map((conversation) => [

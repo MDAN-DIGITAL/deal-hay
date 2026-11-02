@@ -2,14 +2,21 @@ import { ApiError } from "@/api/client"
 import { clearWssSession, getWssSession } from "@/lib/wss-session"
 import type { ApiRequestOptions } from "@/api/client"
 
-export async function wssFetch<T>({
-  path,
-  method = "GET",
-  body,
-  headers,
-  searchParams,
-  signal,
-}: ApiRequestOptions): Promise<T> {
+export function wssFetch<T>(options: ApiRequestOptions): Promise<T> {
+  return requestWss<T>(options, true)
+}
+
+async function requestWss<T>(
+  {
+    path,
+    method = "GET",
+    body,
+    headers,
+    searchParams,
+    signal,
+  }: ApiRequestOptions,
+  renewSession: boolean
+): Promise<T> {
   if (!path.startsWith("/") || path.startsWith("//") || /[?#\\]/.test(path))
     throw new Error("Invalid WSS request path")
   const session = await getWssSession()
@@ -49,7 +56,17 @@ export async function wssFetch<T>({
   const data =
     response.status === 204 ? {} : await response.json().catch(() => ({}))
   if (!response.ok) {
-    if (response.status === 401) clearWssSession(session.token)
+    if (response.status === 401) {
+      clearWssSession(session.token)
+      if (renewSession && !signal?.aborted) {
+        // A RAM database restart invalidates scoped WSS credentials. Bootstrap
+        // once from the signed-in API account, without logging that account out.
+        return requestWss<T>(
+          { path, method, body, headers, searchParams, signal },
+          false
+        )
+      }
+    }
     throw new ApiError(response.status, {
       ...data,
       message:

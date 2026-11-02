@@ -4,6 +4,7 @@ import { useSession } from "@/components/session-provider"
 import { getRealtimeConfig } from "@/api/chats/queries"
 import { useApiQuery } from "@/hooks/use-api-query"
 import { RealtimeProvider } from "@/components/realtime-provider"
+import { FloatingChat } from "@/modules/chats/components/floating-chat"
 
 export function RealtimeRoot({ children }: { children: React.ReactNode }) {
   const { user, unreadCounts } = useSession()
@@ -19,6 +20,7 @@ export function RealtimeRoot({ children }: { children: React.ReactNode }) {
       initialUnreadCounts={unreadCounts}
     >
       {children}
+      <FloatingChat />
     </RealtimeProvider>
   )
 }

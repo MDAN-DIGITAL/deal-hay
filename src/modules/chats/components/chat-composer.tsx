@@ -221,7 +221,7 @@ export function ChatComposer({
   return (
     <Form {...form}>
       <form
-        className="shrink-0 border-t border-border/60 bg-card px-3 py-3 sm:px-4"
+        className="shrink-0 border-t border-border/60 bg-card px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4"
         noValidate
         onSubmit={onSubmit}
       >
@@ -340,7 +340,7 @@ export function ChatComposer({
                   >
                     <InputGroupButton
                       aria-label="Đính kèm tệp"
-                      className="rounded-full"
+                      className="size-10 rounded-full"
                       disabled={isPending}
                       size="icon-sm"
                       title="Đính kèm tệp"
@@ -355,7 +355,7 @@ export function ChatComposer({
                     <InputGroupButton
                       aria-label="Tag admin"
                       title="Tag admin"
-                      className="rounded-full"
+                      className="size-10 rounded-full"
                       disabled={isPending}
                       size="icon-sm"
                       aria-expanded={showAdminPicker}
@@ -371,7 +371,7 @@ export function ChatComposer({
                   </InputGroupAddon>
                   <InputGroupTextarea
                     aria-label="Nội dung tin nhắn"
-                    className="max-h-32 min-h-10 min-w-0 px-2 py-2.5"
+                    className="max-h-32 min-h-12 min-w-0 px-2 py-3 text-base md:text-base"
                     disabled={isPending}
                     placeholder="Nhắn tin..."
                     rows={1}
@@ -400,7 +400,7 @@ export function ChatComposer({
                   >
                     <InputGroupButton
                       aria-label="Gửi tin nhắn"
-                      className="rounded-full"
+                      className="size-10 rounded-full"
                       disabled={isPending}
                       size="icon-sm"
                       title="Gửi tin nhắn"

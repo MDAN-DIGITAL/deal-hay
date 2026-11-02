@@ -297,7 +297,7 @@ export function ChatMessageList({
       className="min-h-0 flex-1 overflow-hidden bg-background"
     >
       <ScrollArea className="h-full min-h-0">
-        <MessageGroup className="mx-auto w-full max-w-4xl gap-0 px-3 py-4 sm:px-6">
+        <MessageGroup className="mx-auto w-full max-w-5xl gap-0 px-3 py-4 sm:px-6">
           {startIndex > 0 || pagination.has_more ? (
             <Button
               className="self-center"
@@ -359,7 +359,7 @@ export function ChatMessageList({
                   }}
                   align={fromCurrentUser ? "end" : "start"}
                   className={cn(
-                    "items-end gap-2 rounded-xl transition-colors outline-none",
+                    "items-end gap-2 rounded-xl text-base transition-colors outline-none",
                     continuesPrevious ? "mt-1" : "mt-3",
                     highlightedMessageId === message.id &&
                       "bg-primary/10 ring-2 ring-primary/30"
@@ -467,7 +467,7 @@ export function ChatMessageList({
                           </div>
                         ) : null}
                         {showBody ? (
-                          <div className="px-3.5 py-2 text-sm leading-relaxed wrap-break-word whitespace-pre-wrap">
+                          <div className="px-3.5 py-2 text-base leading-relaxed wrap-break-word whitespace-pre-wrap">
                             {message.body}
                           </div>
                         ) : null}

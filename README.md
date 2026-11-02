@@ -30,6 +30,14 @@ API phải cho phép origin frontend trong CORS; WSS phải cho phép cùng orig
 - Ảnh được resize/nén WebP trong browser và upload trực tiếp lên storage bằng URL có thời hạn. WSS cấp phiên upload ảnh/tệp chat và phục vụ attachment bằng credential WSS; file riêng tư hiển thị bằng object URL, thu hồi khi unmount. Các ảnh sản phẩm/avatar/review vẫn dùng API chính.
 - Speedtest đo lần lượt DealHay Backend và DealHay WSS, hiển thị ping/jitter/download/upload riêng cho từng máy chủ. Mỗi máy chủ cấp grant ngay trước lượt đo của mình; với phiên WSS đã lưu, trang chat và diagnostics vẫn mở được khi API lỗi, nhưng không cấp quyền trang nghiệp vụ/quản trị. Browser truyền dữ liệu trực tiếp tới máy chủ được đo; không cần thêm biến Vercel. Một máy chủ lỗi vẫn tiếp tục đo bên còn lại; tối đa khoảng 80 MiB cho hai máy chủ.
 
+## Khung chat và hỗ trợ
+
+Trang `/chats` dùng toàn bộ màn hình trên điện thoại, tự điều chỉnh theo bàn phím và có vùng nhập tin nhắn lớn hơn. Bong bóng ở góc dưới mọi trang mở cùng chức năng chat trong khung nổi; trên điện thoại khung này mở toàn màn hình. Thu nhỏ giữ cuộc trò chuyện, bản nháp và dữ liệu đã tải; tin mới chỉ được đánh dấu đã đọc khi khung đang mở. Nút mở rộng chuyển đến đúng cuộc trò chuyện đang xem.
+
+**Deal Hay Admin** luôn đứng đầu danh sách, kể cả khi tìm kiếm. WSS tạo phòng hỗ trợ riêng với các tài khoản quản trị thật đang hoạt động; nếu chưa đồng bộ được quản trị viên, hàng hỗ trợ hiển thị chưa sẵn sàng. Người chưa đăng nhập có thể mở bong bóng và đăng nhập để bắt đầu.
+
+WSS mặc định dùng SQLite trong RAM (`WSS_SQLITE_PATH=:memory:`). Mỗi lần tiến trình khởi động lại sẽ mất tin chỉ lưu ở WSS, phiên WSS và đăng ký Web Push; frontend xin lại phiên WSS một lần khi credential cũ bị từ chối, nhưng không thể khôi phục lịch sử chưa lưu ở nơi khác. Có thể chọn đường dẫn file khi cần giữ dữ liệu; xem [README WSS](../deal-hay-wss/README.md).
+
 ## Kiểm tra
 
 ```sh
