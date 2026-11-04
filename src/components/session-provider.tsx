@@ -13,7 +13,11 @@ import { getCachedChatSession } from "@/api/chats/session"
 import Loading from "@/components/layout/page-loading"
 import { getAuthPageHref, getSafeAuthRedirect } from "@/lib/auth-redirect"
 import { DATA_CHANGED } from "@/lib/query-cache"
-import { SESSION_CHANGED } from "@/lib/session"
+import {
+  SESSION_CHANGED,
+  getAccessToken,
+  watchStoredSession,
+} from "@/lib/session"
 import type { SessionResponse } from "@/api/auth/types"
 import type { User } from "@/types/auth"
 
@@ -54,17 +58,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     let revision = 0
     const load = () => {
       const request = ++revision
+      const account = getAccessToken()
+      const current = () =>
+        !disposed && request === revision && getAccessToken() === account
       let accountResolved = false
       if (chatPage)
         void getCachedChatSession()
           .catch(() => null)
           .then((fallback) => {
-            if (
-              fallback &&
-              !accountResolved &&
-              !disposed &&
-              request === revision
-            )
+            if (fallback && !accountResolved && current())
               setSession((previous) => ({
                 ...fallback,
                 unreadCounts: {
@@ -79,7 +81,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       void getCurrentSession()
         .then((data) => {
           accountResolved = true
-          if (!disposed && request === revision)
+          if (current())
             setSession({
               ...data,
               loading: false,
@@ -92,7 +94,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           const fallback = chatPage
             ? await getCachedChatSession().catch(() => null)
             : null
-          if (!disposed && request === revision)
+          if (current())
             setSession((previous) =>
               fallback
                 ? {
@@ -121,8 +123,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     load()
     window.addEventListener(SESSION_CHANGED, changeSession)
     window.addEventListener(DATA_CHANGED, load)
+    const stopStoredSession = watchStoredSession()
     return () => {
       disposed = true
+      stopStoredSession()
       window.removeEventListener(SESSION_CHANGED, changeSession)
       window.removeEventListener(DATA_CHANGED, load)
     }

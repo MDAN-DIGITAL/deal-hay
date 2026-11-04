@@ -1,6 +1,7 @@
 import { apiFetch } from "@/api/client"
 import { authRoutes } from "@/api/auth/routes"
 import { revokeWssSession } from "@/lib/wss-session"
+import { getAccessToken } from "@/lib/session"
 import { clearBackgroundNotificationOwner } from "@/modules/realtime/lib/background-notifications"
 import type {
   ForgotPasswordPayload,
@@ -41,7 +42,8 @@ export function resetPassword(
 }
 
 export async function logout(): Promise<LogoutResponse> {
+  const token = getAccessToken()
   await clearBackgroundNotificationOwner().catch(() => {})
-  await revokeWssSession().catch(() => {})
-  return apiFetch({ method: "POST", path: authRoutes.logout })
+  if (getAccessToken() === token) await revokeWssSession(token).catch(() => {})
+  return apiFetch({ method: "POST", path: authRoutes.logout, token })
 }

@@ -160,6 +160,7 @@ function browser(t, path) {
     }
   }
   window.sessionStorage = storage({ dealhay_access_token: "account-a" })
+  window.localStorage = storage()
   window.opens = []
   window.open = (url, target) => {
     const page = {
@@ -210,8 +211,52 @@ test("opening a toast outside chat preserves its account and exact message in a 
     opened.page.sessionStorage.getItem("dealhay_access_token"),
     "account-a"
   )
-  assert.equal(opened.page.sessionStorage.getItem("dealhay_wss_session"), null)
+  assert.equal(opened.page.sessionStorage.getItem("dealhay_wss_session"), "")
   assert.deepEqual(opened.page.destinations, [href])
+})
+
+test("reserved chat tabs retain the shared WSS record for offline API access without putting credentials in URLs", (t) => {
+  const window = browser(t, "/profile")
+  const record = JSON.stringify({
+    owner: "bound-account",
+    session: { token: "a".repeat(64) },
+  })
+  window.localStorage.setItem("dealhay_wss_session", record)
+  window.sessionStorage.setItem("dealhay_wss_session", "old-tab-record")
+  assert.equal(openChatPage("/chats/thread?message=target"), true)
+  const opened = window.opens[0]
+  assert.equal(
+    opened.page.sessionStorage.getItem("dealhay_wss_session"),
+    record
+  )
+  assert.deepEqual(opened.page.destinations, ["/chats/thread?message=target"])
+  assert.equal(opened.page.opener, null)
+})
+
+test("a shared WSS tombstone overrides the old tab's cached credential when reserving chat", (t) => {
+  const window = browser(t, "/profile")
+  window.localStorage.setItem("dealhay_wss_session", "")
+  window.sessionStorage.setItem("dealhay_wss_session", "old-tab-record")
+  assert.equal(openChatPage("/chats/thread"), true)
+  assert.equal(
+    window.opens[0].page.sessionStorage.getItem("dealhay_wss_session"),
+    ""
+  )
+})
+
+test("a restricted-storage browser passes its current WSS credential to the owned blank tab", (t) => {
+  const window = browser(t, "/profile")
+  Object.defineProperty(window, "localStorage", {
+    get() {
+      throw new DOMException("Blocked", "SecurityError")
+    },
+  })
+  window.sessionStorage.setItem("dealhay_wss_session", "current-tab-record")
+  assert.equal(openChatPage("/chats/thread"), true)
+  assert.equal(
+    window.opens[0].page.sessionStorage.getItem("dealhay_wss_session"),
+    "current-tab-record"
+  )
 })
 
 test("chat toast clicks use local history and repeat the focus event for an identical target", (t) => {
@@ -267,8 +312,7 @@ for (const next of [null, "account-b"])
   test(`${next ? "switching accounts" : "logging out"} while creating a chat cannot navigate the reserved tab`, (t) => {
     const window = browser(t, "/shop-manage")
     const reserved = reserveChatPage()
-    if (next) window.sessionStorage.setItem("dealhay_access_token", next)
-    else window.sessionStorage.removeItem("dealhay_access_token")
+    window.localStorage.setItem("dealhay_access_token", next ?? "")
     assert.equal(reserved.navigate("/chats/old-account-thread"), false)
     assert.equal(window.opens[0].page.closed, true)
     assert.deepEqual(window.opens[0].page.destinations, [])

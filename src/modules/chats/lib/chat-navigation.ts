@@ -35,9 +35,23 @@ export function reserveChatPage(): ReservedChatPage | null {
   if (!page) return null
   try {
     // The owned blank document is same-origin. Disconnect its opener before any
-    // app code runs and seed only this tab's account, never a token in the URL.
+    // app code runs. Shared storage handles native/noopener new tabs; this copy
+    // also supports browsers that restrict persistent storage.
     page.opener = null
-    page.sessionStorage.removeItem("dealhay_wss_session")
+    let realtime: string | null = null
+    try {
+      realtime = window.localStorage.getItem("dealhay_wss_session")
+    } catch {
+      // Fall back to the current tab when persistent storage is unavailable.
+    }
+    if (realtime === null)
+      realtime = window.sessionStorage.getItem("dealhay_wss_session")
+    // The destination validates the record's account fingerprint and expiry.
+    // An empty canonical record must override any inherited stale credential.
+    page.sessionStorage.setItem(
+      "dealhay_wss_session",
+      account ? realtime || "" : ""
+    )
     if (account) page.sessionStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, account)
     else page.sessionStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
   } catch {

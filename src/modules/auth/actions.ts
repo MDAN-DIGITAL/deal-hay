@@ -8,6 +8,7 @@ import {
 } from "@/api/auth/mutations"
 import { clearAuthSession, setAuthSession } from "@/lib/auth"
 import { getSafeAuthRedirect } from "@/lib/auth-redirect"
+import { getAccessToken } from "@/lib/session"
 import type { ActionState } from "@/types/forms"
 import {
   forgotPasswordSchema,
@@ -156,11 +157,14 @@ export async function resetPasswordAction(
 }
 
 export async function signOutAction(): Promise<void> {
+  const token = getAccessToken()
   try {
     await logout()
   } catch {
     // Ignore logout failures and clear local auth state anyway.
   }
-  await clearAuthSession()
+  const current = getAccessToken()
+  if (current !== token && current !== null) return
+  await clearAuthSession(token)
   window.location.assign(new URL("/sign-in", window.location.origin).href)
 }

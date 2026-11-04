@@ -44,20 +44,45 @@ async function ownerFingerprint(token: string): Promise<string> {
   ).join("")
 }
 
+function storedRecord(): string | null {
+  try {
+    const shared = window.localStorage.getItem(STORAGE_KEY)
+    // An empty shared record is an explicit revocation. Do not restore an old
+    // tab's credential after logout or another tab renewed its WSS session.
+    if (shared !== null) return shared
+  } catch {
+    // Restricted storage can still support this tab's authenticated session.
+  }
+  try {
+    return window.sessionStorage.getItem(STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+function storeRecord(value: string): void {
+  for (const storage of ["localStorage", "sessionStorage"] as const) {
+    try {
+      window[storage].setItem(STORAGE_KEY, value)
+    } catch {
+      // A blocked storage backend must not invalidate a server-issued session.
+    }
+  }
+}
+
 export function clearWssSession(expectedToken?: string): void {
   if (typeof window === "undefined") return
   if (expectedToken) {
     try {
       if (
-        JSON.parse(window.sessionStorage.getItem(STORAGE_KEY) ?? "null")
-          ?.session?.token !== expectedToken
+        JSON.parse(storedRecord() || "null")?.session?.token !== expectedToken
       )
         return
     } catch {
       return
     }
   }
-  window.sessionStorage.removeItem(STORAGE_KEY)
+  storeRecord("")
 }
 
 /** The cache contains only a scoped WSS credential, bound to the current account session. */
@@ -65,12 +90,20 @@ export async function cachedWssSession(): Promise<WssSession | null> {
   const account = getAccessToken()
   if (!account || typeof window === "undefined") return null
   try {
-    const record = JSON.parse(
-      window.sessionStorage.getItem(STORAGE_KEY) ?? "null"
-    )
+    const raw = storedRecord()
+    const record = JSON.parse(raw || "null")
     const owner = await ownerFingerprint(account)
-    if (getAccessToken() !== account || record?.owner !== owner) return null
-    return validateSession(record.session)
+    if (
+      getAccessToken() !== account ||
+      record?.owner !== owner ||
+      storedRecord() !== raw
+    )
+      return null
+    const session = validateSession(record.session)
+    // Migrate a valid legacy tab credential, and keep a fallback copy for
+    // browsers that restrict persistent storage. Invalid records never migrate.
+    storeRecord(JSON.stringify({ owner, session }))
+    return session
   } catch {
     return null
   }
@@ -95,19 +128,14 @@ export async function getWssSession(force = false): Promise<WssSession> {
       const owner = await ownerFingerprint(account)
       if (getAccessToken() !== account)
         throw new Error("Phiên đăng nhập đã thay đổi.")
-      window.sessionStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ owner, session })
-      )
+      storeRecord(JSON.stringify({ owner, session }))
       return session
     } catch (error) {
       // A temporary API outage does not invalidate a WSS-owned session.
-      if (
-        cached &&
-        getAccessToken() === account &&
-        cached.expires_at * 1000 > Date.now()
-      )
-        return cached
+      if (cached && getAccessToken() === account) {
+        const fallback = await cachedWssSession()
+        if (fallback && getAccessToken() === account) return fallback
+      }
       throw error
     } finally {
       if (pending?.owner === account) pending = undefined
@@ -117,9 +145,12 @@ export async function getWssSession(force = false): Promise<WssSession> {
   return request
 }
 
-export async function revokeWssSession(): Promise<void> {
+export async function revokeWssSession(
+  expectedAccount: string | null = getAccessToken()
+): Promise<void> {
+  if (!expectedAccount || getAccessToken() !== expectedAccount) return
   const session = await cachedWssSession()
-  if (!session) return
+  if (!session || getAccessToken() !== expectedAccount) return
   try {
     await fetch(`${session.url}/auth/logout`, {
       method: "POST",
@@ -129,6 +160,6 @@ export async function revokeWssSession(): Promise<void> {
       signal: AbortSignal.timeout(5000),
     })
   } finally {
-    clearWssSession(session.token)
+    if (getAccessToken() === expectedAccount) clearWssSession(session.token)
   }
 }

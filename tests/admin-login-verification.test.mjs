@@ -62,6 +62,7 @@ const apiUrl = moduleUrl(`
   }
   export function redirect(destination) { throw new Redirect(destination) }
   export function clearAuthSession() { throw new Error("Unexpected logout") }
+  export function getAccessToken() { return null }
   export function forgotPassword() { throw new Error("Unexpected password reset") }
   export function resetPassword() { throw new Error("Unexpected password reset") }
   export function logout() { throw new Error("Unexpected logout") }
@@ -75,6 +76,7 @@ const { signInAction } = await import(
     "@/api/client": apiUrl,
     "@/api/auth/mutations": apiUrl,
     "@/lib/auth": apiUrl,
+    "@/lib/session": apiUrl,
     "@/lib/auth-redirect": redirectUrl,
     "@/modules/auth/schemas/auth": schemaUrl,
   })

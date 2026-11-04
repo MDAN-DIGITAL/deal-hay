@@ -91,7 +91,8 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
       <CardHeader>
         <CardTitle>Đăng nhập</CardTitle>
         <CardDescription>
-          Đăng nhập để quản lý hồ sơ, shop, thông báo và tin nhắn.
+          Đăng nhập để quản lý hồ sơ, shop và tin nhắn. Phiên đăng nhập được ghi
+          nhớ trên trình duyệt này.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

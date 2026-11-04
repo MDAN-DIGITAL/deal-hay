@@ -28,7 +28,9 @@ export function useState(initial){return globalThis.__standaloneSession.componen
 export function useEffect(effect,deps){return globalThis.__standaloneSession.component.useEffect(effect,deps)}
 `)
 const mocked = url(`
-export const state={account:null,fallback:null,cache:null,profile:null,calls:0}
+export const state={account:null,fallback:null,cache:null,profile:null,calls:0,token:'account-a'}
+export function getAccessToken(){return state.token}
+export function watchStoredSession(){return()=>{}}
 export function getCurrentSession(){return state.account}
 export async function getCachedChatSession(){return state.fallback}
 export async function cachedWssSession(){return state.cache}
@@ -133,6 +135,7 @@ test.beforeEach(() => {
   state.cache = null
   state.profile = null
   state.calls = 0
+  state.token = "account-a"
 })
 test("chat renders a WSS-verified identity while the API request remains unavailable", async (t) => {
   const hooks = component()
@@ -288,6 +291,59 @@ test("restored API identity replaces the restricted chat identity", async (t) =>
   assert.equal(globalThis.__standaloneSession.value.user.full_name, "API owner")
   assert.equal(render(AuthGuard, { children: "admin", admin: true }), "admin")
 })
+
+for (const notify of [false, true])
+  for (const source of ["API", "WSS"])
+    test(`late ${source} identity cannot replace an account changed ${notify ? "after SESSION_CHANGED" : "before the storage event"}`, async (t) => {
+      const account = deferred()
+      const fallback = deferred()
+      const oldProfile = {
+        user: {
+          id: "old-admin",
+          full_name: "Old admin",
+          role: "administrator",
+        },
+        unreadCounts: { messages: 9, notifications: 7 },
+      }
+      const nextProfile = {
+        user: {
+          id: "new-customer",
+          full_name: "New customer",
+          role: "customer",
+        },
+        unreadCounts: { messages: 0, notifications: 0 },
+      }
+      state.account = account.promise
+      state.fallback = fallback.promise
+      const hooks = component()
+      t.after(() => hooks.dispose())
+      render(SessionProvider, { children: "chat" }, hooks)
+      state.token = "account-b"
+      if (notify) {
+        state.account = Promise.resolve(nextProfile)
+        state.fallback = nextProfile
+        window.dispatchEvent(new Event("session"))
+        await settle()
+        render(SessionProvider, { children: "chat" }, hooks)
+        assert.equal(
+          globalThis.__standaloneSession.value.user.id,
+          "new-customer"
+        )
+      }
+      if (source === "API") account.resolve(oldProfile)
+      else fallback.resolve(oldProfile)
+      await settle()
+      render(SessionProvider, { children: "chat" }, hooks)
+      const current = globalThis.__standaloneSession.value
+      assert.equal(current.user?.id ?? null, notify ? "new-customer" : null)
+      assert.equal(current.loading, !notify)
+      if (notify) {
+        assert.equal(current.offlineChat, false)
+        assert.deepEqual(current.unreadCounts, nextProfile.unreadCounts)
+      }
+      assert.deepEqual(globalThis.__standaloneSession.destinations, [])
+    })
+
 test("a chat-only fallback cannot redirect the sign-in page away from reauthentication", () => {
   globalThis.__standaloneSession.value = {
     ...state.fallback,

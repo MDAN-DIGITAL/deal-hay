@@ -111,7 +111,7 @@ export async function apiFetch<T>({
       resolvedToken &&
       getAccessToken() === resolvedToken
     )
-      clearAccessToken()
+      clearAccessToken(resolvedToken)
     throw new ApiError(
       response.status,
       payload ?? { message: response.statusText }

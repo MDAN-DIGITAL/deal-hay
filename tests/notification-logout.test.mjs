@@ -7,6 +7,7 @@ const moduleUrl = (source) =>
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
 const mocks = moduleUrl(`
   export const authRoutes={logout:"/auth/logout"}
+  export function getAccessToken(){return globalThis.__logout.token??"account-a"}
   export const apiFetch=async(options)=>{
     globalThis.__logout.calls.push("api-logout")
     globalThis.__logout.request=options
@@ -59,6 +60,7 @@ test("logout clears push before revoking credentials used to delete its subscrip
   assert.deepEqual(globalThis.__logout.request, {
     method: "POST",
     path: "/auth/logout",
+    token: "account-a",
   })
 })
 
@@ -70,4 +72,21 @@ test("offline push cleanup and WSS revocation do not prevent API logout", async 
     "revoke-wss",
     "api-logout",
   ])
+})
+
+test("a slow logout cannot revoke the account signed in from another tab", async () => {
+  let release
+  globalThis.__logout = {
+    calls: [],
+    token: "account-a",
+    pending: new Promise((resolve) => {
+      release = resolve
+    }),
+  }
+  const request = logout()
+  globalThis.__logout.token = "account-b"
+  release()
+  await request
+  assert.deepEqual(globalThis.__logout.calls, ["clear-push", "api-logout"])
+  assert.equal(globalThis.__logout.request.token, "account-a")
 })
