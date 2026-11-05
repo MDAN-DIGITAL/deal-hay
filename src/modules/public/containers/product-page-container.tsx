@@ -54,7 +54,13 @@ export function ProductPageContainer({
   const { data, error } = useApiQuery(
     JSON.stringify(["product", shopUserCode, productSlug]),
     () => getProduct(shopUserCode, productSlug),
-    { initialData, initialError }
+    {
+      initialData,
+      initialError,
+      // The server snapshot is complete for guests. Only signed-in viewers
+      // need the personalized review/follow state from a browser request.
+      revalidateOnMount: "authenticated",
+    }
   )
   if (!data) return <QueryPlaceholder error={error} />
 

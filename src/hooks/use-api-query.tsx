@@ -13,21 +13,47 @@ import { DATA_CHANGED, invalidateQueries } from "@/lib/query-cache"
 export function useApiQuery<T>(
   key: string,
   load: () => Promise<T>,
-  { initialData, initialError }: { initialData?: T; initialError?: string } = {}
+  {
+    initialData,
+    initialError,
+    revalidateOnMount = true,
+    sessionSensitive = true,
+  }: {
+    initialData?: T
+    initialError?: string
+    revalidateOnMount?: boolean | "authenticated"
+    sessionSensitive?: boolean
+  } = {}
 ) {
   const router = useRouter()
-  const [revision, setRevision] = useState(0)
-  const [state, setState] = useState<{ key: string; data?: T; error?: Error }>(
-    () => ({
-      key,
-      data: initialData,
-      error: initialError ? new Error(initialError) : undefined,
-    })
-  )
+  const [refresh, setRefresh] = useState({ key, revision: 0 })
+  const revision = refresh.key === key ? refresh.revision : 0
+  const [state, setState] = useState<{
+    key: string
+    data?: T
+    error?: Error
+    pending: boolean
+  }>(() => ({
+    key,
+    data: initialData,
+    error: initialError ? new Error(initialError) : undefined,
+    // A browser request follows an unavailable server snapshot. Keep the
+    // loading UI visible instead of flashing that transient server error.
+    pending: initialData === undefined,
+  }))
   useEffect(() => {
-    const invalidate = () => setRevision((value) => value + 1)
+    const invalidate = () => {
+      setState((current) =>
+        current.key === key ? { ...current, pending: true } : current
+      )
+      setRefresh((value) => ({
+        key,
+        revision: value.key === key ? value.revision + 1 : 1,
+      }))
+    }
     const changeSession = () => {
-      setState({ key })
+      if (!sessionSensitive) return
+      setState({ key, pending: true })
       invalidate()
     }
     window.addEventListener(DATA_CHANGED, invalidate)
@@ -36,14 +62,21 @@ export function useApiQuery<T>(
       window.removeEventListener(DATA_CHANGED, invalidate)
       window.removeEventListener(SESSION_CHANGED, changeSession)
     }
-  }, [key])
+  }, [key, sessionSensitive])
   useEffect(() => {
+    if (
+      initialData !== undefined &&
+      revision === 0 &&
+      (revalidateOnMount === false ||
+        (revalidateOnMount === "authenticated" && !getAccessToken()))
+    )
+      return
     let disposed = false
     const requestToken = getAccessToken()
     void load().then(
       (data) => {
         if (!disposed && requestToken === getAccessToken())
-          setState({ key, data })
+          setState({ key, data, pending: false })
       },
       (error: Error) => {
         if (disposed || requestToken !== getAccessToken()) return
@@ -52,7 +85,7 @@ export function useApiQuery<T>(
             `/sign-in?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
           )
         }
-        setState({ key, error })
+        setState({ key, error, pending: false })
       }
     )
     return () => {
@@ -61,13 +94,15 @@ export function useApiQuery<T>(
     // Request arguments are represented by key; callers pass an inline loader.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, revision, router])
-  return state.key === key
-    ? state
-    : {
-        key,
-        data: initialData,
-        error: initialError ? new Error(initialError) : undefined,
-      }
+  if (state.key !== key) {
+    return { key, data: initialData, error: undefined }
+  }
+
+  return {
+    key,
+    data: state.data,
+    error: state.pending ? undefined : state.error,
+  }
 }
 
 export function QueryPlaceholder({ error }: { error?: Error }) {

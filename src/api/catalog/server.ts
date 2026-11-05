@@ -15,6 +15,7 @@ export type PublicCatalogResult<T> =
   | { status: "unavailable" }
 
 export const PUBLIC_CATALOG_TIMEOUT_MS = 5000
+export const PUBLIC_CATALOG_REVALIDATE_SECONDS = 30
 export const PUBLIC_CATALOG_ERROR = "Không thể tải nội dung. Vui lòng thử lại."
 
 function object(value: unknown): value is Record<string, unknown> {
@@ -79,7 +80,10 @@ async function readPublicCatalog<T>(
       ...request,
       // Public snapshots must never depend on a browser account or cached identity.
       token: null,
-      cache: "no-store",
+      // A short shared cache avoids paying for the same anonymous catalog read on
+      // every navigation while the browser still revalidates viewer-specific data.
+      cache: "force-cache",
+      next: { revalidate: PUBLIC_CATALOG_REVALIDATE_SECONDS },
       signal: AbortSignal.timeout(PUBLIC_CATALOG_TIMEOUT_MS),
     })
     return valid(data) ? { status: "ready", data } : { status: "unavailable" }

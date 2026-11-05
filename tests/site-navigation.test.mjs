@@ -11,7 +11,7 @@ const jsx = moduleUrl(
 const widgets = moduleUrl(`
   export const useState=(initial)=>[globalThis.__siteNavigation.open??initial,(next)=>{globalThis.__siteNavigation.open=next}]
   export const usePathname=()=>globalThis.__siteNavigation.path
-  export const useSession=()=>({user:globalThis.__siteNavigation.user})
+  export const useSession=()=>({user:globalThis.__siteNavigation.user,loading:globalThis.__siteNavigation.loading??false})
   export const useRealtime=()=>({unreadCounts:{messages:2,notifications:1}})
   export const buttonVariants=({variant='default'}={})=>variant
   export const BellIcon='bell',ChevronDownIcon='chevron',MessageCircleIcon='message',ActivityIcon='activity',HouseIcon='home',LayoutDashboardIcon='dashboard',MenuIcon='menu',ShieldCheckIcon='shield',StoreIcon='store',TicketPercentIcon='ticket',UserRoundIcon='user'
@@ -123,6 +123,32 @@ test("account and mobile menus activate only their ping probe and retain sound a
   assert.equal(tree.find(({ type }) => type === "ping").props.active, true)
   assert.ok(tree.some(({ type }) => type === "sound-toggle"))
   assert.ok(tree.some(({ type }) => type === "sign-out"))
+})
+
+test("pending account hydration never flashes signed-out actions", () => {
+  globalThis.__siteNavigation = {
+    user: null,
+    loading: true,
+    path: "/",
+    open: false,
+  }
+  const header = nodes(SiteHeader())
+  const headerHrefs = header.map(({ props }) => props?.href).filter(Boolean)
+  assert.equal(headerHrefs.includes("/sign-in"), false)
+  assert.equal(headerHrefs.includes("/sign-up"), false)
+  assert.ok(
+    header.some(
+      ({ props }) =>
+        props?.["aria-busy"] === "true" &&
+        props?.["aria-label"] === "Đang tải tài khoản"
+    )
+  )
+
+  const mobile = nodes(MobileNavigation({ user: null, sessionLoading: true }))
+  const mobileHrefs = mobile.map(({ props }) => props?.href).filter(Boolean)
+  assert.equal(mobileHrefs.includes("/sign-in"), false)
+  assert.equal(mobileHrefs.includes("/sign-up"), false)
+  assert.ok(mobile.some(({ props }) => props?.["aria-busy"] === "true"))
 })
 
 test("desktop, mobile and footer chat entries use the shared new-tab link", () => {

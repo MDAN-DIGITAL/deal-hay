@@ -54,7 +54,13 @@ const publicItems = [
   { href: "/profile", label: "Hồ sơ cá nhân", icon: UserRoundIcon },
 ] as const
 
-export function MobileNavigation({ user }: { user: User | null }) {
+export function MobileNavigation({
+  user,
+  sessionLoading = false,
+}: {
+  user: User | null
+  sessionLoading?: boolean
+}) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const { unreadCounts } = useRealtime()
@@ -84,7 +90,19 @@ export function MobileNavigation({ user }: { user: User | null }) {
           </SheetDescription>
         </SheetHeader>
 
-        {user ? (
+        {sessionLoading ? (
+          <Card
+            aria-busy="true"
+            aria-label="Đang tải tài khoản"
+            className="mx-4 shrink-0"
+            size="sm"
+          >
+            <CardContent className="flex-row items-center gap-3">
+              <span className="size-11 animate-pulse rounded-full bg-muted" />
+              <span className="h-4 flex-1 animate-pulse rounded bg-muted" />
+            </CardContent>
+          </Card>
+        ) : user ? (
           <Card size="sm" className="mx-4 shrink-0">
             <CardContent className="flex-row items-center gap-3">
               <UserAvatar
@@ -200,7 +218,13 @@ export function MobileNavigation({ user }: { user: User | null }) {
             bạch và an toàn
           </div>
           <Separator />
-          {user ? (
+          {sessionLoading ? (
+            <div
+              aria-busy="true"
+              aria-label="Đang tải thao tác tài khoản"
+              className="h-9 w-full animate-pulse rounded-md bg-muted"
+            />
+          ) : user ? (
             <SignOutButton className="w-full" />
           ) : (
             <div className="grid grid-cols-2 gap-2">

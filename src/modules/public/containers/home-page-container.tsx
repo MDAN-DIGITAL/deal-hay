@@ -43,7 +43,14 @@ export function HomePageContainer({
   const { data: data, error } = useApiQuery(
     JSON.stringify(["home", category]),
     () => getHome(category),
-    { initialData, initialError }
+    {
+      initialData,
+      initialError,
+      // Home snapshots are anonymous and already contain the complete payload.
+      // Keep them across session restoration and only refetch after a mutation.
+      revalidateOnMount: false,
+      sessionSensitive: false,
+    }
   )
   if (!data) return <QueryPlaceholder error={error} />
   const activeCategory = data.filters.category

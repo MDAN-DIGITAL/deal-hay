@@ -35,6 +35,7 @@ const {
   getPublicShop,
   getPublicProduct,
   PUBLIC_CATALOG_TIMEOUT_MS,
+  PUBLIC_CATALOG_REVALIDATE_SECONDS,
 } = await import(
   transpile("../src/api/catalog/server.ts", {
     react: import.meta.resolve("react"),
@@ -100,7 +101,8 @@ test("server catalog requests are anonymous, bounded and encode route segments a
     assert.equal(options.headers.has("Authorization"), false)
     assert.equal(options.credentials, "omit")
     assert.equal(options.redirect, "error")
-    assert.equal(options.cache, "no-store")
+    assert.equal(options.cache, "force-cache")
+    assert.equal(options.next.revalidate, PUBLIC_CATALOG_REVALIDATE_SECONDS)
     assert.ok(options.signal instanceof AbortSignal)
     assert.equal(options.signal.aborted, false)
   }

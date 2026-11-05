@@ -42,7 +42,7 @@ const navigation: NavigationItem[] = [
 ]
 
 export function SiteHeader() {
-  const { user } = useSession()
+  const { user, loading } = useSession()
   const pathname = usePathname()
   const [accountOpen, setAccountOpen] = useState(false)
   const items: NavigationItem[] = [
@@ -95,7 +95,16 @@ export function SiteHeader() {
 
         <div className="ml-auto hidden items-center gap-1 xl:flex">
           <ThemeToggle />
-          {user ? (
+          {loading ? (
+            <div
+              aria-busy="true"
+              aria-label="Đang tải tài khoản"
+              className="flex h-9 items-center gap-2 px-3"
+            >
+              <span className="size-7 animate-pulse rounded-full bg-muted" />
+              <span className="h-4 w-24 animate-pulse rounded bg-muted" />
+            </div>
+          ) : user ? (
             <>
               <NotificationSoundToggle />
               <DropdownMenu onOpenChange={setAccountOpen}>
@@ -178,7 +187,7 @@ export function SiteHeader() {
             <BellIcon />
           </UnreadNavigationLink>
           <ThemeToggle />
-          <MobileNavigation user={user} />
+          <MobileNavigation sessionLoading={loading} user={user} />
         </div>
       </div>
     </header>

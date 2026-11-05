@@ -188,6 +188,78 @@ test("a public server snapshot renders immediately and revalidates the current b
   assert.equal(render("product", load, options).data.canReview, true)
 })
 
+test("an anonymous product snapshot skips the duplicate viewer request", (t) => {
+  const { render } = mount(t)
+  globalThis.__queryToken = null
+  let requests = 0
+  const snapshot = { name: "Sản phẩm công khai", canReview: false }
+  const result = render(
+    "product",
+    async () => {
+      requests++
+      return snapshot
+    },
+    { initialData: snapshot, revalidateOnMount: "authenticated" }
+  )
+
+  assert.deepEqual(result.data, snapshot)
+  assert.equal(requests, 0)
+})
+
+test("a complete anonymous snapshot skips the duplicate mount request and survives session restoration", async (t) => {
+  const { render } = mount(t)
+  const refresh = deferred()
+  const snapshot = { products: ["Server product"] }
+  let requests = 0
+  const load = () => {
+    requests++
+    return refresh.promise
+  }
+  const options = {
+    initialData: snapshot,
+    revalidateOnMount: false,
+    sessionSensitive: false,
+  }
+
+  assert.deepEqual(render("home", load, options).data, snapshot)
+  assert.equal(requests, 0)
+
+  globalThis.__queryToken = "account-b"
+  window.dispatchEvent(new Event("session"))
+  assert.deepEqual(render("home", load, options).data, snapshot)
+  assert.equal(requests, 0)
+
+  window.dispatchEvent(new Event("data"))
+  assert.deepEqual(render("home", load, options).data, snapshot)
+  assert.equal(requests, 1)
+  refresh.resolve({ products: ["Updated product"] })
+  await flush()
+  assert.deepEqual(render("home", load, options).data, {
+    products: ["Updated product"],
+  })
+})
+
+test("disabling mount revalidation still loads when the server has no snapshot", async (t) => {
+  const { render } = mount(t)
+  const request = deferred()
+  let requests = 0
+  const load = () => {
+    requests++
+    return request.promise
+  }
+
+  assert.equal(
+    render("home", load, { revalidateOnMount: false }).data,
+    undefined
+  )
+  assert.equal(requests, 1)
+  request.resolve({ products: ["Browser product"] })
+  await flush()
+  assert.deepEqual(render("home", load, { revalidateOnMount: false }).data, {
+    products: ["Browser product"],
+  })
+})
+
 test("server seeds belong to their route and are not restored over an account change", async (t) => {
   const { render } = mount(t)
   const first = deferred()
@@ -219,16 +291,32 @@ test("server seeds belong to their route and are not restored over an account ch
   )
 })
 
-test("a failed server load provides a readable fallback and the browser can recover", async (t) => {
+test("a failed server load stays pending while the browser recovery request runs", async (t) => {
   const { render } = mount(t)
   const request = deferred()
   const options = { initialError: "Không thể tải nội dung." }
   const initial = render("home", () => request.promise, options)
   assert.equal(initial.data, undefined)
-  assert.equal(initial.error.message, options.initialError)
+  assert.equal(initial.error, undefined)
   request.resolve({ products: ["Recovered product"] })
   await flush()
   const recovered = render("home", () => request.promise, options)
   assert.deepEqual(recovered.data, { products: ["Recovered product"] })
   assert.equal(recovered.error, undefined)
+})
+
+test("a server failure is shown only after the browser recovery request also fails", async (t) => {
+  const { render } = mount(t)
+  const request = deferred()
+  const options = { initialError: "Không thể tải nội dung." }
+  assert.equal(
+    render("product", () => request.promise, options).error,
+    undefined
+  )
+  request.reject(new Error("Browser recovery failed"))
+  await flush()
+  assert.equal(
+    render("product", () => request.promise, options).error.message,
+    "Browser recovery failed"
+  )
 })

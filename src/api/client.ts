@@ -15,6 +15,7 @@ export type ApiRequestOptions = {
   headers?: HeadersInit
   token?: string | null
   cache?: RequestCache
+  next?: NextFetchRequestConfig
   signal?: AbortSignal
 }
 
@@ -60,6 +61,7 @@ export async function apiFetch<T>({
   headers,
   token,
   cache = "no-store",
+  next,
   signal,
 }: ApiRequestOptions): Promise<T> {
   const resolvedToken = token === undefined ? getAccessToken() : token
@@ -94,6 +96,7 @@ export async function apiFetch<T>({
     headers: requestHeaders,
     body: requestBody,
     cache,
+    next,
     redirect: "error",
     credentials: "omit",
     signal,
