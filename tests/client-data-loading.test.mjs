@@ -188,6 +188,91 @@ test("a public server snapshot renders immediately and revalidates the current b
   assert.equal(render("product", load, options).data.canReview, true)
 })
 
+test("a failed viewer refresh preserves the valid public product snapshot", async (t) => {
+  const { render } = mount(t)
+  t.mock.method(globalThis, "setTimeout", (callback) => {
+    queueMicrotask(callback)
+    return 1
+  })
+  t.mock.method(globalThis, "clearTimeout", () => {})
+  const request = deferred()
+  const snapshot = { name: "Sản phẩm công khai", canReview: false }
+  const options = {
+    initialData: snapshot,
+    revalidateOnMount: "authenticated",
+  }
+
+  assert.deepEqual(
+    render("product", () => request.promise, options).data,
+    snapshot
+  )
+  request.reject(new TypeError("Viewer refresh interrupted"))
+  await flush()
+
+  const result = render("product", () => request.promise, options)
+  assert.deepEqual(result.data, snapshot)
+  assert.equal(result.error.message, "Viewer refresh interrupted")
+})
+
+test("a transient browser recovery failure retries once before showing an error", async (t) => {
+  const { render } = mount(t)
+  t.mock.method(globalThis, "setTimeout", (callback) => {
+    queueMicrotask(callback)
+    return 1
+  })
+  t.mock.method(globalThis, "clearTimeout", () => {})
+  let attempts = 0
+  const load = async () => {
+    attempts++
+    if (attempts === 1) throw new TypeError("Temporary network failure")
+    return { name: "Recovered product" }
+  }
+
+  assert.equal(render("product", load).data, undefined)
+  await flush()
+
+  assert.equal(attempts, 2)
+  assert.deepEqual(render("product", load).data, {
+    name: "Recovered product",
+  })
+})
+
+test("a permanent API failure is not retried", async (t) => {
+  const { render } = mount(t)
+  let attempts = 0
+  const load = async () => {
+    attempts++
+    throw new ApiError(404)
+  }
+
+  render("missing-product", load)
+  await flush()
+
+  const result = render("missing-product", load)
+  assert.equal(attempts, 1)
+  assert.equal(result.error.status, 404)
+})
+
+test("a permanent refresh failure replaces a stale public snapshot", async (t) => {
+  const { render } = mount(t)
+  const request = deferred()
+  const options = {
+    initialData: { name: "Sản phẩm đã cũ" },
+    revalidateOnMount: "authenticated",
+  }
+
+  assert.equal(
+    render("removed-product", () => request.promise, options).data.name,
+    "Sản phẩm đã cũ"
+  )
+  request.reject(new ApiError(404))
+  await flush()
+
+  const result = render("removed-product", () => request.promise, options)
+  assert.equal(result.data, undefined)
+  assert.equal(result.error.status, 404)
+})
+
 test("an anonymous product snapshot skips the duplicate viewer request", (t) => {
   const { render } = mount(t)
   globalThis.__queryToken = null

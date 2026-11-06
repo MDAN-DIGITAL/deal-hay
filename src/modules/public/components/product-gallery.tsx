@@ -55,8 +55,10 @@ export function ProductGallery({
           <MediaImage
             alt={name}
             className="aspect-square w-full"
-            fallbackLabel="Sản phẩm chưa có ảnh"
+            fallbackLabel="Không thể tải ảnh sản phẩm"
+            fetchPriority="high"
             loading="eager"
+            retryable
             sizes="(max-width: 1024px) 100vw, 55vw"
             src={activeUrl}
           />
@@ -77,6 +79,7 @@ export function ProductGallery({
                 alt=""
                 className="aspect-square w-full"
                 fallbackLabel="Ảnh lỗi"
+                fetchPriority="low"
                 sizes="120px"
                 src={image.image_url}
               />

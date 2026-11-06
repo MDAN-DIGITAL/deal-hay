@@ -9,6 +9,15 @@ import { Button } from "@/components/ui/button"
 import { SESSION_CHANGED, getAccessToken } from "@/lib/session"
 import { DATA_CHANGED, invalidateQueries } from "@/lib/query-cache"
 
+const TRANSIENT_RETRY_DELAY_MS = 500
+
+function isTransientQueryError(error: Error): boolean {
+  return (
+    error instanceof TypeError ||
+    (error instanceof ApiError && error.status >= 500)
+  )
+}
+
 /** The key includes every request parameter; disposed requests cannot replace newer data. */
 export function useApiQuery<T>(
   key: string,
@@ -72,24 +81,53 @@ export function useApiQuery<T>(
     )
       return
     let disposed = false
+    let retried = false
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
     const requestToken = getAccessToken()
-    void load().then(
-      (data) => {
-        if (!disposed && requestToken === getAccessToken())
-          setState({ key, data, pending: false })
-      },
-      (error: Error) => {
-        if (disposed || requestToken !== getAccessToken()) return
-        if (error instanceof ApiError && error.status === 401) {
-          router.replace(
-            `/sign-in?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
-          )
-        }
-        setState({ key, error, pending: false })
+    const fail = (error: Error) => {
+      if (disposed || requestToken !== getAccessToken()) return
+      if (error instanceof ApiError && error.status === 401) {
+        router.replace(
+          `/sign-in?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
+        )
       }
-    )
+      // A transient background personalization/refresh failure must not
+      // discard a valid snapshot. Permanent 4xx responses still replace stale
+      // data so deleted or newly forbidden resources are no longer rendered.
+      setState((current) =>
+        isTransientQueryError(error) &&
+        current.key === key &&
+        current.data !== undefined
+          ? { ...current, error, pending: false }
+          : { key, error, pending: false }
+      )
+    }
+    const request = () => {
+      if (disposed || requestToken !== getAccessToken()) return
+      void load().then(
+        (data) => {
+          if (!disposed && requestToken === getAccessToken())
+            setState({ key, data, pending: false })
+        },
+        (error: Error) => {
+          if (
+            !disposed &&
+            requestToken === getAccessToken() &&
+            !retried &&
+            isTransientQueryError(error)
+          ) {
+            retried = true
+            retryTimer = setTimeout(request, TRANSIENT_RETRY_DELAY_MS)
+            return
+          }
+          fail(error)
+        }
+      )
+    }
+    request()
     return () => {
       disposed = true
+      if (retryTimer !== undefined) clearTimeout(retryTimer)
     }
     // Request arguments are represented by key; callers pass an inline loader.
     // eslint-disable-next-line react-hooks/exhaustive-deps
