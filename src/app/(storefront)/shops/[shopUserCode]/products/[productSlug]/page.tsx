@@ -3,12 +3,16 @@ import { notFound, redirect } from "next/navigation"
 
 import { getPublicProduct, PUBLIC_CATALOG_ERROR } from "@/api/catalog/server"
 import { ProductPageContainer } from "@/modules/public/containers/product-page-container"
-import { productCheckoutHref } from "@/modules/public/lib/product-checkout"
+import {
+  normalizeShopCouponCode,
+  productCheckoutHref,
+} from "@/modules/public/lib/product-checkout"
 
 type ProductPageProps = {
   params: Promise<{ shopUserCode: string; productSlug: string }>
   searchParams: Promise<{
     discount_code?: string | string[]
+    shop_coupon_code?: string | string[]
     variant_id?: string | string[]
   }>
 }
@@ -40,12 +44,14 @@ export default async function ProductPage({
     typeof query.discount_code === "string" && query.discount_code.length <= 80
       ? query.discount_code
       : undefined
+  const initialShopCouponCode = normalizeShopCouponCode(query.shop_coupon_code)
 
   if (initialDiscountCode) {
     redirect(
       productCheckoutHref(shopUserCode, productSlug, {
         variantId: query.variant_id,
         discountCode: initialDiscountCode,
+        shopCouponCode: initialShopCouponCode,
       })
     )
   }
@@ -56,6 +62,7 @@ export default async function ProductPage({
     <ProductPageContainer
       shopUserCode={shopUserCode}
       productSlug={productSlug}
+      initialShopCouponCode={initialShopCouponCode}
       initialVariantId={
         typeof query.variant_id === "string" ? query.variant_id : undefined
       }

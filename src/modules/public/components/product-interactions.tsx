@@ -11,6 +11,7 @@ import {
   ThumbsDownIcon,
   ThumbsUpIcon,
   ShoppingBagIcon,
+  TicketPercentIcon,
 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -195,6 +196,7 @@ export function ProductInteractions({
   canReview = false,
   hasReview = false,
   initialDiscountCode,
+  initialShopCouponCode,
   initialVariantId,
 }: {
   shop: PublicShop
@@ -202,6 +204,7 @@ export function ProductInteractions({
   canReview?: boolean
   hasReview?: boolean
   initialDiscountCode?: string
+  initialShopCouponCode?: string
   initialVariantId?: string
 }) {
   const [isPending, startTransition] = useTransition()
@@ -269,6 +272,28 @@ export function ProductInteractions({
               {formatCurrency(regularPrice)}
             </p>
           </div>
+          {initialShopCouponCode ? (
+            <Surface
+              variant="muted"
+              padding="sm"
+              className="flex items-start gap-3 border-primary/20"
+            >
+              <TicketPercentIcon
+                aria-hidden="true"
+                className="mt-0.5 size-5 shrink-0 text-primary"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Đã gắn ưu đãi từ shop</p>
+                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                  Mã{" "}
+                  <span className="font-semibold break-all text-foreground">
+                    {initialShopCouponCode}
+                  </span>{" "}
+                  sẽ được kiểm tra và tự động áp dụng khi bạn đặt hàng.
+                </p>
+              </div>
+            </Surface>
+          ) : null}
           <Surface
             variant="muted"
             padding="sm"
@@ -367,6 +392,7 @@ export function ProductInteractions({
               href={productCheckoutHref(shop.code, product.slug, {
                 variantId: selectedVariant?.id,
                 discountCode: initialDiscountCode,
+                shopCouponCode: initialShopCouponCode,
               })}
             >
               <ShoppingBagIcon /> Đặt hàng

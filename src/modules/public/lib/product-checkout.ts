@@ -1,11 +1,17 @@
 import { defaultProductVariant } from "@/modules/public/lib/variant-selection"
 import type { PublicProduct, PublicProductVariant } from "@/types/catalog"
 
-export function productCheckoutHref(
-  shopUserCode: string,
-  productSlug: string,
-  options: { variantId?: string | string[]; discountCode?: string } = {}
-): string {
+type ProductNavigationOptions = {
+  variantId?: string | string[]
+  discountCode?: string
+  shopCouponCode?: string
+}
+
+function productPath(shopUserCode: string, productSlug: string): string {
+  return `/shops/${encodeURIComponent(shopUserCode)}/products/${encodeURIComponent(productSlug)}`
+}
+
+function productQuery(options: ProductNavigationOptions): URLSearchParams {
   const query = new URLSearchParams()
   const variantIds = Array.isArray(options.variantId)
     ? options.variantId
@@ -15,9 +21,40 @@ export function productCheckoutHref(
 
   for (const variantId of variantIds) query.append("variant_id", variantId)
   if (options.discountCode) query.set("discount_code", options.discountCode)
+  if (options.shopCouponCode)
+    query.set("shop_coupon_code", options.shopCouponCode)
 
-  const path = `/shops/${encodeURIComponent(shopUserCode)}/products/${encodeURIComponent(productSlug)}/checkout`
+  return query
+}
+
+export function productDetailHref(
+  shopUserCode: string,
+  productSlug: string,
+  options: Pick<ProductNavigationOptions, "variantId" | "shopCouponCode"> = {}
+): string {
+  const query = productQuery(options)
+  const path = productPath(shopUserCode, productSlug)
+
   return query.size > 0 ? `${path}?${query}` : path
+}
+
+export function productCheckoutHref(
+  shopUserCode: string,
+  productSlug: string,
+  options: ProductNavigationOptions = {}
+): string {
+  const query = productQuery(options)
+  const path = `${productPath(shopUserCode, productSlug)}/checkout`
+  return query.size > 0 ? `${path}?${query}` : path
+}
+
+export function normalizeShopCouponCode(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined
+  const normalized = value.trim().toUpperCase()
+
+  return normalized.length > 0 && normalized.length <= 40
+    ? normalized
+    : undefined
 }
 
 export function resolveCheckoutVariant(

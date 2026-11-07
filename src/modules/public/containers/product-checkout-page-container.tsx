@@ -15,11 +15,13 @@ export function ProductCheckoutPageContainer({
   productSlug,
   variantId,
   initialDiscountCode,
+  initialShopCouponCode,
 }: {
   shopUserCode: string
   productSlug: string
   variantId?: string | string[]
   initialDiscountCode?: string
+  initialShopCouponCode?: string
 }) {
   const { data, error } = useApiQuery(
     JSON.stringify(["checkout", shopUserCode, productSlug, variantId]),
@@ -67,6 +69,7 @@ export function ProductCheckoutPageContainer({
         product.id,
         variantId ?? null,
         initialDiscountCode ?? null,
+        initialShopCouponCode ?? null,
       ])}
       shop={data.shop}
       product={product}
@@ -74,6 +77,7 @@ export function ProductCheckoutPageContainer({
       regularPrice={regularPrice}
       stock={stock}
       initialDiscountCode={initialDiscountCode}
+      initialShopCouponCode={initialShopCouponCode}
     />
   )
 }

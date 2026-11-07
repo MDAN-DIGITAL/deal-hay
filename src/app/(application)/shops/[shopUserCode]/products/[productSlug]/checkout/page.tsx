@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { ProductCheckoutPageContainer } from "@/modules/public/containers/product-checkout-page-container"
+import { normalizeShopCouponCode } from "@/modules/public/lib/product-checkout"
 
 export const metadata: Metadata = {
   title: "Đặt hàng",
@@ -15,6 +16,7 @@ export default async function ProductCheckoutPage({
   searchParams: Promise<{
     variant_id?: string | string[]
     discount_code?: string | string[]
+    shop_coupon_code?: string | string[]
   }>
 }) {
   const [{ shopUserCode, productSlug }, query] = await Promise.all([
@@ -33,6 +35,7 @@ export default async function ProductCheckoutPage({
           ? query.discount_code
           : undefined
       }
+      initialShopCouponCode={normalizeShopCouponCode(query.shop_coupon_code)}
     />
   )
 }

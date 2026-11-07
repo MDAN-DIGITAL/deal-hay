@@ -24,7 +24,12 @@ function transpile(relativePath, imports = {}) {
 }
 
 const variantsUrl = transpile("../src/modules/public/lib/variant-selection.ts")
-const { productCheckoutHref, resolveCheckoutVariant } = await import(
+const {
+  normalizeShopCouponCode,
+  productCheckoutHref,
+  productDetailHref,
+  resolveCheckoutVariant,
+} = await import(
   transpile("../src/modules/public/lib/product-checkout.ts", {
     "@/modules/public/lib/variant-selection": variantsUrl,
   })
@@ -62,6 +67,46 @@ test("checkout links preserve the exact selected variant and coupon without quer
       ["discount_code", "DH-A&B + 20%"],
     ]
   )
+})
+
+test("shop offers open product detail and remain separate from saved discount codes", () => {
+  const detail = new URL(
+    productDetailHref("SHOP 1", "áo/thun?new=1", {
+      variantId: "variant /&other=1",
+      shopCouponCode: "SHOP-A&B + 20%",
+    }),
+    "https://deal-hay.local"
+  )
+  assert.equal(
+    detail.pathname,
+    "/shops/SHOP%201/products/%C3%A1o%2Fthun%3Fnew%3D1"
+  )
+  assert.deepEqual(
+    [...detail.searchParams],
+    [
+      ["variant_id", "variant /&other=1"],
+      ["shop_coupon_code", "SHOP-A&B + 20%"],
+    ]
+  )
+
+  const checkout = new URL(
+    productCheckoutHref("SHOP 1", "áo/thun?new=1", {
+      discountCode: "PERSONAL-CODE",
+      shopCouponCode: "SHOP-CODE",
+    }),
+    "https://deal-hay.local"
+  )
+  assert.equal(checkout.pathname.endsWith("/checkout"), true)
+  assert.equal(checkout.searchParams.get("discount_code"), "PERSONAL-CODE")
+  assert.equal(checkout.searchParams.get("shop_coupon_code"), "SHOP-CODE")
+})
+
+test("shop offer query codes are normalized and bounded independently", () => {
+  assert.equal(normalizeShopCouponCode("  shop-mixed-01  "), "SHOP-MIXED-01")
+  assert.equal(normalizeShopCouponCode("   "), undefined)
+  assert.equal(normalizeShopCouponCode(["SHOP-ONE", "SHOP-TWO"]), undefined)
+  assert.equal(normalizeShopCouponCode("A".repeat(40)), "A".repeat(40))
+  assert.equal(normalizeShopCouponCode("A".repeat(41)), undefined)
 })
 
 test("legacy links retain repeated variant parameters so checkout can reject ambiguous choices", () => {

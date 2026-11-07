@@ -2,14 +2,19 @@
 
 import { useEffect, useId, useState } from "react"
 import Link from "next/link"
-import { CopyIcon, TicketPercentIcon } from "lucide-react"
-import { toast } from "sonner"
+import {
+  ArrowRightIcon,
+  ChevronDownIcon,
+  TicketPercentIcon,
+} from "lucide-react"
 
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Surface } from "@/components/ui/surface"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { formatCurrency, formatDate } from "@/lib/format"
+import { cn } from "@/lib/utils"
+import { productDetailHref } from "@/modules/public/lib/product-checkout"
 import { loadShopOffersAction } from "@/modules/public/shop-offer-actions"
 import { shopOfferDiscount } from "@/modules/public/lib/shop-offers"
 import type { ShopOffer } from "@/types/shop-coupon"
@@ -18,6 +23,124 @@ function offerValue(offer: ShopOffer): string {
   return offer.discount_type === "percent"
     ? `${offer.discount_value}%`
     : formatCurrency(offer.discount_value)
+}
+
+export function shopOfferProductHref(
+  shopCode: string,
+  productSlug: string,
+  offerCode: string
+): string {
+  return productDetailHref(shopCode, productSlug, {
+    shopCouponCode: offerCode,
+  })
+}
+
+function ShopOfferCard({
+  offer,
+  shopCode,
+}: {
+  offer: ShopOffer
+  shopCode: string
+}) {
+  const productListId = useId()
+  const [expanded, setExpanded] = useState(false)
+  const hasMoreProducts = offer.products.length > 3
+  const visibleProducts = expanded ? offer.products : offer.products.slice(0, 3)
+
+  return (
+    <Surface
+      render={<article />}
+      className="flex h-full min-w-0 flex-col gap-4"
+    >
+      <div className="min-w-0">
+        <p className="text-xl font-semibold text-primary">
+          Giảm {offerValue(offer)}
+        </p>
+        <h3 className="mt-1 font-medium break-words">{offer.name}</h3>
+      </div>
+
+      <div className="grid gap-2 text-sm sm:grid-cols-2">
+        <Surface variant="muted" padding="sm">
+          <span className="block text-xs text-muted-foreground">
+            Đơn tối thiểu
+          </span>
+          <strong className="mt-1 block font-medium">
+            {formatCurrency(offer.minimum_order_amount)}
+          </strong>
+        </Surface>
+        <Surface variant="muted" padding="sm">
+          <span className="block text-xs text-muted-foreground">Thời hạn</span>
+          <strong className="mt-1 block font-medium">
+            {offer.ends_at ? formatDate(offer.ends_at) : "Không giới hạn"}
+          </strong>
+        </Surface>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+        <span>Mã ưu đãi</span>
+        <code className="max-w-full rounded-md bg-muted px-2 py-1 font-medium break-all text-foreground">
+          {offer.code}
+        </code>
+        {offer.maximum_discount_amount !== null ? (
+          <span>· Tối đa {formatCurrency(offer.maximum_discount_amount)}</span>
+        ) : null}
+        {offer.remaining_uses !== null ? (
+          <span>· Còn {offer.remaining_uses} lượt</span>
+        ) : null}
+      </div>
+
+      <div className="mt-auto space-y-2 border-t pt-4">
+        <div>
+          <p className="text-sm font-medium">Chọn sản phẩm áp dụng</p>
+          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+            Mã sẽ được gắn sẵn và tự áp dụng khi bạn đặt hàng.
+          </p>
+        </div>
+        <ul id={productListId} className="space-y-2">
+          {visibleProducts.map((product) => (
+            <li key={product.id} className="min-w-0">
+              <Link
+                className="group flex w-full min-w-0 items-center gap-3 rounded-xl border border-border bg-background p-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                href={shopOfferProductHref(shopCode, product.slug, offer.code)}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="line-clamp-2 block text-sm leading-5 font-medium break-words group-hover:text-primary">
+                    {product.name}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Xem sản phẩm · Tự áp dụng khi đặt hàng
+                  </span>
+                </span>
+                <ArrowRightIcon
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {hasMoreProducts ? (
+          <Button
+            type="button"
+            className="w-full"
+            variant="ghost"
+            size="sm"
+            aria-controls={productListId}
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            <ChevronDownIcon
+              aria-hidden="true"
+              className={cn("transition-transform", expanded && "rotate-180")}
+            />
+            {expanded
+              ? "Thu gọn danh sách"
+              : `Xem thêm ${offer.products.length - 3} sản phẩm`}
+          </Button>
+        ) : null}
+      </div>
+    </Surface>
+  )
 }
 
 export function ShopOffers({ shopCode }: { shopCode: string }) {
@@ -49,14 +172,14 @@ export function ShopOffers({ shopCode }: { shopCode: string }) {
     <section className="space-y-4" aria-labelledby="shop-offers-heading">
       <div className="flex items-center gap-3">
         <span className="rounded-xl bg-primary/10 p-2 text-primary">
-          <TicketPercentIcon className="size-5" />
+          <TicketPercentIcon aria-hidden="true" className="size-5" />
         </span>
         <div>
           <h2 id="shop-offers-heading" className="text-2xl font-semibold">
             Ưu đãi từ shop
           </h2>
           <p className="text-sm text-muted-foreground">
-            Chọn sản phẩm trong ưu đãi và áp dụng mã khi đặt hàng.
+            Chọn sản phẩm phù hợp, ưu đãi sẽ được gắn sẵn khi đặt hàng.
           </p>
         </div>
       </div>
@@ -87,68 +210,7 @@ export function ShopOffers({ shopCode }: { shopCode: string }) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {result.offers.map((offer) => (
-            <Surface render={<article />} key={offer.id} className="space-y-3">
-              <div>
-                <p className="text-xl font-semibold text-primary">
-                  Giảm {offerValue(offer)}
-                </p>
-                <h3 className="mt-1 font-medium">{offer.name}</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Tiền hàng từ {formatCurrency(offer.minimum_order_amount)}
-                {offer.maximum_discount_amount !== null
-                  ? ` · Tối đa ${formatCurrency(offer.maximum_discount_amount)}`
-                  : ""}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {offer.ends_at
-                  ? `Hạn ${formatDate(offer.ends_at)}`
-                  : "Không giới hạn thời gian"}
-                {offer.remaining_uses !== null
-                  ? ` · Còn ${offer.remaining_uses} lượt`
-                  : ""}
-              </p>
-              <div className="space-y-2 border-t pt-3">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Sản phẩm áp dụng
-                </p>
-                <div className="flex max-h-28 flex-wrap gap-2 overflow-y-auto">
-                  {offer.products.map((product) => (
-                    <Link
-                      key={product.id}
-                      className={buttonVariants({
-                        variant: "outline",
-                        size: "xs",
-                      })}
-                      href={`/shops/${encodeURIComponent(shopCode)}/products/${encodeURIComponent(product.slug)}`}
-                    >
-                      {product.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-              <Button
-                type="button"
-                className="w-full"
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(offer.code)
-                    toast.success(
-                      "Đã sao chép mã. Chọn ưu đãi này ở bước đặt hàng."
-                    )
-                  } catch {
-                    toast.error(
-                      "Không sao chép được mã. Bạn có thể chọn ưu đãi trực tiếp khi đặt hàng."
-                    )
-                  }
-                }}
-              >
-                <CopyIcon />
-                Sao chép mã ưu đãi
-              </Button>
-            </Surface>
+            <ShopOfferCard key={offer.id} offer={offer} shopCode={shopCode} />
           ))}
         </div>
       )}

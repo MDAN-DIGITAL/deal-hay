@@ -40,6 +40,7 @@ export function ProductPageContainer({
   shopUserCode,
   productSlug,
   initialDiscountCode,
+  initialShopCouponCode,
   initialVariantId,
   initialData,
   initialError,
@@ -47,6 +48,7 @@ export function ProductPageContainer({
   shopUserCode: string
   productSlug: string
   initialDiscountCode?: string
+  initialShopCouponCode?: string
   initialVariantId?: string
   initialData?: ProductResponse
   initialError?: string
@@ -109,6 +111,7 @@ export function ProductPageContainer({
           canReview={data.canReview}
           hasReview={Boolean(data.viewerReview)}
           initialDiscountCode={initialDiscountCode}
+          initialShopCouponCode={initialShopCouponCode}
           initialVariantId={initialVariantId}
         />
       </section>

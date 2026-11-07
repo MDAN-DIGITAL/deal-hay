@@ -44,9 +44,18 @@ import { Surface } from "@/components/ui/surface"
 import { ShippingRewardOffer } from "@/modules/public/components/shipping-reward-offer"
 import { ShopOfferSelector } from "@/modules/public/components/shop-offers"
 import { loadShopOffersAction } from "@/modules/public/shop-offer-actions"
-import { shopOfferDiscount } from "@/modules/public/lib/shop-offers"
+import {
+  createLinkedShopOfferSelection,
+  linkedShopOfferBlocksOrder,
+  overrideLinkedShopOfferSelection,
+  reconcileLinkedShopOfferSelection,
+  shopOfferDiscount,
+} from "@/modules/public/lib/shop-offers"
 import type { ShopOffer } from "@/types/shop-coupon"
-import { productCheckoutHref } from "@/modules/public/lib/product-checkout"
+import {
+  productCheckoutHref,
+  productDetailHref,
+} from "@/modules/public/lib/product-checkout"
 import { orderProductAction, startChatAction } from "@/modules/public/actions"
 import {
   checkoutSchema,
@@ -81,6 +90,7 @@ export function ProductCheckout({
   regularPrice,
   stock,
   initialDiscountCode,
+  initialShopCouponCode,
 }: {
   shop: PublicShop
   product: PublicProduct
@@ -88,6 +98,7 @@ export function ProductCheckout({
   regularPrice: number
   stock: number
   initialDiscountCode?: string
+  initialShopCouponCode?: string
 }) {
   const [pending, startTransition] = useTransition()
   const [messagePending, startMessageTransition] = useTransition()
@@ -113,7 +124,10 @@ export function ProductCheckout({
   const [reloadCodes, setReloadCodes] = useState(0)
   const [enteredCode, setEnteredCode] = useState("")
   const [shopOffers, setShopOffers] = useState<ShopOffer[]>([])
-  const [selectedShopOfferId, setSelectedShopOfferId] = useState("")
+  const [linkedShopOffer, setLinkedShopOffer] = useState(() =>
+    createLinkedShopOfferSelection(initialShopCouponCode)
+  )
+  const selectedShopOfferId = linkedShopOffer.selectedId
   const [shopOffersError, setShopOffersError] = useState<string | null>(null)
   const [shopOffersPending, startShopOffersTransition] = useTransition()
   const [reloadShopOffers, setReloadShopOffers] = useState(0)
@@ -216,6 +230,10 @@ export function ProductCheckout({
   const selectedShopOffer = shopOffers.find(
     (offer) => offer.id === selectedShopOfferId
   )
+  const initialShopOfferSelected = Boolean(
+    initialShopCouponCode &&
+    selectedShopOffer?.code.trim().toUpperCase() === initialShopCouponCode
+  )
   const shopDiscount = shopOfferDiscount(
     selectedShopOffer,
     summary.subtotal,
@@ -229,13 +247,14 @@ export function ProductCheckout({
       !selectedShopOffer ||
       shopDiscount <= 0)
   const finalProductTotal = summary.total - shopDiscount
-  const productHref = `/shops/${encodeURIComponent(shop.code)}/products/${encodeURIComponent(product.slug)}`
-  const productReturnHref = variant
-    ? `${productHref}?variant_id=${encodeURIComponent(variant.id)}`
-    : productHref
+  const productReturnHref = productDetailHref(shop.code, product.slug, {
+    variantId: variant?.id,
+    shopCouponCode: initialShopCouponCode,
+  })
   const checkoutHref = productCheckoutHref(shop.code, product.slug, {
     variantId: variant?.id,
     discountCode: initialDiscountCode,
+    shopCouponCode: initialShopCouponCode,
   })
   const maxQuantity = Math.min(stock, 9999)
   const shippingConfirmed = currentShippingQuote?.data?.fee != null
@@ -247,25 +266,50 @@ export function ProductCheckout({
     shippingBlocked ||
     shippingRewardPending ||
     shippingCodeUnconfirmed ||
-    shopCouponUnconfirmed
+    shopCouponUnconfirmed ||
+    linkedShopOfferBlocksOrder(linkedShopOffer.status)
 
   useEffect(() => {
     let active = true
     startShopOffersTransition(async () => {
+      if (initialShopCouponCode) {
+        setLinkedShopOffer((current) =>
+          current.userOverridden ? current : { ...current, status: "pending" }
+        )
+      }
       try {
         const result = await loadShopOffersAction(shop.code, product.id)
         if (!active) return
-        setShopOffers(result.data ?? [])
+        const offers = result.data ?? []
+        setShopOffers(offers)
         setShopOffersError(result.success ? null : result.message)
+        if (initialShopCouponCode) {
+          setLinkedShopOffer((current) =>
+            result.success
+              ? reconcileLinkedShopOfferSelection(
+                  current,
+                  offers,
+                  initialShopCouponCode
+                )
+              : current.userOverridden
+                ? current
+                : { ...current, status: "error" }
+          )
+        }
       } catch {
         if (!active) return
         setShopOffersError("Không tải được ưu đãi từ shop.")
+        if (initialShopCouponCode) {
+          setLinkedShopOffer((current) =>
+            current.userOverridden ? current : { ...current, status: "error" }
+          )
+        }
       }
     })
     return () => {
       active = false
     }
-  }, [shop.code, product.id, reloadShopOffers])
+  }, [initialShopCouponCode, shop.code, product.id, reloadShopOffers])
 
   useEffect(() => {
     const update = () => setOfferTime(Date.now())
@@ -937,12 +981,99 @@ export function ProductCheckout({
                 icon={<TicketPercentIcon aria-hidden="true" />}
                 contentClassName="gap-4"
               >
+                {initialShopCouponCode ? (
+                  <Surface
+                    role={
+                      linkedShopOffer.status === "error" ||
+                      linkedShopOffer.status === "unavailable"
+                        ? "alert"
+                        : "status"
+                    }
+                    variant={
+                      linkedShopOffer.status === "error" ||
+                      linkedShopOffer.status === "unavailable"
+                        ? "danger"
+                        : initialShopOfferSelected
+                          ? "default"
+                          : "muted"
+                    }
+                    padding="sm"
+                    className="flex items-start gap-3"
+                  >
+                    <TicketPercentIcon
+                      aria-hidden="true"
+                      className="mt-0.5 size-5 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">
+                        {linkedShopOffer.status === "pending"
+                          ? "Đang kiểm tra ưu đãi được gắn..."
+                          : linkedShopOffer.status === "error"
+                            ? "Chưa thể kiểm tra ưu đãi được gắn"
+                            : linkedShopOffer.status === "unavailable"
+                              ? "Ưu đãi được gắn không còn khả dụng"
+                              : linkedShopOffer.status === "skipped"
+                                ? "Đã bỏ ưu đãi được gắn"
+                                : linkedShopOffer.status === "overridden"
+                                  ? "Bạn đã cập nhật ưu đãi từ shop"
+                                  : initialShopOfferSelected
+                                    ? "Đã tự động chọn ưu đãi từ shop"
+                                    : "Bạn đã thay đổi ưu đãi từ shop"}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 opacity-80">
+                        Mã{" "}
+                        <span className="font-semibold break-all">
+                          {initialShopCouponCode}
+                        </span>
+                        {linkedShopOffer.status === "pending"
+                          ? " đang được đối chiếu với sản phẩm này."
+                          : linkedShopOffer.status === "error"
+                            ? ". Hãy tải lại danh sách ưu đãi bên dưới."
+                            : linkedShopOffer.status === "unavailable"
+                              ? " đã hết hạn, hết lượt hoặc không còn áp dụng cho sản phẩm này."
+                              : linkedShopOffer.status === "skipped"
+                                ? ". Đơn hàng sẽ không sử dụng mã này."
+                                : initialShopOfferSelected
+                                  ? ". Mức giảm thực tế được hiển thị bên dưới."
+                                  : ". Lựa chọn mới của bạn sẽ được sử dụng."}
+                      </p>
+                      {linkedShopOffer.status === "error" ||
+                      linkedShopOffer.status === "unavailable" ? (
+                        <Button
+                          type="button"
+                          className="mt-2"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setLinkedShopOffer((current) =>
+                              overrideLinkedShopOfferSelection(
+                                current,
+                                "",
+                                true
+                              )
+                            )
+                          }
+                        >
+                          Mua không dùng ưu đãi này
+                        </Button>
+                      ) : null}
+                    </div>
+                  </Surface>
+                ) : null}
                 <ShopOfferSelector
                   offers={shopOffers}
                   subtotal={summary.subtotal}
                   remaining={summary.total}
                   selectedId={selectedShopOfferId}
-                  onSelect={setSelectedShopOfferId}
+                  onSelect={(id) =>
+                    setLinkedShopOffer((current) =>
+                      overrideLinkedShopOfferSelection(
+                        current,
+                        id,
+                        Boolean(initialShopCouponCode)
+                      )
+                    )
+                  }
                   pending={shopOffersPending}
                   error={shopOffersError}
                   onReload={() => setReloadShopOffers((value) => value + 1)}
