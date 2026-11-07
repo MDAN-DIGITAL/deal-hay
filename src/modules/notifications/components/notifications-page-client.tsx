@@ -1,35 +1,19 @@
 "use client"
 
 import { Surface } from "@/components/ui/surface"
-import type { ReactNode } from "react"
 
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import {
-  BellIcon,
-  ExternalLinkIcon,
-  MessageSquareWarningIcon,
-} from "lucide-react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 
 import { FormSubmitButton } from "@/components/form-submit-button"
-import { ChatPageLink } from "@/components/chat-page-link"
-import { parseChatNavigationTarget } from "@/modules/chats/lib/chat-navigation"
 import { DataPagination } from "@/components/layout/data-pagination"
 import { EmptyState } from "@/components/layout/empty-state"
 import { PageHeader } from "@/components/layout/page-header"
 import { useRealtime } from "@/components/realtime-provider"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Form,
   FormControl,
@@ -39,40 +23,17 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
-import { formatDate } from "@/lib/format"
 import { applyServerErrors } from "@/lib/form-utils"
 import type { PaginatedResponse } from "@/types/common"
 import type { AppNotification } from "@/types/notification"
 import { liveApiFetch } from "@/api/live-client"
+import { NotificationItem } from "@/modules/notifications/components/notification-item"
 import { useVisibleNotifications } from "@/modules/notifications/hooks/use-visible-notifications"
 import { notificationAppealAction } from "@/modules/notifications/actions"
 import {
   notificationAppealSchema,
   type NotificationAppealValues,
 } from "@/modules/notifications/schemas/notifications"
-
-function NotificationActionLink({
-  href,
-  onClick,
-  children,
-}: {
-  href: string
-  onClick: () => void
-  children: ReactNode
-}) {
-  const DestinationLink = parseChatNavigationTarget(href.split(/[?#]/, 1)[0])
-    ? ChatPageLink
-    : Link
-  return (
-    <DestinationLink
-      href={href}
-      onClick={onClick}
-      className={buttonVariants({ size: "sm", variant: "outline" })}
-    >
-      {children}
-    </DestinationLink>
-  )
-}
 
 function NotificationAppealForm({
   notificationId,
@@ -142,8 +103,11 @@ export function NotificationsPageClient({
   page: PaginatedResponse<AppNotification>
   currentUserId?: string
 }) {
+  const origin =
+    typeof window === "undefined" ? "https://dealhay.vn" : window.location.origin
   const [notificationPage, setNotificationPage] = useState(page)
   const [newNotificationCount, setNewNotificationCount] = useState(0)
+  const [now, setNow] = useState(() => Date.now())
   const notificationRevision = useRef(0)
   const knownNotificationIds = useRef(new Set(page.data.map(({ id }) => id)))
   const { echo, synchronizeUnreadCounts } = useRealtime()
@@ -192,6 +156,12 @@ export function NotificationsPageClient({
     "per_page" in page && typeof page.per_page === "number" && page.per_page > 0
       ? page.per_page
       : 20
+
+  useEffect(() => {
+    const update = () => setNow(Date.now())
+    const interval = window.setInterval(update, 60_000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     if (!echo || !currentUserId) return
@@ -324,72 +294,34 @@ export function NotificationsPageClient({
           </Link>
         </Surface>
       ) : null}
-      <div ref={containerRef} className="grid gap-4 lg:grid-cols-2">
-        {notificationPage.data.map((notification) => (
-          <Card
-            key={notification.id}
-            className={!notification.read_at ? "ring-primary/30" : undefined}
-          >
-            <CardHeader
-              data-notification-id={notification.id}
-              data-unread={!notification.read_at}
-              className="flex flex-row items-start justify-between gap-4"
-            >
-              <div className="flex min-w-0 gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
-                  <BellIcon className="size-4" />
-                </span>
-                <div>
-                  <CardTitle className="text-base">
-                    {notification.title}
-                  </CardTitle>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {notification.body}
-                  </p>
-                </div>
-              </div>
-              <Badge variant={notification.read_at ? "outline" : "default"}>
-                {notification.read_at ? "Đã đọc" : "Chưa đọc"}
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {formatDate(notification.created_at)}
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {notification.action_url ? (
-                  <NotificationActionLink
-                    href={notification.action_url}
-                    onClick={() => {
-                      void readVisible([notification.id]).catch(() => {})
-                    }}
-                  >
-                    <ExternalLinkIcon /> Xem chi tiết
-                  </NotificationActionLink>
-                ) : null}
-              </div>
-              <Accordion>
-                <AccordionItem value="appeal">
-                  <AccordionTrigger>
-                    <span className="flex items-center gap-2">
-                      <MessageSquareWarningIcon className="size-4" /> Cần hỗ trợ
-                      về thông báo này?
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent>
+      <div ref={containerRef}>
+        {notificationPage.data.length ? (
+          <Surface padding="none" className="overflow-hidden">
+            <ul className="divide-y divide-border">
+              {notificationPage.data.map((notification) => (
+                <NotificationItem
+                  key={notification.id}
+                  notification={notification}
+                  now={now}
+                  origin={origin}
+                  onOpen={() => {
+                    void readVisible([notification.id]).catch(() => {})
+                  }}
+                  appeal={
                     <NotificationAppealForm notificationId={notification.id} />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-        ))}
-        {notificationPage.data.length === 0 ? (
-          <EmptyState
-            title="Bạn chưa có thông báo"
-            description="Cập nhật về tài khoản, cửa hàng và hoạt động mua sắm sẽ xuất hiện tại đây."
-          />
-        ) : null}
+                  }
+                />
+              ))}
+            </ul>
+          </Surface>
+        ) : (
+          <div className="py-8">
+            <EmptyState
+              title="Bạn chưa có thông báo"
+              description="Cập nhật về tài khoản, cửa hàng và hoạt động mua sắm sẽ xuất hiện tại đây."
+            />
+          </div>
+        )}
       </div>
       <DataPagination
         currentPage={notificationPage.current_page}

@@ -1,19 +1,15 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
-import { AuthGuard } from "@/components/session-provider"
-import { AdminShopsPageContainer } from "@/modules/admin/containers/admin-shops-page-container"
+import PageLoading from "@/components/layout/page-loading"
+import { AdminShopsPageContent } from "./content"
 
 export const metadata: Metadata = { title: "Admin shop" }
 
-export default async function AdminShopsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ search?: string; status?: string; page?: string }>
-}) {
-  const { search, status, page } = await searchParams
+export default function AdminShopsPage() {
   return (
-    <AuthGuard admin>
-      <AdminShopsPageContainer search={search} status={status} page={page} />
-    </AuthGuard>
+    <Suspense fallback={<PageLoading />}>
+      <AdminShopsPageContent />
+    </Suspense>
   )
 }

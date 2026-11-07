@@ -1,19 +1,15 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
-import { AuthGuard } from "@/components/session-provider"
-import { ShopManagementPageContainer } from "@/modules/shop-management/containers/shop-management-page-container"
+import PageLoading from "@/components/layout/page-loading"
+import { ShopManagePageContent } from "./content"
 
 export const metadata: Metadata = { title: "Quản lý shop" }
 
-export default async function ShopManagePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ tab?: string }>
-}) {
-  const { tab } = await searchParams
+export default function ShopManagePage() {
   return (
-    <AuthGuard>
-      <ShopManagementPageContainer initialTab={tab} />
-    </AuthGuard>
+    <Suspense fallback={<PageLoading />}>
+      <ShopManagePageContent />
+    </Suspense>
   )
 }

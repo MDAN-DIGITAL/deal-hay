@@ -1,14 +1,15 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
+import PageLoading from "@/components/layout/page-loading"
 import { AuthenticatedAdminUsersPage } from "./content"
 
 export const metadata: Metadata = { title: "Admin người dùng" }
 
-export default async function AdminUsersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>
-}) {
-  const { page } = await searchParams
-  return <AuthenticatedAdminUsersPage page={page} />
+export default function AdminUsersPage() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <AuthenticatedAdminUsersPage />
+    </Suspense>
+  )
 }

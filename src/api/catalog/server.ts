@@ -6,7 +6,6 @@ import { catalogRoutes } from "@/api/catalog/routes"
 import type {
   HomeResponse,
   ProductResponse,
-  ShopResponse,
 } from "@/api/catalog/types"
 
 export type PublicCatalogResult<T> =
@@ -42,15 +41,6 @@ function isHome(value: unknown): value is HomeResponse {
     Array.isArray(value.categories) &&
     object(value.filters) &&
     typeof value.filters.category === "string"
-  )
-}
-
-function isShop(value: unknown): value is ShopResponse {
-  return (
-    object(value) &&
-    hasShop(value.shop) &&
-    Array.isArray(value.products) &&
-    Array.isArray(value.categories)
   )
 }
 
@@ -100,17 +90,6 @@ export const getPublicHome = cache((category?: string) =>
     { path: catalogRoutes.home, searchParams: { category } },
     isHome
   )
-)
-
-export const getPublicShop = cache(
-  (shopUserCode: string, category?: string, page?: string) =>
-    readPublicCatalog(
-      {
-        path: catalogRoutes.shop(encodeURIComponent(shopUserCode)),
-        searchParams: { category, page },
-      },
-      isShop
-    )
 )
 
 export const getPublicProduct = cache(

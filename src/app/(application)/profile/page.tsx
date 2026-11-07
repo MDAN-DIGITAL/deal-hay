@@ -1,19 +1,15 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
-import { AuthGuard } from "@/components/session-provider"
-import { ProfilePageContainer } from "@/modules/profile/containers/profile-page-container"
+import PageLoading from "@/components/layout/page-loading"
+import { ProfilePageContent } from "./content"
 
 export const metadata: Metadata = { title: "Hồ sơ của tôi" }
 
-export default async function ProfilePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ tab?: string }>
-}) {
-  const { tab } = await searchParams
+export default function ProfilePage() {
   return (
-    <AuthGuard>
-      <ProfilePageContainer tab={tab} />
-    </AuthGuard>
+    <Suspense fallback={<PageLoading />}>
+      <ProfilePageContent />
+    </Suspense>
   )
 }

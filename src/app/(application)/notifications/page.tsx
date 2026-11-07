@@ -1,19 +1,15 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
-import { AuthGuard } from "@/components/session-provider"
-import { NotificationsPageContainer } from "@/modules/notifications/containers/notifications-page-container"
+import PageLoading from "@/components/layout/page-loading"
+import { NotificationsPageContent } from "./content"
 
 export const metadata: Metadata = { title: "Thông báo" }
 
-export default async function NotificationsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>
-}) {
-  const { page } = await searchParams
+export default function NotificationsPage() {
   return (
-    <AuthGuard>
-      <NotificationsPageContainer page={page} />
-    </AuthGuard>
+    <Suspense fallback={<PageLoading />}>
+      <NotificationsPageContent />
+    </Suspense>
   )
 }

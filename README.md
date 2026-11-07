@@ -1,6 +1,6 @@
 # Deal Hay frontend
 
-Next.js App Router dùng cho giao diện và điều hướng, deploy trên Vercel. Catalog công khai có HTML server từ request GET không xác thực; dữ liệu riêng tư và các thao tác tương tác vẫn gọi trực tiếp `deal-hay-api` qua HTTP, chat dùng `deal-hay-wss` qua Socket.IO. Dự án không chứa Server Actions, proxy backend hoặc WebSocket server. `robots.txt` và `sitemap.xml` là metadata routes của Next.js.
+Next.js App Router dùng cho giao diện và điều hướng, deploy trên Vercel. Chỉ trang chủ và chi tiết sản phẩm tải dữ liệu công khai trên server để phục vụ SEO. Trang shop và các trang tài khoản/nghiệp vụ dùng khung tĩnh, đọc tham số URL và tải dữ liệu trực tiếp trên trình duyệt; các thao tác tương tác gọi `deal-hay-api` qua HTTP, chat dùng `deal-hay-wss` qua Socket.IO. Dự án không chứa Server Actions, proxy backend hoặc WebSocket server. `robots.txt` và `sitemap.xml` là metadata routes của Next.js.
 
 ## Phát triển
 
@@ -52,7 +52,7 @@ npm run lint
 npm run build
 ```
 
-Build cần `NEXT_PUBLIC_API_URL` hợp lệ; không cần API đang chạy. Catalog công khai dùng GET phía server tại thời điểm request, có thời hạn chờ và fallback; dữ liệu tài khoản/tương tác tiếp tục được tải trên browser.
+Build cần `NEXT_PUBLIC_API_URL` hợp lệ; không cần API đang chạy. Trang chủ và chi tiết sản phẩm dùng GET công khai phía server, có thời hạn chờ và fallback. Các trang còn lại đọc query trên browser dưới `Suspense`, tránh chuyển route tĩnh thành SSR chỉ để truyền bộ lọc, tab hoặc phân trang. Các đường dẫn động như shop, chat và checkout có thể cần tạo khung theo đường dẫn, nhưng không tải dữ liệu nghiệp vụ trên server.
 
 Hướng dẫn ảnh: [browser-image-uploads.md](../deal-hay-api/docs/browser-image-uploads.md). Realtime: [socketio-validation.md](docs/socketio-validation.md).
 Upload nhiều ảnh: [image-upload-concurrency.md](docs/image-upload-concurrency.md).

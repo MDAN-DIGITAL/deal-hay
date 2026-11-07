@@ -32,7 +32,6 @@ const api = transpile("../src/api/client.ts", {
 })
 const {
   getPublicHome,
-  getPublicShop,
   getPublicProduct,
   PUBLIC_CATALOG_TIMEOUT_MS,
   PUBLIC_CATALOG_REVALIDATE_SECONDS,
@@ -78,9 +77,9 @@ const json = (body, status = 200) =>
     headers: { "Content-Type": "application/json" },
   })
 
-test("server catalog requests are anonymous, bounded and encode route segments and filters", async (t) => {
+test("server catalog requests for the home and product pages are anonymous and bounded", async (t) => {
   const calls = []
-  const replies = [home, shop, product]
+  const replies = [home, product]
   t.mock.method(globalThis, "fetch", async (url, options) => {
     calls.push({ url, options })
     return json(replies[calls.length - 1])
@@ -88,10 +87,6 @@ test("server catalog requests are anonymous, bounded and encode route segments a
   assert.deepEqual(await getPublicHome("Công nghệ & Đời sống"), {
     status: "ready",
     data: home,
-  })
-  assert.deepEqual(await getPublicShop("AN STORE", "Đồ dùng", "2"), {
-    status: "ready",
-    data: shop,
   })
   assert.deepEqual(await getPublicProduct("AN STORE", "loa/đỏ?#"), {
     status: "ready",
@@ -110,19 +105,16 @@ test("server catalog requests are anonymous, bounded and encode route segments a
     new URL(calls[0].url).searchParams.get("category"),
     "Công nghệ & Đời sống"
   )
-  assert.equal(new URL(calls[1].url).pathname, "/api/shops/AN%20STORE")
-  assert.equal(new URL(calls[1].url).searchParams.get("page"), "2")
   assert.equal(
-    new URL(calls[2].url).pathname,
+    new URL(calls[1].url).pathname,
     "/api/shops/AN%20STORE/products/loa%2F%C4%91%E1%BB%8F%3F%23"
   )
 })
 
-test("hidden or missing public resources retain a distinct not-found result", async (t) => {
+test("hidden or missing product resources retain a distinct not-found result", async (t) => {
   t.mock.method(globalThis, "fetch", async () =>
     json({ message: "Missing" }, 404)
   )
-  assert.deepEqual(await getPublicShop("missing"), { status: "not-found" })
   assert.deepEqual(await getPublicProduct("shop", "hidden"), {
     status: "not-found",
   })
@@ -167,7 +159,6 @@ test("unexpected HTML or malformed JSON cannot become a server catalog snapshot"
   )
   assert.deepEqual(await getPublicHome(), { status: "unavailable" })
   t.mock.method(globalThis, "fetch", async () => json({ data: null }))
-  assert.deepEqual(await getPublicShop("shop"), { status: "unavailable" })
   assert.deepEqual(await getPublicProduct("shop", "product"), {
     status: "unavailable",
   })

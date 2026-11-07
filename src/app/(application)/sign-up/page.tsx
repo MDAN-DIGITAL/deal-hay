@@ -1,15 +1,15 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
-import { getSafeAuthRedirect } from "@/lib/auth-redirect"
-import { SignUpPageContainer } from "@/modules/auth/containers/sign-up-page-container"
+import PageLoading from "@/components/layout/page-loading"
+import { SignUpPageContent } from "./content"
 
 export const metadata: Metadata = { title: "Đăng ký" }
 
-export default async function SignUpPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ redirect?: string | string[] }>
-}) {
-  const { redirect } = await searchParams
-  return <SignUpPageContainer redirectTo={getSafeAuthRedirect(redirect)} />
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <SignUpPageContent />
+    </Suspense>
+  )
 }
