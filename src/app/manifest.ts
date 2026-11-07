@@ -4,14 +4,15 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
     name: "Deal Hay",
-    short_name: "Deal Hay",
-    description: "Nhắn tin với cửa hàng và nhận thông báo từ Deal Hay.",
+    short_name: "DealHay",
+    description:
+      "Khám phá sản phẩm, kết nối với cửa hàng và săn deal hay mỗi ngày.",
     lang: "vi",
     start_url: "/",
     scope: "/",
     display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#6d28d9",
+    background_color: "#f7f8fa",
+    theme_color: "#c84b1f",
     icons: [
       {
         src: "/notification-icon-192.png",
@@ -24,6 +25,12 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
+      },
+      {
+        src: "/notification-icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
   }

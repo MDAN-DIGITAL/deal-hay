@@ -92,11 +92,12 @@ test("credentials, non-HTTP schemes, paths, query and fragments cannot become ca
   }
 })
 
-test("robots advertises the canonical sitemap while excluding account and checkout routes", () => {
+test("robots advertises the canonical sitemap and lets crawlers observe HTML noindex", () => {
   const result = robots()
   assert.equal(result.sitemap, "https://dealhay.example.test/sitemap.xml")
   assert.equal(result.rules.allow, "/")
-  for (const privateRoute of [
+  assert.deepEqual(result.rules.disallow, ["/api/", "/private/"])
+  for (const noindexRoute of [
     "/admin",
     "/chats",
     "/profile",
@@ -105,8 +106,9 @@ test("robots advertises the canonical sitemap while excluding account and checko
     "/sign-in",
     "/reset-password",
     "/shops/*/products/*/checkout",
+    "/shops/*/products/*/checkout",
   ])
-    assert.ok(result.rules.disallow.includes(privateRoute), privateRoute)
+    assert.ok(!result.rules.disallow.includes(noindexRoute), noindexRoute)
   for (const publicRoute of ["/privacy", "/terms", "/shops"])
     assert.ok(!result.rules.disallow.includes(publicRoute), publicRoute)
 })

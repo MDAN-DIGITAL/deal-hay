@@ -2,6 +2,13 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { getPublicShop, PUBLIC_CATALOG_ERROR } from "@/api/catalog/server"
+import {
+  absoluteSiteUrl,
+  BRAND_OPEN_GRAPH_IMAGE,
+  BRAND_TWITTER_IMAGE,
+  seoImageUrl,
+  shopPath,
+} from "@/lib/seo"
 import { ShopPageContainer } from "@/modules/public/containers/shop-page-container"
 
 type ShopPageProps = {
@@ -28,14 +35,48 @@ async function loadShopPage({ params, searchParams }: ShopPageProps) {
 export async function generateMetadata(
   props: ShopPageProps
 ): Promise<Metadata> {
-  const { result } = await loadShopPage(props)
-  return result.status === "ready"
-    ? {
-        title: result.data.shop.name,
-        description:
-          `Khám phá sản phẩm tại ${result.data.shop.name} trên Deal Hay. ${result.data.shop.address}`.trim(),
-      }
-    : { title: "Gian hàng" }
+  const { shopUserCode, result } = await loadShopPage(props)
+  const path = shopPath(shopUserCode)
+  const canonical = absoluteSiteUrl(path)
+  const fallback: Metadata = {
+    title: "Gian hàng",
+    alternates: { canonical },
+  }
+  if (result.status !== "ready") return fallback
+
+  const { shop } = result.data
+  const description =
+    `Khám phá sản phẩm tại ${shop.name} trên Deal Hay. ${shop.address}`.trim()
+  const image = seoImageUrl(shop.avatar_url)
+  return {
+    title: shop.name,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: "website",
+      locale: "vi_VN",
+      url: canonical,
+      siteName: "Deal Hay",
+      title: `${shop.name} | Deal Hay`,
+      description,
+      images: [
+        image
+          ? { url: image, alt: shop.name }
+          : {
+              url: BRAND_OPEN_GRAPH_IMAGE,
+              width: 1200,
+              height: 630,
+              alt: "Deal Hay – Mua sắm và săn deal tốt",
+            },
+      ],
+    },
+    twitter: {
+      card: "summary",
+      title: `${shop.name} | Deal Hay`,
+      description: `Khám phá sản phẩm tại ${shop.name} trên Deal Hay.`,
+      images: [image ?? BRAND_TWITTER_IMAGE],
+    },
+  }
 }
 
 export default async function ShopPage(props: ShopPageProps) {

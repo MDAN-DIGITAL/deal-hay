@@ -1,7 +1,32 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
-export const metadata: Metadata = { title: "Chính sách bảo mật" }
+import { BRAND_OPEN_GRAPH_IMAGE, BRAND_TWITTER_IMAGE } from "@/lib/seo"
+
+export const metadata: Metadata = {
+  title: "Chính sách bảo mật",
+  description:
+    "Chính sách về dữ liệu tài khoản, giao dịch, quảng cáo và quyền riêng tư khi sử dụng Deal Hay.",
+  alternates: { canonical: "/privacy" },
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    locale: "vi_VN",
+    url: "/privacy",
+    siteName: "Deal Hay",
+    title: "Chính sách bảo mật | Deal Hay",
+    description:
+      "Chính sách về dữ liệu tài khoản, giao dịch, quảng cáo và quyền riêng tư khi sử dụng Deal Hay.",
+    images: [BRAND_OPEN_GRAPH_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Chính sách bảo mật | Deal Hay",
+    description:
+      "Chính sách về dữ liệu tài khoản, giao dịch, quảng cáo và quyền riêng tư khi sử dụng Deal Hay.",
+    images: [BRAND_TWITTER_IMAGE],
+  },
+}
 
 export default function PrivacyPage() {
   return (

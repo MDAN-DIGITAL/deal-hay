@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">Logo Deal Hay</title>
+  <desc id="description">Biểu tượng thẻ deal kết hợp bong bóng trò chuyện và chữ D.</desc>
+  <path fill="#C84B1F" d="M13 5h27.6c2.1 0 4.2.9 5.7 2.4l10.3 10.3a8 8 0 0 1 2.4 5.7V47a9 9 0 0 1-9 9H31L18 63V56h-5a9 9 0 0 1-9-9V14a9 9 0 0 1 9-9Z"/>
+  <circle cx="45.5" cy="18.5" r="3.5" fill="#F8EDE7"/>
+  <path fill="#FFF" fill-rule="evenodd" d="M18 18h9.2C37.7 18 45 23.6 45 32s-7.3 14-17.8 14H18V18Zm7 7v14h2.4C33.7 39 38 36.4 38 32s-4.3-7-10.6-7H25Z"/>
+</svg>

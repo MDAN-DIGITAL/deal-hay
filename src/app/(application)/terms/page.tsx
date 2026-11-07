@@ -1,7 +1,32 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
-export const metadata: Metadata = { title: "Điều khoản sử dụng" }
+import { BRAND_OPEN_GRAPH_IMAGE, BRAND_TWITTER_IMAGE } from "@/lib/seo"
+
+export const metadata: Metadata = {
+  title: "Điều khoản sử dụng",
+  description:
+    "Các điều khoản về tài khoản, mua bán, ưu đãi, đánh giá và hỗ trợ trên Deal Hay.",
+  alternates: { canonical: "/terms" },
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    locale: "vi_VN",
+    url: "/terms",
+    siteName: "Deal Hay",
+    title: "Điều khoản sử dụng | Deal Hay",
+    description:
+      "Các điều khoản về tài khoản, mua bán, ưu đãi, đánh giá và hỗ trợ trên Deal Hay.",
+    images: [BRAND_OPEN_GRAPH_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Điều khoản sử dụng | Deal Hay",
+    description:
+      "Các điều khoản về tài khoản, mua bán, ưu đãi, đánh giá và hỗ trợ trên Deal Hay.",
+    images: [BRAND_TWITTER_IMAGE],
+  },
+}
 
 export default function TermsPage() {
   return (

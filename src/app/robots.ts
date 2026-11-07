@@ -7,24 +7,9 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: [
-        "/admin",
-        "/api/",
-        "/private/",
-        "/chats",
-        "/notifications",
-        "/discount-codes",
-        "/diagnostics",
-        "/profile",
-        "/shop-manage",
-        "/sell",
-        "/sign-in",
-        "/sign-up",
-        "/forgot-password",
-        "/reset-password",
-        "/forbidden",
-        "/shops/*/products/*/checkout",
-      ],
+      // HTML account routes stay crawlable so their noindex metadata can be
+      // observed. Robots rules are not access control and cannot deindex URLs.
+      disallow: ["/api/", "/private/"],
     },
     sitemap: new URL("/sitemap.xml", SITE_URL).href,
   }

@@ -2,8 +2,13 @@ import type { Metadata } from "next"
 
 import "@/app/globals.css"
 import NotFound from "@/components/layout/page-not-found"
+import { SITE_URL } from "@/config/site"
 
-export const metadata: Metadata = { title: "Không tìm thấy trang | Deal Hay" }
+export const metadata: Metadata = {
+  metadataBase: SITE_URL,
+  title: "Không tìm thấy trang | Deal Hay",
+  robots: { index: false, follow: false },
+}
 
 export default function GlobalNotFound() {
   return (
