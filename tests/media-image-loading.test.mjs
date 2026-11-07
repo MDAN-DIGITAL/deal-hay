@@ -40,7 +40,9 @@ const state = moduleUrl(`
 const widgets = moduleUrl(`
   export default "next-image"
   export const ImageIcon="image-icon"
+  export const env={API_URL:"https://api.example.test/api"}
   export const apiAssetUrl=(value)=>value||undefined
+  export const isPublicMediaAssetUrl=(value,apiUrl)=>value.startsWith(apiUrl+"/media/assets/")
   export const Button="button"
   export const cn=(...values)=>values.flat().filter(Boolean).join(" ")
 `)
@@ -53,6 +55,7 @@ const { MediaImage } = await import(
     "lucide-react": widgets,
     "@/components/ui/button": widgets,
     "@/config/env": widgets,
+    "@/lib/public-media-url": widgets,
     "@/lib/utils": widgets,
   })
 )
@@ -70,7 +73,7 @@ function renderImage(props = {}) {
   stateModule.reset()
   return MediaImage({
     alt: "Ảnh sản phẩm",
-    src: "https://api.example.test/media/product.webp",
+    src: "https://api.example.test/api/media/assets/product.webp",
     ...props,
   })
 }
@@ -82,6 +85,7 @@ test("media images expose a stable loading state, priority and local retry", () 
   assert.equal(tree.props["data-image-state"], "loading")
   assert.equal(image.props.fetchPriority, "high")
   assert.equal(image.props.decoding, "async")
+  assert.equal(image.props.unoptimized, false)
   assert.match(image.props.className, /opacity-0/)
 
   image.props.onLoad()
@@ -106,13 +110,40 @@ test("media images expose a stable loading state, priority and local retry", () 
   assert.match(String(image.key), /:1$/)
 })
 
+test("media images only optimize public API assets and forward onLoad", () => {
+  stateModule.clear()
+  let loaded = 0
+  let tree = renderImage({ onLoad: () => loaded++ })
+  let image = nodes(tree).find(({ type }) => type === "next-image")
+  image.props.onLoad()
+  assert.equal(loaded, 1)
+
+  stateModule.clear()
+  tree = renderImage({ src: "https://images.example.test/product.webp" })
+  image = nodes(tree).find(({ type }) => type === "next-image")
+  assert.equal(image.props.unoptimized, true)
+
+  stateModule.clear()
+  tree = renderImage({ src: "blob:https://dealhay.example/preview" })
+  image = nodes(tree).find(({ type }) => type === "next-image")
+  assert.equal(image.props.unoptimized, true)
+})
+
 test("product gallery prioritizes only the selected full-size image", async () => {
   const galleryWidgets = moduleUrl(`
+    let cursor=0
+    const states=[]
+    export const reset=()=>{cursor=0}
     export const useMemo=(read)=>read()
-    export const useState=(initial)=>[initial,()=>{}]
+    export const useState=(initial)=>{
+      const index=cursor++
+      if (!(index in states)) states[index]=typeof initial==="function"?initial():initial
+      return [states[index],(next)=>{states[index]=typeof next==="function"?next(states[index]):next}]
+    }
     export const MediaImage="media-image"
     export const Button="button",Card="card",CardContent="card-content"
   `)
+  const galleryState = await import(galleryWidgets)
   const { ProductGallery } = await import(
     transpile("../src/modules/public/components/product-gallery.tsx", {
       "react/jsx-runtime": jsx,
@@ -122,19 +153,39 @@ test("product gallery prioritizes only the selected full-size image", async () =
       "@/components/ui/card": galleryWidgets,
     })
   )
-  const images = nodes(
-    ProductGallery({
-      name: "Điện thoại",
-      imageUrl: "primary.webp",
-      images: [{ id: "second", image_url: "second.webp" }],
-    })
-  ).filter(({ type }) => type === "media-image")
+  const props = {
+    name: "Điện thoại",
+    imageUrl: "primary.webp",
+    images: [{ id: "second", image_url: "second.webp" }],
+  }
+  galleryState.reset()
+  let images = nodes(ProductGallery(props)).filter(
+    ({ type }) => type === "media-image"
+  )
 
+  assert.equal(images.length, 1)
   assert.equal(images[0].props.fetchPriority, "high")
   assert.equal(images[0].props.loading, "eager")
   assert.equal(images[0].props.retryable, true)
+  images[0].props.onLoad()
+
+  galleryState.reset()
+  images = nodes(ProductGallery(props)).filter(
+    ({ type }) => type === "media-image"
+  )
+  assert.equal(images.length, 3)
   assert.deepEqual(
     images.slice(1).map(({ props }) => props.fetchPriority),
     ["low", "low"]
   )
+
+  galleryState.reset()
+  images = nodes(
+    ProductGallery({
+      ...props,
+      imageUrl: "new-primary.webp",
+      images: [{ id: "new-second", image_url: "new-second.webp" }],
+    })
+  ).filter(({ type }) => type === "media-image")
+  assert.equal(images.length, 1)
 })

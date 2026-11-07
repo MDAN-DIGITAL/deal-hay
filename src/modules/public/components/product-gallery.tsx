@@ -37,6 +37,9 @@ export function ProductGallery({
   const activeUrl = gallery.some((image) => image.image_url === selectedUrl)
     ? selectedUrl
     : (gallery[0]?.image_url ?? null)
+  const galleryKey = gallery[0]?.image_url ?? null
+  const [loadedGalleryKey, setLoadedGalleryKey] = useState<string | null>(null)
+  const thumbnailsReady = galleryKey !== null && loadedGalleryKey === galleryKey
 
   return (
     <div className="space-y-3">
@@ -61,30 +64,41 @@ export function ProductGallery({
             retryable
             sizes="(max-width: 1024px) 100vw, 55vw"
             src={activeUrl}
+            onLoad={() => setLoadedGalleryKey(galleryKey)}
           />
         </CardContent>
       </Card>
       {gallery.length > 1 ? (
         <div className="grid grid-cols-5 gap-2 sm:grid-cols-7">
-          {gallery.map((image, index) => (
-            <Button
-              key={image.id}
-              aria-label={`Xem ảnh ${index + 1} của ${name}`}
-              aria-pressed={activeUrl === image.image_url}
-              className="h-auto overflow-hidden p-0"
-              variant={activeUrl === image.image_url ? "default" : "outline"}
-              onClick={() => setSelectedUrl(image.image_url)}
-            >
-              <MediaImage
-                alt=""
-                className="aspect-square w-full"
-                fallbackLabel="Ảnh lỗi"
-                fetchPriority="low"
-                sizes="120px"
-                src={image.image_url}
-              />
-            </Button>
-          ))}
+          {thumbnailsReady
+            ? gallery.map((image, index) => (
+                <Button
+                  key={image.id}
+                  aria-label={`Xem ảnh ${index + 1} của ${name}`}
+                  aria-pressed={activeUrl === image.image_url}
+                  className="h-auto overflow-hidden p-0"
+                  variant={
+                    activeUrl === image.image_url ? "default" : "outline"
+                  }
+                  onClick={() => setSelectedUrl(image.image_url)}
+                >
+                  <MediaImage
+                    alt=""
+                    className="aspect-square w-full"
+                    fallbackLabel="Ảnh lỗi"
+                    fetchPriority="low"
+                    sizes="120px"
+                    src={image.image_url}
+                  />
+                </Button>
+              ))
+            : gallery.map((image) => (
+                <div
+                  key={image.id}
+                  aria-hidden="true"
+                  className="aspect-square animate-pulse rounded-md bg-muted"
+                />
+              ))}
         </div>
       ) : null}
     </div>

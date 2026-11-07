@@ -1,7 +1,21 @@
 import type { NextConfig } from "next"
 
+import { publicMediaRemotePattern } from "./src/lib/public-media-url"
+
+const publicMediaPattern = publicMediaRemotePattern(
+  process.env.NEXT_PUBLIC_API_URL
+)
+
 const nextConfig: NextConfig = {
-  images: { unoptimized: true },
+  images: {
+    remotePatterns: publicMediaPattern ? [publicMediaPattern] : [],
+    qualities: [75],
+    formats: ["image/webp"],
+    minimumCacheTTL: 31 * 24 * 60 * 60,
+    maximumRedirects: 0,
+    maximumResponseBody: 64 * 1024,
+    dangerouslyAllowLocalIP: process.env.NODE_ENV !== "production",
+  },
   async headers() {
     return [
       {

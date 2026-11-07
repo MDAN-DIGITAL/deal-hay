@@ -4,8 +4,9 @@ import Image from "next/image"
 import { ImageIcon } from "lucide-react"
 import { useState } from "react"
 
-import { apiAssetUrl } from "@/config/env"
 import { Button } from "@/components/ui/button"
+import { apiAssetUrl, env } from "@/config/env"
+import { isPublicMediaAssetUrl } from "@/lib/public-media-url"
 import { cn } from "@/lib/utils"
 
 type MediaImageProps = {
@@ -18,6 +19,7 @@ type MediaImageProps = {
   loading?: "eager" | "lazy"
   retryable?: boolean
   sizes?: string
+  onLoad?: () => void
 }
 
 export function MediaImage({
@@ -30,6 +32,7 @@ export function MediaImage({
   loading = "lazy",
   retryable = false,
   sizes = "100vw",
+  onLoad,
 }: MediaImageProps) {
   const normalizedSrc = apiAssetUrl(src?.trim()) || null
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
@@ -63,7 +66,7 @@ export function MediaImage({
           <Image
             key={`${normalizedSrc}:${attempt}`}
             fill
-            unoptimized
+            unoptimized={!isPublicMediaAssetUrl(normalizedSrc, env.API_URL)}
             alt={alt}
             className={cn(
               "object-cover transition-opacity duration-200",
@@ -76,7 +79,10 @@ export function MediaImage({
             sizes={sizes}
             src={normalizedSrc}
             onError={() => setFailedSrc(normalizedSrc)}
-            onLoad={() => setLoadedSrc(normalizedSrc)}
+            onLoad={() => {
+              setLoadedSrc(normalizedSrc)
+              onLoad?.()
+            }}
           />
         </>
       ) : (
