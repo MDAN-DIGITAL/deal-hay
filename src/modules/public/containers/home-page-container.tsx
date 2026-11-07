@@ -158,7 +158,7 @@ export function HomePageContainer({
             {data.categories.map((item) => (
               <Link
                 key={item}
-                href={`/?category=${encodeURIComponent(item)}`}
+                href={`/?${new URLSearchParams({ category: item })}`}
                 className={buttonVariants({
                   variant: activeCategory === item ? "default" : "outline",
                 })}
