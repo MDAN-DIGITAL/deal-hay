@@ -5,12 +5,11 @@ import Link from "next/link"
 import {
   ArrowRightIcon,
   BadgeCheckIcon,
+  CirclePlayIcon,
   MapPinIcon,
-  MessageCircleIcon,
   PackageSearchIcon,
   ShoppingBagIcon,
-  SparklesIcon,
-  StoreIcon,
+  TicketPercentIcon,
 } from "lucide-react"
 
 import { getHome } from "@/api/catalog/queries"
@@ -27,7 +26,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { StatCard } from "@/components/ui/section"
 import { UserAvatar } from "@/components/user-avatar"
 import { ProductCard } from "@/modules/public/components/product-card"
 
@@ -65,65 +63,35 @@ export function HomePageContainer({
           : undefined
       }
     >
-      <Card className="py-0">
-        <CardContent className="grid gap-8 py-7 sm:py-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
-          <div className="space-y-6">
-            <Badge className="w-fit" variant="secondary">
-              <SparklesIcon /> Deal mới được cập nhật mỗi ngày
-            </Badge>
-            <div className="max-w-3xl space-y-4">
-              <h1 className="font-heading text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl lg:text-5xl">
-                Tìm đúng món đồ.
-                <br />
-                <span className="text-primary">Chốt đúng deal hay.</span>
-              </h1>
-              <p className="max-w-xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Khám phá sản phẩm từ nhiều gian hàng, xem đánh giá thật và trao
-                đổi trực tiếp với người bán trước khi quyết định.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href="#san-pham" className={buttonVariants({ size: "lg" })}>
-                Khám phá sản phẩm <ArrowRightIcon data-icon="inline-end" />
-              </Link>
-              <Link
-                href="/sell"
-                className={buttonVariants({
-                  size: "lg",
-                  variant: "outline",
-                })}
-              >
-                Bắt đầu bán hàng
-              </Link>
-            </div>
+      <Card
+        id="cach-thuc-hoat-dong"
+        className="scroll-mt-28 border-neutral-800 bg-neutral-950 py-0 text-neutral-50 shadow-lg shadow-black/10"
+      >
+        <CardContent className="items-center gap-5 px-5 py-9 text-center sm:px-8 sm:py-12">
+          <div className="max-w-3xl space-y-3">
+            <h1 className="font-heading text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl lg:text-5xl">
+              Mua sắm thông minh, tiết kiệm hơn
+            </h1>
+            <p className="text-sm leading-7 text-neutral-300 sm:text-base">
+              Xem quảng cáo tự nguyện để mở khóa giá ưu đãi từ người bán.
+            </p>
           </div>
-
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-1">
-            {[
-              {
-                icon: ShoppingBagIcon,
-                value: data.products.total,
-                label: "Sản phẩm đang bán",
-              },
-              {
-                icon: StoreIcon,
-                value: data.featuredShops.length,
-                label: "Gian hàng nổi bật",
-              },
-              {
-                icon: MessageCircleIcon,
-                value: "Trực tiếp",
-                label: "Trao đổi với người bán",
-              },
-            ].map((item) => (
-              <StatCard
-                compact
-                key={item.label}
-                icon={<item.icon />}
-                value={item.value}
-                label={item.label}
-              />
-            ))}
+          <div
+            aria-label="Mua hàng, xem quảng cáo tự nguyện và nhận giá ưu đãi"
+            className="flex items-center justify-center gap-3 text-neutral-400"
+            role="img"
+          >
+            <ShoppingBagIcon aria-hidden="true" className="size-5" />
+            <ArrowRightIcon aria-hidden="true" className="size-4" />
+            <CirclePlayIcon
+              aria-hidden="true"
+              className="size-5 text-neutral-200"
+            />
+            <ArrowRightIcon aria-hidden="true" className="size-4" />
+            <TicketPercentIcon
+              aria-hidden="true"
+              className="size-5 text-emerald-400"
+            />
           </div>
         </CardContent>
       </Card>

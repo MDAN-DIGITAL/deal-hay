@@ -974,7 +974,10 @@ export function ProductCheckout({
               </Section>
             </section>
 
-            <section aria-labelledby="checkout-discount-title">
+            <section
+              className="scroll-mt-28"
+              aria-labelledby="checkout-discount-title"
+            >
               <Section
                 title={<h2 id="checkout-discount-title">Ưu đãi của bạn</h2>}
                 description={<>Chọn mã giảm tiền hàng và ưu đãi vận chuyển.</>}

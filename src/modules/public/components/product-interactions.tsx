@@ -5,6 +5,7 @@ import { useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   BadgeCheckIcon,
+  CirclePlayIcon,
   HeartIcon,
   PackageCheckIcon,
   PaperclipIcon,
@@ -230,6 +231,16 @@ export function ProductInteractions({
       : displayedPrice
   const displayedStock =
     selectedVariant?.stock ?? (hasVariants ? 0 : product.stock)
+  const hasOfferPrice = regularPrice > displayedPrice
+  const savings = Math.max(0, regularPrice - displayedPrice)
+  const checkoutHref = productCheckoutHref(shop.code, product.slug, {
+    variantId: selectedVariant?.id,
+    discountCode: initialDiscountCode,
+    shopCouponCode: initialShopCouponCode,
+  })
+  const offerCheckoutHref = `${checkoutHref}#checkout-discount-title`
+  const checkoutDisabled =
+    isPending || displayedStock < 1 || (hasVariants && !selectedVariant)
 
   const runAction = (
     action: () => Promise<unknown>,
@@ -267,10 +278,31 @@ export function ProductInteractions({
           </CardDescription>
         </CardHeader>
         <CardContent className="gap-5">
-          <div aria-live="polite" className="space-y-1">
-            <p className="text-3xl font-semibold text-primary">
-              {formatCurrency(regularPrice)}
-            </p>
+          <div aria-live="polite" className="space-y-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">
+                Giá mua ngay
+              </p>
+              <p className="text-3xl font-semibold">
+                {formatCurrency(regularPrice)}
+              </p>
+            </div>
+            {hasOfferPrice ? (
+              <>
+                <Separator />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Giá ưu đãi qua quảng cáo
+                  </p>
+                  <p className="text-3xl font-semibold text-primary">
+                    {formatCurrency(displayedPrice)}
+                  </p>
+                  <p className="text-sm font-medium text-primary">
+                    Tiết kiệm {formatCurrency(savings)} so với giá mua ngay
+                  </p>
+                </div>
+              </>
+            ) : null}
           </div>
           {initialShopCouponCode ? (
             <Surface
@@ -380,23 +412,85 @@ export function ProductInteractions({
             </p>
           ) : null}
 
-          {isPending ||
-          displayedStock < 1 ||
-          (hasVariants && !selectedVariant) ? (
-            <Button className="w-full" disabled size="lg">
-              <ShoppingBagIcon /> Đặt hàng
-            </Button>
+          {checkoutDisabled ? (
+            <div className="space-y-3">
+              {hasOfferPrice ? (
+                <Button
+                  className="h-auto min-h-12 w-full gap-3 py-3 whitespace-normal"
+                  disabled
+                  size="lg"
+                >
+                  <CirclePlayIcon />
+                  <span className="flex flex-col items-start leading-tight">
+                    <span>Mua với ưu đãi</span>
+                    <span className="text-xs font-normal opacity-80">
+                      Xem ưu đãi ở bước thanh toán
+                    </span>
+                  </span>
+                </Button>
+              ) : null}
+              <Button
+                className="h-auto min-h-12 w-full gap-3 py-3 whitespace-normal"
+                disabled
+                size="lg"
+                variant={hasOfferPrice ? "outline" : "default"}
+              >
+                <ShoppingBagIcon />
+                <span className="flex flex-col items-start leading-tight">
+                  <span>Mua ngay</span>
+                  {hasOfferPrice ? (
+                    <span className="text-xs font-normal text-muted-foreground">
+                      Không cần xem quảng cáo
+                    </span>
+                  ) : null}
+                </span>
+              </Button>
+            </div>
           ) : (
-            <Link
-              className={buttonVariants({ className: "w-full", size: "lg" })}
-              href={productCheckoutHref(shop.code, product.slug, {
-                variantId: selectedVariant?.id,
-                discountCode: initialDiscountCode,
-                shopCouponCode: initialShopCouponCode,
-              })}
-            >
-              <ShoppingBagIcon /> Đặt hàng
-            </Link>
+            <div className="space-y-3">
+              {hasOfferPrice ? (
+                <Link
+                  className={buttonVariants({
+                    className:
+                      "h-auto min-h-12 w-full gap-3 py-3 whitespace-normal",
+                    size: "lg",
+                  })}
+                  href={offerCheckoutHref}
+                >
+                  <CirclePlayIcon />
+                  <span className="flex flex-col items-start leading-tight">
+                    <span>Mua với ưu đãi</span>
+                    <span className="text-xs font-normal opacity-80">
+                      Xem ưu đãi ở bước thanh toán
+                    </span>
+                  </span>
+                </Link>
+              ) : null}
+              <Link
+                className={buttonVariants({
+                  className:
+                    "h-auto min-h-12 w-full gap-3 py-3 whitespace-normal",
+                  size: "lg",
+                  variant: hasOfferPrice ? "outline" : "default",
+                })}
+                href={checkoutHref}
+              >
+                <ShoppingBagIcon />
+                <span className="flex flex-col items-start leading-tight">
+                  <span>Mua ngay</span>
+                  {hasOfferPrice ? (
+                    <span className="text-xs font-normal text-muted-foreground">
+                      Không cần xem quảng cáo
+                    </span>
+                  ) : null}
+                </span>
+              </Link>
+              {hasOfferPrice ? (
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Giá ưu đãi do người bán cung cấp. Xem quảng cáo là tùy chọn.
+                </p>
+              ) : null}
+            </div>
           )}
 
           <Separator />

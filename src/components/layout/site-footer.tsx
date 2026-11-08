@@ -9,17 +9,53 @@ import { Separator } from "@/components/ui/separator"
 import { Brand } from "@/components/ui/brand"
 import { ChatPageLink } from "@/components/chat-page-link"
 
-const footerLinks = [
+const customerLinks = [
+  { href: "/#cach-thuc-hoat-dong", label: "Cách thức hoạt động" },
+  { href: "/terms", label: "Chính sách ưu đãi quảng cáo" },
+  { href: "/terms", label: "Chính sách đổi trả" },
+  { href: "/terms", label: "Điều khoản sử dụng" },
   { href: "/", label: "Khám phá sản phẩm" },
   { href: "/profile", label: "Tài khoản của tôi" },
   { href: "/chats", label: "Tin nhắn" },
+]
+
+const sellerLinks = [
+  { href: "/sell", label: "Trở thành người bán" },
+  { href: "/terms", label: "Chính sách giá" },
+  { href: "/terms", label: "Chính sách phí 0%" },
+  { href: "/terms", label: "Quy chế hoạt động" },
   { href: "/shop-manage", label: "Kênh người bán" },
 ]
+
+function footerLinkGroup(title: string, links: typeof customerLinks) {
+  return (
+    <div>
+      <p className="mb-3 text-sm font-semibold">{title}</p>
+      <nav
+        className="grid gap-2 text-sm text-muted-foreground"
+        aria-label={title}
+      >
+        {links.map((item) => {
+          const NavigationLink = item.href === "/chats" ? ChatPageLink : Link
+          return (
+            <NavigationLink
+              key={item.label}
+              className="w-fit transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:outline-ring"
+              href={item.href}
+            >
+              {item.label}
+            </NavigationLink>
+          )
+        })}
+      </nav>
+    </div>
+  )
+}
 
 export function SiteFooter() {
   return (
     <footer className="mt-10 border-t bg-card">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 md:grid-cols-[1.25fr_0.75fr_1fr] lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-9 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr] lg:px-8">
         <div className="space-y-3">
           <Link href="/" aria-label="Deal Hay - Trang chủ">
             <Brand />
@@ -30,43 +66,23 @@ export function SiteFooter() {
           </p>
         </div>
 
-        <div>
-          <p className="mb-3 text-sm font-semibold">Liên kết nhanh</p>
-          <nav
-            className="grid gap-2 text-sm text-muted-foreground"
-            aria-label="Liên kết cuối trang"
-          >
-            {footerLinks.map((item) => {
-              const NavigationLink =
-                item.href === "/chats" ? ChatPageLink : Link
-              return (
-                <NavigationLink
-                  key={item.href}
-                  className="w-fit transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:outline-ring"
-                  href={item.href}
-                >
-                  {item.label}
-                </NavigationLink>
-              )
-            })}
-          </nav>
-        </div>
-
-        <div className="space-y-3">
-          <p className="text-sm font-semibold">Mua sắm cùng Deal Hay</p>
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <ShieldCheckIcon className="size-4 text-primary" /> Bảo vệ thông tin
-            tài khoản
-          </p>
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <BadgeCheckIcon className="size-4 text-primary" /> Thông tin sản
-            phẩm minh bạch
-          </p>
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <HeartHandshakeIcon className="size-4 text-primary" /> Hỗ trợ khi có
-            khiếu nại
-          </p>
-        </div>
+        {footerLinkGroup("Dành cho khách hàng", customerLinks)}
+        {footerLinkGroup("Dành cho người bán", sellerLinks)}
+      </div>
+      <Separator />
+      <div className="mx-auto grid max-w-7xl gap-3 px-4 py-5 sm:px-6 md:grid-cols-3 lg:px-8">
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <ShieldCheckIcon className="size-4 text-primary" /> Bảo vệ thông tin
+          tài khoản
+        </p>
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <BadgeCheckIcon className="size-4 text-primary" /> Thông tin sản phẩm
+          minh bạch
+        </p>
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <HeartHandshakeIcon className="size-4 text-primary" /> Hỗ trợ khi có
+          khiếu nại
+        </p>
       </div>
       <Separator />
       <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
