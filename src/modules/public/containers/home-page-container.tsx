@@ -25,9 +25,36 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item"
 import { Separator } from "@/components/ui/separator"
+import { Surface } from "@/components/ui/surface"
 import { UserAvatar } from "@/components/user-avatar"
 import { ProductCard } from "@/modules/public/components/product-card"
+
+const shoppingSteps = [
+  {
+    icon: ShoppingBagIcon,
+    title: "1. Chọn sản phẩm",
+    description: "Tìm sản phẩm bạn yêu thích.",
+  },
+  {
+    icon: CirclePlayIcon,
+    title: "2. Mở khóa ưu đãi",
+    description: "Tự nguyện xem quảng cáo khi có ưu đãi.",
+  },
+  {
+    icon: TicketPercentIcon,
+    title: "3. Chọn cách mua",
+    description: "Mua với ưu đãi hoặc mua ngay.",
+  },
+]
 
 export function HomePageContainer({
   category,
@@ -65,34 +92,67 @@ export function HomePageContainer({
     >
       <Card
         id="cach-thuc-hoat-dong"
-        className="scroll-mt-28 border-neutral-800 bg-neutral-950 py-0 text-neutral-50 shadow-lg shadow-black/10"
+        role="region"
+        aria-labelledby="home-banner-title"
+        className="scroll-mt-28 bg-accent/40 py-0"
       >
-        <CardContent className="items-center gap-5 px-5 py-9 text-center sm:px-8 sm:py-12">
-          <div className="max-w-3xl space-y-3">
-            <h1 className="font-heading text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl lg:text-5xl">
-              Mua sắm thông minh, tiết kiệm hơn
-            </h1>
-            <p className="text-sm leading-7 text-neutral-300 sm:text-base">
-              Xem quảng cáo tự nguyện để mở khóa giá ưu đãi từ người bán.
-            </p>
+        <CardContent className="grid gap-6 p-5 sm:p-8 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:items-center lg:gap-10">
+          <div className="min-w-0 space-y-5">
+            <Badge>
+              <TicketPercentIcon aria-hidden="true" />
+              Ưu đãi theo cách của bạn
+            </Badge>
+            <CardHeader className="gap-3 px-0">
+              <CardTitle
+                as="h1"
+                id="home-banner-title"
+                className="max-w-xl text-2xl leading-tight text-balance sm:text-3xl"
+              >
+                Mua sắm thông minh, tiết kiệm hơn
+              </CardTitle>
+              <CardDescription className="max-w-lg leading-6 sm:text-base sm:leading-7">
+                Xem quảng cáo tự nguyện để mở khóa giá ưu đãi từ người bán.
+              </CardDescription>
+            </CardHeader>
+            <Link
+              href="#san-pham"
+              className={buttonVariants({
+                size: "lg",
+                className: "w-full sm:w-auto",
+              })}
+            >
+              Khám phá sản phẩm
+              <ArrowRightIcon aria-hidden="true" data-icon="inline-end" />
+            </Link>
           </div>
-          <div
-            aria-label="Mua hàng, xem quảng cáo tự nguyện và nhận giá ưu đãi"
-            className="flex items-center justify-center gap-3 text-neutral-400"
-            role="img"
-          >
-            <ShoppingBagIcon aria-hidden="true" className="size-5" />
-            <ArrowRightIcon aria-hidden="true" className="size-4" />
-            <CirclePlayIcon
-              aria-hidden="true"
-              className="size-5 text-neutral-200"
-            />
-            <ArrowRightIcon aria-hidden="true" className="size-4" />
-            <TicketPercentIcon
-              aria-hidden="true"
-              className="size-5 text-emerald-400"
-            />
-          </div>
+          <Surface padding="sm" className="md:ml-auto md:w-full md:max-w-md">
+            <ItemGroup
+              className="gap-1"
+              aria-label="Ba bước mua sắm với ưu đãi"
+            >
+              {shoppingSteps.map(({ icon: Icon, title, description }) => (
+                <Item
+                  key={title}
+                  role="listitem"
+                  size="sm"
+                  className="flex-nowrap items-start"
+                >
+                  <ItemMedia
+                    variant="icon"
+                    className="size-9 rounded-lg bg-accent text-primary"
+                  >
+                    <Icon aria-hidden="true" />
+                  </ItemMedia>
+                  <ItemContent className="min-w-0">
+                    <ItemTitle className="line-clamp-none">{title}</ItemTitle>
+                    <ItemDescription className="line-clamp-none text-xs leading-5">
+                      {description}
+                    </ItemDescription>
+                  </ItemContent>
+                </Item>
+              ))}
+            </ItemGroup>
+          </Surface>
         </CardContent>
       </Card>
 

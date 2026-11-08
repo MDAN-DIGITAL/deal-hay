@@ -7,3 +7,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Shared UI components
+
+- When adding or changing UI, reuse the existing components in `src/components` and their variants.
+- Compose layouts with those components and the shared design tokens. Do not create separate UI primitives or duplicate their styling in pages.
