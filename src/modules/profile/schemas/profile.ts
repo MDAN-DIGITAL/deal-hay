@@ -3,9 +3,9 @@ import { z } from "zod"
 import {
   imageFileSchema,
   imageUrlSchema,
+  lowercaseAlphanumericPasswordRegex,
   phoneNumberRegex,
   requiredText,
-  strongPasswordRegex,
 } from "@/lib/validation"
 
 const optionalProfileString = z.union([
@@ -53,16 +53,22 @@ export const updateProfileSchema = z
 
 export const updatePasswordSchema = z
   .object({
-    current_password: requiredText("Vui lòng nhập mật khẩu hiện tại."),
+    current_password: z
+      .string()
+      .min(1, "Vui lòng nhập mật khẩu hiện tại.")
+      .max(255, "Mật khẩu hiện tại không được vượt quá 255 ký tự."),
     password: z
       .string()
-      .min(8, "Mật khẩu mới phải có ít nhất 8 ký tự.")
+      .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự.")
       .max(255, "Mật khẩu mới không được vượt quá 255 ký tự.")
       .regex(
-        strongPasswordRegex,
-        "Mật khẩu phải gồm chữ hoa, chữ thường, số và ký tự đặc biệt."
+        lowercaseAlphanumericPasswordRegex,
+        "Mật khẩu chỉ được gồm chữ thường và số, đồng thời phải có cả hai."
       ),
-    password_confirmation: requiredText("Vui lòng xác nhận mật khẩu mới."),
+    password_confirmation: z
+      .string()
+      .min(1, "Vui lòng xác nhận mật khẩu mới.")
+      .max(255, "Xác nhận mật khẩu mới không được vượt quá 255 ký tự."),
   })
   .refine((value) => value.password !== value.current_password, {
     path: ["password"],

@@ -51,9 +51,10 @@ export async function signInAction(
     const payload = await login({
       email: parsed.data.email,
       password: parsed.data.password,
+      remember: parsed.data.remember,
       admin_verification_code: parsed.data.admin_verification_code || undefined,
     })
-    await setAuthSession(payload)
+    await setAuthSession(payload, parsed.data.remember)
   } catch (error) {
     if (error instanceof ApiError) {
       return {

@@ -1,7 +1,10 @@
 export const ACCESS_TOKEN_STORAGE_KEY = "dealhay_access_token"
+export const ACCESS_TOKEN_SESSION_ONLY_KEY = "dealhay_access_token_session_only"
 export const SESSION_CHANGED = "dealhay:session-changed"
 
-function read(storage: "localStorage" | "sessionStorage", key: string) {
+type BrowserStorage = "localStorage" | "sessionStorage"
+
+function read(storage: BrowserStorage, key: string) {
   try {
     return window[storage].getItem(key)
   } catch {
@@ -9,11 +12,7 @@ function read(storage: "localStorage" | "sessionStorage", key: string) {
   }
 }
 
-function write(
-  storage: "localStorage" | "sessionStorage",
-  key: string,
-  value: string
-) {
+function write(storage: BrowserStorage, key: string, value: string) {
   try {
     window[storage].setItem(key, value)
     return true
@@ -22,12 +21,37 @@ function write(
   }
 }
 
-function remove(storage: "localStorage" | "sessionStorage", key: string) {
+function remove(storage: BrowserStorage, key: string) {
   try {
     window[storage].removeItem(key)
+    return true
   } catch {
     // Storage can be unavailable in restricted browser contexts.
+    return false
   }
+}
+
+function clearTabToken() {
+  remove("sessionStorage", ACCESS_TOKEN_STORAGE_KEY)
+  remove("sessionStorage", ACCESS_TOKEN_SESSION_ONLY_KEY)
+}
+
+function hasExplicitTabToken(): boolean {
+  return read("sessionStorage", ACCESS_TOKEN_SESSION_ONLY_KEY) === "1"
+}
+
+function saveTabToken(token: string): boolean {
+  if (
+    !write("sessionStorage", ACCESS_TOKEN_SESSION_ONLY_KEY, "1") ||
+    !write("sessionStorage", ACCESS_TOKEN_STORAGE_KEY, token) ||
+    read("sessionStorage", ACCESS_TOKEN_SESSION_ONLY_KEY) !== "1" ||
+    read("sessionStorage", ACCESS_TOKEN_STORAGE_KEY) !== token
+  ) {
+    clearTabToken()
+    return false
+  }
+
+  return true
 }
 
 function clearChatCredential() {
@@ -36,36 +60,56 @@ function clearChatCredential() {
   remove("sessionStorage", "dealhay_wss_session")
 }
 
-/** Remember the account across tabs and browser restarts; API validates expiry. */
+/** Read the remembered account first, then this tab's temporary account. */
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null
   const remembered = read("localStorage", ACCESS_TOKEN_STORAGE_KEY)
   if (remembered !== undefined && remembered !== null) {
-    remove("sessionStorage", ACCESS_TOKEN_STORAGE_KEY)
+    clearTabToken()
     return remembered || null
   }
   const previous = read("sessionStorage", ACCESS_TOKEN_STORAGE_KEY)
-  if (!previous) return null
+  if (!previous) {
+    remove("sessionStorage", ACCESS_TOKEN_SESSION_ONLY_KEY)
+    return null
+  }
+  if (hasExplicitTabToken()) return previous
+
+  // Migrate only tokens created before the remember-login choice existed.
+  // New temporary sessions carry the marker above and must remain tab-scoped.
   if (
     remembered === null &&
-    write("localStorage", ACCESS_TOKEN_STORAGE_KEY, previous)
+    write("localStorage", ACCESS_TOKEN_STORAGE_KEY, previous) &&
+    read("localStorage", ACCESS_TOKEN_STORAGE_KEY) === previous
   )
-    remove("sessionStorage", ACCESS_TOKEN_STORAGE_KEY)
+    clearTabToken()
   return previous
 }
 
-export function saveAccessToken(token: string): void {
+export function saveAccessToken(token: string, remember = true): void {
   if (typeof window === "undefined") return
   const previous = getAccessToken()
-  const stored = write("localStorage", ACCESS_TOKEN_STORAGE_KEY, token)
-  const remembered = read("localStorage", ACCESS_TOKEN_STORAGE_KEY)
-  if (stored || remembered === token)
-    remove("sessionStorage", ACCESS_TOKEN_STORAGE_KEY)
-  else if (
-    (remembered !== undefined && remembered !== null) ||
-    !write("sessionStorage", ACCESS_TOKEN_STORAGE_KEY, token)
-  )
-    throw new Error("Trình duyệt không cho phép lưu phiên đăng nhập.")
+
+  if (remember) {
+    write("localStorage", ACCESS_TOKEN_STORAGE_KEY, token)
+    const persisted = read("localStorage", ACCESS_TOKEN_STORAGE_KEY)
+    if (persisted === token) clearTabToken()
+    else if (
+      (persisted !== undefined && persisted !== null) ||
+      !saveTabToken(token)
+    )
+      throw new Error("Trình duyệt không cho phép lưu phiên đăng nhập.")
+  } else {
+    if (!saveTabToken(token))
+      throw new Error("Trình duyệt không cho phép lưu phiên đăng nhập.")
+    remove("localStorage", ACCESS_TOKEN_STORAGE_KEY)
+    const persisted = read("localStorage", ACCESS_TOKEN_STORAGE_KEY)
+    if (persisted !== undefined && persisted !== null) {
+      clearTabToken()
+      throw new Error("Trình duyệt không cho phép lưu phiên đăng nhập.")
+    }
+  }
+
   if (previous !== token) clearChatCredential()
   window.dispatchEvent(new Event(SESSION_CHANGED))
 }
@@ -77,7 +121,7 @@ export function clearAccessToken(expectedToken?: string | null): void {
   // silently sign the browser back in after logout or a rejected credential.
   if (!write("localStorage", ACCESS_TOKEN_STORAGE_KEY, ""))
     remove("localStorage", ACCESS_TOKEN_STORAGE_KEY)
-  remove("sessionStorage", ACCESS_TOKEN_STORAGE_KEY)
+  clearTabToken()
   clearChatCredential()
   window.dispatchEvent(new Event(SESSION_CHANGED))
 }
@@ -98,8 +142,11 @@ export function watchStoredSession(): () => void {
   }
   const storage = (event: StorageEvent) => {
     if (event.key === null || event.key === ACCESS_TOKEN_STORAGE_KEY) {
-      if (event.key === null || event.newValue === null)
-        remove("sessionStorage", ACCESS_TOKEN_STORAGE_KEY)
+      if (
+        event.key === null ||
+        (event.newValue === null && !hasExplicitTabToken())
+      )
+        clearTabToken()
       sync()
     }
   }

@@ -19,6 +19,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -89,8 +90,20 @@ export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                 <FormItem>
                   <FormLabel>Mật khẩu</FormLabel>
                   <FormControl>
-                    <PasswordInput autoComplete="new-password" {...field} />
+                    <PasswordInput
+                      autoCapitalize="none"
+                      autoComplete="new-password"
+                      maxLength={255}
+                      minLength={6}
+                      pattern="[a-z0-9]+"
+                      spellCheck={false}
+                      {...field}
+                    />
                   </FormControl>
+                  <FormDescription>
+                    Ít nhất 6 ký tự, chỉ gồm chữ thường và số, đồng thời phải có
+                    cả hai.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -102,7 +115,15 @@ export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                 <FormItem>
                   <FormLabel>Xác nhận mật khẩu</FormLabel>
                   <FormControl>
-                    <PasswordInput autoComplete="new-password" {...field} />
+                    <PasswordInput
+                      autoCapitalize="none"
+                      autoComplete="new-password"
+                      maxLength={255}
+                      minLength={6}
+                      pattern="[a-z0-9]+"
+                      spellCheck={false}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

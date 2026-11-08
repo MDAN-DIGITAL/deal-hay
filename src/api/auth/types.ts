@@ -3,6 +3,7 @@ import type { AuthPayload, SessionUser, User } from "@/types/auth"
 export type LoginPayload = {
   email: string
   password: string
+  remember: boolean
   admin_verification_code?: string
 }
 

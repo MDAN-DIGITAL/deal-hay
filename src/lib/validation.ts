@@ -1,8 +1,8 @@
 import { z } from "zod"
 
 export const phoneNumberRegex = /^(\+84|0)[3-9]\d{8}$/
-export const strongPasswordRegex =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).+$/
+export const lowercaseAlphanumericPasswordRegex =
+  /^(?=.*[a-z])(?=.*\d)[a-z\d]+$/
 
 export const IMAGE_OUTPUT_MAX_BYTES = 20 * 1024
 export const CHAT_FILE_UPLOAD_MAX_BYTES = 3 * 1024 * 1024

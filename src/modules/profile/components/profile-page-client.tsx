@@ -24,6 +24,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -201,7 +202,11 @@ function PasswordForm() {
             <FormItem>
               <FormLabel>Mật khẩu hiện tại</FormLabel>
               <FormControl>
-                <PasswordInput autoComplete="current-password" {...field} />
+                <PasswordInput
+                  autoComplete="current-password"
+                  maxLength={255}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -214,8 +219,20 @@ function PasswordForm() {
             <FormItem>
               <FormLabel>Mật khẩu mới</FormLabel>
               <FormControl>
-                <PasswordInput autoComplete="new-password" {...field} />
+                <PasswordInput
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  maxLength={255}
+                  minLength={6}
+                  pattern="[a-z0-9]+"
+                  spellCheck={false}
+                  {...field}
+                />
               </FormControl>
+              <FormDescription>
+                Ít nhất 6 ký tự, chỉ gồm chữ thường và số, đồng thời phải có cả
+                hai.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -227,7 +244,15 @@ function PasswordForm() {
             <FormItem>
               <FormLabel>Xác nhận mật khẩu mới</FormLabel>
               <FormControl>
-                <PasswordInput autoComplete="new-password" {...field} />
+                <PasswordInput
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  maxLength={255}
+                  minLength={6}
+                  pattern="[a-z0-9]+"
+                  spellCheck={false}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -421,7 +446,8 @@ export function ProfilePageClient({ tab, user }: { tab?: string; user: User }) {
             <CardHeader>
               <CardTitle>Đổi mật khẩu</CardTitle>
               <CardDescription>
-                Sử dụng mật khẩu mạnh và không chia sẻ với người khác.
+                Dùng mật khẩu mới đúng định dạng và không chia sẻ với người
+                khác.
               </CardDescription>
             </CardHeader>
             <CardContent>

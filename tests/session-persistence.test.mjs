@@ -18,6 +18,7 @@ const loadSession = () =>
     `data:text/javascript;base64,${Buffer.from(`${source}\n// fixture ${++revision}`).toString("base64")}`
   )
 const tokenKey = "dealhay_access_token"
+const sessionOnlyKey = "dealhay_access_token_session_only"
 const wssKey = "dealhay_wss_session"
 
 function storage(values = {}, options = {}) {
@@ -45,10 +46,15 @@ function storage(values = {}, options = {}) {
   }
 }
 
-function page(shared = new Map(), session = {}, localOptions = {}) {
+function page(
+  shared = new Map(),
+  session = {},
+  localOptions = {},
+  sessionOptions = {}
+) {
   const window = Object.assign(new EventTarget(), {
     localStorage: storage(shared, localOptions),
-    sessionStorage: storage(session),
+    sessionStorage: storage(session, sessionOptions),
     location: new URL("https://dealhay.example/chats/support"),
   })
   const document = Object.assign(new EventTarget(), {
@@ -92,7 +98,7 @@ test("remembered login is available to a fresh native tab and a reopened browser
   const shared = new Map()
   const first = activate(t, page(shared))
   const session = await loadSession()
-  session.saveAccessToken("account-a")
+  session.saveAccessToken("account-a", true)
   assert.equal(first.window.localStorage.getItem(tokenKey), "account-a")
   for (const reopened of [page(shared), page(shared)]) {
     globalThis.window = reopened.window
@@ -102,12 +108,39 @@ test("remembered login is available to a fresh native tab and a reopened browser
   }
 })
 
+test("a login without remember stays in the current tab and is never auto-migrated", async (t) => {
+  const shared = new Map()
+  const current = activate(t, page(shared))
+  const session = await loadSession()
+  session.saveAccessToken("temporary-account", false)
+
+  assert.equal(session.getAccessToken(), "temporary-account")
+  assert.equal(current.window.localStorage.getItem(tokenKey), null)
+  assert.equal(
+    current.window.sessionStorage.getItem(tokenKey),
+    "temporary-account"
+  )
+  assert.equal(current.window.sessionStorage.getItem(sessionOnlyKey), "1")
+  assert.equal(session.getAccessToken(), "temporary-account")
+  assert.equal(current.window.localStorage.getItem(tokenKey), null)
+
+  const freshTab = page(shared)
+  globalThis.window = freshTab.window
+  globalThis.document = freshTab.document
+  assert.equal((await loadSession()).getAccessToken(), null)
+
+  globalThis.window = current.window
+  globalThis.document = current.document
+  assert.equal(session.getAccessToken(), "temporary-account")
+})
+
 test("an existing tab login migrates once without requiring another sign-in", async (t) => {
   const current = activate(t, page(new Map(), { [tokenKey]: "legacy-account" }))
   const session = await loadSession()
   assert.equal(session.getAccessToken(), "legacy-account")
   assert.equal(current.window.localStorage.getItem(tokenKey), "legacy-account")
   assert.equal(current.window.sessionStorage.getItem(tokenKey), null)
+  assert.equal(current.window.sessionStorage.getItem(sessionOnlyKey), null)
 })
 
 test("canonical account changes and logout override stale credentials in another tab", async (t) => {
@@ -122,7 +155,7 @@ test("canonical account changes and logout override stale credentials in another
   assert.equal(shared.get(tokenKey), "")
 })
 
-test("switching accounts clears previous WSS credentials but resaving the same account preserves them", async (t) => {
+test("switching remembered accounts clears previous WSS credentials but resaving the same account preserves them", async (t) => {
   const current = activate(
     t,
     page(
@@ -134,15 +167,61 @@ test("switching accounts clears previous WSS credentials but resaving the same a
     )
   )
   const session = await loadSession()
-  session.saveAccessToken("account-b")
+  session.saveAccessToken("account-b", true)
   assert.equal(session.getAccessToken(), "account-b")
   assert.ok(!current.window.localStorage.getItem(wssKey))
   assert.ok(!current.window.sessionStorage.getItem(wssKey))
   current.window.localStorage.setItem(wssKey, "current-account-cache")
-  session.saveAccessToken("account-b")
+  session.saveAccessToken("account-b", true)
   assert.equal(
     current.window.localStorage.getItem(wssKey),
     "current-account-cache"
+  )
+})
+
+test("switching to a tab-only account removes the remembered token and isolates the new account", async (t) => {
+  const shared = new Map([
+    [tokenKey, "account-a"],
+    [wssKey, "shared-old"],
+  ])
+  const current = activate(t, page(shared, { [wssKey]: "tab-old" }))
+  const session = await loadSession()
+
+  session.saveAccessToken("account-b", false)
+  assert.equal(session.getAccessToken(), "account-b")
+  assert.equal(current.window.localStorage.getItem(tokenKey), null)
+  assert.equal(current.window.sessionStorage.getItem(tokenKey), "account-b")
+  assert.equal(current.window.sessionStorage.getItem(sessionOnlyKey), "1")
+  assert.ok(!current.window.localStorage.getItem(wssKey))
+  assert.ok(!current.window.sessionStorage.getItem(wssKey))
+
+  current.window.localStorage.setItem(wssKey, "current-account-cache")
+  session.saveAccessToken("account-b", false)
+  assert.equal(
+    current.window.localStorage.getItem(wssKey),
+    "current-account-cache"
+  )
+
+  const otherTab = page(shared)
+  globalThis.window = otherTab.window
+  globalThis.document = otherTab.document
+  assert.equal((await loadSession()).getAccessToken(), null)
+})
+
+test("remembering an existing tab-only account promotes it once and clears tab markers", async (t) => {
+  const shared = new Map()
+  const current = activate(t, page(shared))
+  const session = await loadSession()
+  session.saveAccessToken("account-a", false)
+  current.window.localStorage.setItem(wssKey, "same-account-cache")
+
+  session.saveAccessToken("account-a", true)
+  assert.equal(current.window.localStorage.getItem(tokenKey), "account-a")
+  assert.equal(current.window.sessionStorage.getItem(tokenKey), null)
+  assert.equal(current.window.sessionStorage.getItem(sessionOnlyKey), null)
+  assert.equal(
+    current.window.localStorage.getItem(wssKey),
+    "same-account-cache"
   )
 })
 
@@ -164,6 +243,23 @@ test("a late unauthorized response cannot clear a newer remembered account", asy
   session.clearAccessToken("account-b")
   assert.equal(session.getAccessToken(), null)
   assert.equal(current.window.localStorage.getItem(tokenKey), "")
+  assert.ok(!current.window.localStorage.getItem(wssKey))
+})
+
+test("a late unauthorized response cannot clear a newer tab-only account", async (t) => {
+  const current = activate(t, page())
+  const session = await loadSession()
+  session.saveAccessToken("account-b", false)
+  current.window.localStorage.setItem(wssKey, "current-cache")
+
+  session.clearAccessToken("account-a")
+  assert.equal(session.getAccessToken(), "account-b")
+  assert.equal(current.window.localStorage.getItem(wssKey), "current-cache")
+
+  session.clearAccessToken("account-b")
+  assert.equal(session.getAccessToken(), null)
+  assert.equal(current.window.sessionStorage.getItem(tokenKey), null)
+  assert.equal(current.window.sessionStorage.getItem(sessionOnlyKey), null)
   assert.ok(!current.window.localStorage.getItem(wssKey))
 })
 
@@ -196,6 +292,34 @@ test("an existing read-only remembered account cannot be silently replaced by an
   assert.equal(changes, 0)
 })
 
+test("a tab-only login cannot replace a remembered account when persistent storage cannot be cleared", async (t) => {
+  const current = activate(
+    t,
+    page(
+      new Map([
+        [tokenKey, "account-a"],
+        [wssKey, "shared-current-cache"],
+      ]),
+      { [wssKey]: "tab-current-cache" },
+      { writeBlocked: true }
+    )
+  )
+  const session = await loadSession()
+
+  assert.throws(() => session.saveAccessToken("account-b", false), /lưu phiên/)
+  assert.equal(session.getAccessToken(), "account-a")
+  assert.equal(current.window.sessionStorage.getItem(tokenKey), null)
+  assert.equal(current.window.sessionStorage.getItem(sessionOnlyKey), null)
+  assert.equal(
+    current.window.localStorage.getItem(wssKey),
+    "shared-current-cache"
+  )
+  assert.equal(
+    current.window.sessionStorage.getItem(wssKey),
+    "tab-current-cache"
+  )
+})
+
 for (const blocked of [
   { readBlocked: true, writeBlocked: true },
   { writeBlocked: true },
@@ -210,9 +334,23 @@ for (const blocked of [
       current.window.sessionStorage.getItem(tokenKey),
       "fallback-account"
     )
+    assert.equal(current.window.sessionStorage.getItem(sessionOnlyKey), "1")
     session.clearAccessToken("fallback-account")
     assert.equal(session.getAccessToken(), null)
+    assert.equal(current.window.sessionStorage.getItem(sessionOnlyKey), null)
   })
+
+test("blocked tab storage rejects a temporary login without destroying the remembered account", async (t) => {
+  const current = activate(
+    t,
+    page(new Map([[tokenKey, "account-a"]]), {}, {}, { writeBlocked: true })
+  )
+  const session = await loadSession()
+
+  assert.throws(() => session.saveAccessToken("account-b", false), /lưu phiên/)
+  assert.equal(session.getAccessToken(), "account-a")
+  assert.equal(current.window.localStorage.getItem(tokenKey), "account-a")
+})
 
 test("storage events update other tabs once per account transition and ignore unrelated writes", async (t) => {
   const shared = new Map([[tokenKey, "account-a"]])
@@ -241,6 +379,29 @@ test("storage events update other tabs once per account transition and ignore un
   assert.equal(session.getAccessToken(), null)
 })
 
+test("another tab removing persistent state does not erase an explicit tab-only login", async (t) => {
+  const shared = new Map()
+  const current = activate(t, page(shared))
+  const session = await loadSession()
+  session.saveAccessToken("temporary-account", false)
+  let changes = 0
+  current.window.addEventListener(session.SESSION_CHANGED, () => changes++)
+  const stop = session.watchStoredSession()
+  t.after(stop)
+
+  storageChanged(current)
+  assert.equal(session.getAccessToken(), "temporary-account")
+  assert.equal(current.window.sessionStorage.getItem(sessionOnlyKey), "1")
+  assert.equal(changes, 0)
+
+  shared.set(tokenKey, "remembered-elsewhere")
+  storageChanged(current)
+  assert.equal(session.getAccessToken(), "remembered-elsewhere")
+  assert.equal(current.window.sessionStorage.getItem(tokenKey), null)
+  assert.equal(current.window.sessionStorage.getItem(sessionOnlyKey), null)
+  assert.equal(changes, 1)
+})
+
 test("clearing site storage logs out another tab instead of reviving its legacy token", async (t) => {
   const shared = new Map([[tokenKey, "account-a"]])
   const current = activate(t, page(shared, { [tokenKey]: "account-a" }))
@@ -251,6 +412,20 @@ test("clearing site storage logs out another tab instead of reviving its legacy 
   shared.clear()
   storageChanged(current, null)
   assert.equal(session.getAccessToken(), null)
+})
+
+test("a site-storage clear event also invalidates an explicit tab-only login", async (t) => {
+  const shared = new Map()
+  const current = activate(t, page(shared))
+  const session = await loadSession()
+  session.saveAccessToken("temporary-account", false)
+  const stop = session.watchStoredSession()
+  t.after(stop)
+
+  storageChanged(current, null)
+  assert.equal(session.getAccessToken(), null)
+  assert.equal(current.window.sessionStorage.getItem(tokenKey), null)
+  assert.equal(current.window.sessionStorage.getItem(sessionOnlyKey), null)
 })
 
 for (const eventName of ["focus", "pageshow", "visibilitychange"])

@@ -39,9 +39,11 @@ export default function PrivacyPage() {
         <p>
           Khi sử dụng Deal Hay, bạn có thể cung cấp email, họ tên, số điện
           thoại, địa chỉ, ảnh đại diện, thông tin cửa hàng, đơn hàng, đánh giá,
-          tin nhắn, mã giảm giá đã lưu và tệp đính kèm. Phiên đăng nhập được lưu
-          riêng theo tab trình duyệt. Các nhà cung cấp bên thứ ba có thể sử dụng
-          cookie theo nội dung được mô tả dưới đây.
+          tin nhắn, mã giảm giá đã lưu và tệp đính kèm. Deal Hay chỉ lưu mã
+          phiên đăng nhập, không lưu mật khẩu. Phiên được lưu riêng trong tab
+          hoặc trên trình duyệt này khi bạn chủ động chọn ghi nhớ đăng nhập. Các
+          nhà cung cấp bên thứ ba có thể sử dụng cookie theo nội dung được mô tả
+          dưới đây.
         </p>
       </section>
       <section className="space-y-2">

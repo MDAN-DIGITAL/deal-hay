@@ -1,15 +1,24 @@
 import { z } from "zod"
 
-import { requiredText, strongPasswordRegex } from "@/lib/validation"
+import {
+  lowercaseAlphanumericPasswordRegex,
+  requiredText,
+} from "@/lib/validation"
 
 const passwordSchema = z
   .string()
-  .min(8, "Mật khẩu phải có ít nhất 8 ký tự.")
+  .min(6, "Mật khẩu phải có ít nhất 6 ký tự.")
   .max(255, "Mật khẩu không được vượt quá 255 ký tự.")
   .regex(
-    strongPasswordRegex,
-    "Mật khẩu phải gồm chữ hoa, chữ thường, số và ký tự đặc biệt."
+    lowercaseAlphanumericPasswordRegex,
+    "Mật khẩu chỉ được gồm chữ thường và số, đồng thời phải có cả hai."
   )
+
+const passwordConfirmationSchema = (message: string) =>
+  z
+    .string()
+    .min(1, message)
+    .max(255, "Xác nhận mật khẩu không được vượt quá 255 ký tự.")
 
 const optionalAdminCodeSchema = z.union([
   z
@@ -30,6 +39,7 @@ export const signInSchema = z.object({
     .string()
     .min(1, "Vui lòng nhập mật khẩu.")
     .max(255, "Mật khẩu không được vượt quá 255 ký tự."),
+  remember: z.boolean(),
   admin_verification_code: optionalAdminCodeSchema,
 })
 
@@ -42,7 +52,9 @@ export const signUpSchema = z
       .email("Email không đúng định dạng.")
       .max(255, "Email không được vượt quá 255 ký tự."),
     password: passwordSchema,
-    password_confirmation: requiredText("Vui lòng xác nhận mật khẩu."),
+    password_confirmation: passwordConfirmationSchema(
+      "Vui lòng xác nhận mật khẩu."
+    ),
     accept_terms: z
       .boolean()
       .refine(
@@ -74,7 +86,9 @@ export const resetPasswordSchema = z
       .max(255, "Email không được vượt quá 255 ký tự."),
     token: requiredText("Liên kết đặt lại mật khẩu không hợp lệ."),
     password: passwordSchema,
-    password_confirmation: requiredText("Vui lòng xác nhận mật khẩu mới."),
+    password_confirmation: passwordConfirmationSchema(
+      "Vui lòng xác nhận mật khẩu mới."
+    ),
   })
   .refine((value) => value.password === value.password_confirmation, {
     path: ["password_confirmation"],

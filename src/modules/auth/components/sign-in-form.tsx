@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { FormSubmitButton } from "@/components/form-submit-button"
 import { PasswordInput } from "@/components/password-input"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Card,
   CardContent,
@@ -39,6 +40,7 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
     defaultValues: {
       email: "",
       password: "",
+      remember: false,
       admin_verification_code: "",
     },
   })
@@ -91,8 +93,8 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
       <CardHeader>
         <CardTitle>Đăng nhập</CardTitle>
         <CardDescription>
-          Đăng nhập để quản lý hồ sơ, shop và tin nhắn. Phiên đăng nhập được ghi
-          nhớ trên trình duyệt này.
+          Đăng nhập để quản lý hồ sơ, shop và tin nhắn. Bạn có thể chọn lưu
+          phiên đăng nhập trên thiết bị này.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -131,6 +133,7 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
                   <FormControl>
                     <PasswordInput
                       autoComplete="current-password"
+                      maxLength={255}
                       {...field}
                       disabled={isPending}
                       onChange={(event) => {
@@ -139,6 +142,29 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
                       }}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="remember"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="items-start">
+                    <Checkbox
+                      checked={field.value}
+                      disabled={isPending}
+                      onBlur={field.onBlur}
+                      onCheckedChange={field.onChange}
+                    />
+                    <span className="space-y-0.5">
+                      <span className="block">Ghi nhớ đăng nhập</span>
+                      <span className="block text-xs font-normal text-muted-foreground">
+                        Chỉ lưu phiên trên thiết bị này, không lưu mật khẩu.
+                      </span>
+                    </span>
+                  </FormLabel>
                   <FormMessage />
                 </FormItem>
               )}

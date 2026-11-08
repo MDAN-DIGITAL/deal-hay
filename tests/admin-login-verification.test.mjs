@@ -45,6 +45,7 @@ const apiUrl = moduleUrl(`
     payload: undefined,
     calls: [],
     cookies: [],
+    remembers: [],
     revalidated: [],
   }
   export async function login(payload) {
@@ -52,7 +53,10 @@ const apiUrl = moduleUrl(`
     if (state.error) throw state.error
     return state.payload
   }
-  export async function setAuthSession(payload) { state.cookies.push(payload) }
+  export async function setAuthSession(payload, remember) {
+    state.cookies.push(payload)
+    state.remembers.push(remember)
+  }
   export function invalidateQueries(path) { state.revalidated.push(path) }
   export class Redirect extends Error {
     constructor(destination) {
@@ -86,6 +90,7 @@ const { ApiError, Redirect, state } = await import(apiUrl)
 const credentials = {
   email: "person@example.com",
   password: "CorrectPassword!1",
+  remember: false,
   admin_verification_code: "",
 }
 
@@ -105,6 +110,7 @@ test.beforeEach(() => {
   }
   state.calls.length = 0
   state.cookies.length = 0
+  state.remembers.length = 0
   state.revalidated.length = 0
 })
 
@@ -123,6 +129,7 @@ test("an administrator challenge reveals verification without creating a session
   assert.deepEqual(result.errors, errors)
   assert.equal(state.calls[0].admin_verification_code, undefined)
   assert.equal(state.cookies.length, 0)
+  assert.equal(state.remembers.length, 0)
   assert.equal(state.revalidated.length, 0)
 })
 
@@ -155,6 +162,7 @@ test("malformed verification codes fail local validation without exposing an adm
   assert.ok(result.errors.admin_verification_code.length)
   assert.equal(state.calls.length, 0)
   assert.equal(state.cookies.length, 0)
+  assert.equal(state.remembers.length, 0)
 })
 
 test("an invalid or expired administrator code keeps verification available and creates no session", async () => {
@@ -184,6 +192,7 @@ test("a regular account signs in without supplying an administrator code", async
 
   assert.equal(state.calls[0].admin_verification_code, undefined)
   assert.deepEqual(state.cookies, [state.payload])
+  assert.deepEqual(state.remembers, [false])
   assert.equal(state.revalidated.length, 0)
 })
 
@@ -204,4 +213,15 @@ test("a verified administrator receives a session and retains the safe return de
 
   assert.equal(state.calls[0].admin_verification_code, "123456")
   assert.deepEqual(state.cookies, [state.payload])
+  assert.deepEqual(state.remembers, [false])
+})
+
+test("a regular account forwards the explicit remember choice to the API and session storage", async () => {
+  await assert.rejects(
+    signInAction({ ...credentials, remember: true }),
+    (error) => error instanceof Redirect
+  )
+
+  assert.equal(state.calls[0].remember, true)
+  assert.deepEqual(state.remembers, [true])
 })
