@@ -20,6 +20,7 @@ const widgets = moduleUrl(`
   export const Button='button',Brand='brand',MobileNavigation='mobile-navigation',NotificationSoundToggle='sound-toggle',SignOutButton='sign-out',ThemeToggle='theme-toggle',UnreadCountBadge='unread-badge',UnreadNavigationLink='unread-link',UserAvatar='avatar',ServerPing='ping',Separator='separator',Card='card',CardContent='card-content'
   export const ChatPageLink='chat-link'
   export const BadgeCheckIcon='badge-check',HeartHandshakeIcon='heart-handshake'
+  export const LogInIcon='log-in',UserPlusIcon='user-plus',BadgePercentIcon='badge-percent',CircleHelpIcon='help',FileTextIcon='file',ReceiptTextIcon='receipt',RotateCcwIcon='rotate'
 `)
 function load(file) {
   const source = ts.transpileModule(

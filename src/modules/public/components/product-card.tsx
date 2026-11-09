@@ -5,6 +5,7 @@ import { MediaImage } from "@/components/media-image"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format"
+import { productPricing } from "@/modules/public/lib/product-pricing"
 import type { PublicProductSummary } from "@/types/catalog"
 
 type ProductCardProps = {
@@ -20,6 +21,8 @@ export function ProductCard({
   eyebrow,
   showStock = false,
 }: ProductCardProps) {
+  const { salePrice, originalPrice } = productPricing(product)
+
   return (
     <Link href={href} className="group block min-w-0">
       <Card className="h-full gap-0 py-0">
@@ -51,13 +54,22 @@ export function ProductCard({
           <p className="truncate text-xs text-muted-foreground">
             {product.category}
           </p>
-          <p className="pt-1 text-base font-semibold text-primary sm:text-lg">
-            {formatCurrency(
-              product.display_original_price ??
-                product.display_price ??
-                product.price
-            )}
-          </p>
+          <div className="space-y-1 pt-1">
+            <p
+              aria-label="Giá bán"
+              className="text-base font-semibold text-primary sm:text-lg"
+            >
+              {formatCurrency(salePrice)}
+            </p>
+            {originalPrice !== null ? (
+              <p
+                aria-label="Giá gốc"
+                className="text-xs text-muted-foreground line-through"
+              >
+                {formatCurrency(originalPrice)}
+              </p>
+            ) : null}
+          </div>
         </CardContent>
         <CardFooter className="justify-between gap-2 border-t px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
           <span className="flex min-w-0 items-center gap-1.5">

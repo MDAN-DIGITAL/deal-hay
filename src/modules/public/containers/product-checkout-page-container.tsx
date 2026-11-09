@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/layout/empty-state"
 import { buttonVariants } from "@/components/ui/button"
 import { ProductCheckout } from "@/modules/public/components/product-checkout"
 import { resolveCheckoutVariant } from "@/modules/public/lib/product-checkout"
+import { productPricing } from "@/modules/public/lib/product-pricing"
 
 export function ProductCheckoutPageContainer({
   shopUserCode,
@@ -52,14 +53,7 @@ export function ProductCheckoutPageContainer({
   }
 
   const product = data.product
-  const displayedPrice = variant?.price ?? product.price
-  const regularPrice =
-    product.old_price && product.old_price > product.price && product.price > 0
-      ? Math.max(
-          displayedPrice,
-          Math.round((displayedPrice * product.old_price) / product.price)
-        )
-      : displayedPrice
+  const { salePrice } = productPricing(product, variant)
   const hasVariants = product.has_variants || product.variants.length > 0
   const stock = variant?.stock ?? (hasVariants ? 0 : product.stock)
 
@@ -74,7 +68,7 @@ export function ProductCheckoutPageContainer({
       shop={data.shop}
       product={product}
       variant={variant}
-      regularPrice={regularPrice}
+      salePrice={salePrice}
       stock={stock}
       initialDiscountCode={initialDiscountCode}
       initialShopCouponCode={initialShopCouponCode}

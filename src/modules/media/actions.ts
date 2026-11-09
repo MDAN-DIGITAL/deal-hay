@@ -20,19 +20,31 @@ const sessionSchema = z.object({
 
 export async function discardProductImageUploadsAction(
   tokens: string[],
-  purpose: ImagePurpose = "product"
+  purpose: ImagePurpose = "product",
+  isCurrent?: () => boolean
 ) {
   const parsed = z.array(z.string().min(1).max(2048)).max(51).safeParse(tokens)
-  if (!parsed.success || parsed.data.length === 0) return
+  if (
+    !parsed.success ||
+    parsed.data.length === 0 ||
+    (isCurrent && !isCurrent())
+  )
+    return
   try {
-    await (purpose === "chat" ? wssFetch : apiFetch)({
-      method: "DELETE",
+    const options = {
+      method: "DELETE" as const,
       path:
         purpose === "chat"
           ? "/chat-uploads/staged"
           : "/private/uploads/images/staged",
       body: { tokens: parsed.data },
-    })
+    }
+    if (purpose === "chat")
+      await wssFetch(
+        { ...options, signal: AbortSignal.timeout(10_000) },
+        isCurrent
+      )
+    else await apiFetch(options)
   } catch {
     // Scheduled cleanup removes abandoned uploads if the request fails.
   }
@@ -40,7 +52,8 @@ export async function discardProductImageUploadsAction(
 
 export async function requestImageUploadsAction(
   purpose: ImagePurpose,
-  uploads: { size: number; content_type: string; filename?: string }[]
+  uploads: { size: number; content_type: string; filename?: string }[],
+  isCurrent?: () => boolean
 ): Promise<
   ActionState & { data?: { tokens: string[]; uploads: ImageUploadSession[] } }
 > {
@@ -69,12 +82,21 @@ export async function requestImageUploadsAction(
   }
   let tokens: string[] = []
   try {
-    const response = await (purpose === "chat" ? wssFetch : apiFetch)({
-      method: "POST",
+    if (isCurrent && !isCurrent())
+      throw new Error("Phiên đăng nhập đã thay đổi.")
+    const options = {
+      method: "POST" as const,
       path:
         purpose === "chat" ? "/chat-uploads/images" : "/private/uploads/images",
       body: { purpose, uploads: parsed.data },
-    })
+    }
+    const response =
+      purpose === "chat"
+        ? await wssFetch(
+            { ...options, signal: AbortSignal.timeout(30_000) },
+            isCurrent
+          )
+        : await apiFetch(options)
     // Retain tokens even if another response field is malformed so reservations
     // can be released instead of unnecessarily consuming the owner's quota.
     const reserved = z
@@ -103,7 +125,7 @@ export async function requestImageUploadsAction(
       data: { tokens, uploads: data.uploads },
     }
   } catch (error) {
-    await discardProductImageUploadsAction(tokens, purpose)
+    await discardProductImageUploadsAction(tokens, purpose, isCurrent)
     return error instanceof ApiError
       ? { success: false, message: error.message, errors: error.errors }
       : {

@@ -4,7 +4,13 @@ import { Surface } from "@/components/ui/surface"
 import { StatCard } from "@/components/ui/section"
 
 import { useEffect, useRef, useState, useTransition } from "react"
-import { CameraIcon, DownloadIcon, RefreshCwIcon, SaveIcon } from "lucide-react"
+import {
+  CameraIcon,
+  ClipboardPlusIcon,
+  DownloadIcon,
+  RefreshCwIcon,
+  SaveIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 import { AppSelect } from "@/components/app-select"
 import { Badge } from "@/components/ui/badge"
@@ -420,9 +426,9 @@ export function ShopInventoryWorkspace({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid items-end gap-4 lg:grid-cols-2">
             <form
-              className="flex flex-wrap items-end gap-2"
+              className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]"
               onSubmit={(event) => {
                 event.preventDefault()
                 setCamera(false)
@@ -437,7 +443,7 @@ export function ShopInventoryWorkspace({
                 })
               }}
             >
-              <div className="min-w-40 flex-1 space-y-1">
+              <div className="grid min-w-0 gap-2">
                 <Label htmlFor="stocktake-name">Tên phiên mới</Label>
                 <Input
                   id="stocktake-name"
@@ -452,10 +458,10 @@ export function ShopInventoryWorkspace({
                 type="submit"
                 disabled={actionsDisabled || !products.length}
               >
-                Bắt đầu kiểm kê
+                <ClipboardPlusIcon aria-hidden="true" /> Bắt đầu kiểm kê
               </Button>
             </form>
-            <div className="space-y-1">
+            <div className="grid min-w-0 gap-2">
               <Label htmlFor="stocktake-history">
                 Mở phiên đã lưu (30 phiên gần nhất)
               </Label>

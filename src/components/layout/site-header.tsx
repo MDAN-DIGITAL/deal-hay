@@ -3,7 +3,20 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { BellIcon, ChevronDownIcon, MessageCircleIcon } from "lucide-react"
+import {
+  ActivityIcon,
+  BellIcon,
+  ChevronDownIcon,
+  HouseIcon,
+  LogInIcon,
+  MessageCircleIcon,
+  ShieldCheckIcon,
+  StoreIcon,
+  TicketPercentIcon,
+  UserPlusIcon,
+  UserRoundIcon,
+  type LucideIcon,
+} from "lucide-react"
 
 import { useSession } from "@/components/session-provider"
 import { ServerPing } from "@/components/layout/server-ping"
@@ -32,13 +45,24 @@ import { ChatPageLink } from "@/components/chat-page-link"
 type NavigationItem = {
   href: string
   label: string
+  icon: LucideIcon
   unreadKey?: "messages" | "notifications"
 }
 
 const navigation: NavigationItem[] = [
-  { href: "/", label: "Khám phá" },
-  { href: "/chats", label: "Tin nhắn", unreadKey: "messages" },
-  { href: "/notifications", label: "Thông báo", unreadKey: "notifications" },
+  { href: "/", label: "Khám phá", icon: HouseIcon },
+  {
+    href: "/chats",
+    label: "Tin nhắn",
+    icon: MessageCircleIcon,
+    unreadKey: "messages",
+  },
+  {
+    href: "/notifications",
+    label: "Thông báo",
+    icon: BellIcon,
+    unreadKey: "notifications",
+  },
 ]
 
 export function SiteHeader() {
@@ -47,12 +71,20 @@ export function SiteHeader() {
   const [accountOpen, setAccountOpen] = useState(false)
   const items: NavigationItem[] = [
     ...navigation,
-    ...(user ? [{ href: "/discount-codes", label: "Mã giảm giá" }] : []),
+    ...(user
+      ? [
+          {
+            href: "/discount-codes",
+            label: "Mã giảm giá",
+            icon: TicketPercentIcon,
+          },
+        ]
+      : []),
     ...(user?.role === "shop_owner"
-      ? [{ href: "/shop-manage", label: "Kênh người bán" }]
+      ? [{ href: "/shop-manage", label: "Kênh người bán", icon: StoreIcon }]
       : []),
     ...(user?.role === "administrator"
-      ? [{ href: "/admin/users", label: "Quản trị" }]
+      ? [{ href: "/admin/users", label: "Quản trị", icon: ShieldCheckIcon }]
       : []),
   ]
   const active = (href: string) =>
@@ -84,6 +116,7 @@ export function SiteHeader() {
                   variant: active(item.href) ? "secondary" : "ghost",
                 })}
               >
+                <item.icon aria-hidden="true" />
                 {item.label}
                 {item.unreadKey ? (
                   <UnreadCountBadge kind={item.unreadKey} />
@@ -135,10 +168,12 @@ export function SiteHeader() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem render={<Link href="/profile" />}>
+                      <UserRoundIcon aria-hidden="true" />
                       Hồ sơ cá nhân
                     </DropdownMenuItem>
                     {user.role === "administrator" ? (
                       <DropdownMenuItem render={<Link href="/diagnostics" />}>
+                        <ActivityIcon aria-hidden="true" />
                         Đo tốc độ máy chủ
                       </DropdownMenuItem>
                     ) : null}
@@ -156,9 +191,11 @@ export function SiteHeader() {
                 href="/sign-in"
                 className={buttonVariants({ variant: "ghost" })}
               >
+                <LogInIcon aria-hidden="true" />
                 Đăng nhập
               </Link>
               <Link href="/sign-up" className={buttonVariants()}>
+                <UserPlusIcon aria-hidden="true" />
                 Tạo tài khoản
               </Link>
             </>

@@ -87,7 +87,7 @@ export function ProductCheckout({
   shop,
   product,
   variant,
-  regularPrice,
+  salePrice,
   stock,
   initialDiscountCode,
   initialShopCouponCode,
@@ -95,7 +95,7 @@ export function ProductCheckout({
   shop: PublicShop
   product: PublicProduct
   variant?: PublicProductVariant
-  regularPrice: number
+  salePrice: number
   stock: number
   initialDiscountCode?: string
   initialShopCouponCode?: string
@@ -223,7 +223,7 @@ export function ProductCheckout({
     selectedCodes.length > 0 &&
     (codesPending || Boolean(codesError) || unknownSelectedCodes.length > 0)
   const summary = summarizeDiscountCodes(
-    regularPrice,
+    salePrice,
     quantity,
     selectedDiscountCodes
   )
@@ -772,8 +772,11 @@ export function ProductCheckout({
                           variant.sku}
                       </p>
                     ) : null}
-                    <p className="font-semibold text-primary">
-                      {formatCurrency(regularPrice)}{" "}
+                    <p
+                      aria-label="Giá bán mỗi sản phẩm"
+                      className="font-semibold text-primary"
+                    >
+                      {formatCurrency(salePrice)}{" "}
                       <span className="text-xs font-normal text-muted-foreground">
                         / sản phẩm
                       </span>

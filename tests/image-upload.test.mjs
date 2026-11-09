@@ -661,6 +661,36 @@ test("fifty chat images use one batch reservation and preserve attachment order"
   assert.ok(state.uploads.every((xhr) => xhr.body.size <= 20 * 1024))
 })
 
+test("an account change during image compression stops reservations and uploads", async (t) => {
+  let resumeDecode, current = true
+  t.mock.method(globalThis, "createImageBitmap", () => new Promise((resolve) => {
+    resumeDecode = () => resolve({ width: 4000, height: 3000, close() {} })
+  }))
+  const form = new FormData()
+  form.set("attachment", original())
+  const result = prepareImageUploads(form, "chat", undefined, () => current)
+  await settleUntil(() => resumeDecode)
+  current = false
+  resumeDecode()
+  await assert.rejects(result, /Phiên đăng nhập đã thay đổi/)
+  assert.deepEqual(grants.batches, [])
+  assert.deepEqual(state.uploads, [])
+  assert.deepEqual(grants.discarded, [])
+})
+
+test("an account change during active uploads stops queued PUTs and skips cleanup with new credentials", async (t) => {
+  const held = heldUploads(t), form = new FormData()
+  let current = true
+  for (let i = 0; i < 7; i++) form.append("attachment", original())
+  const result = prepareImageUploads(form, "chat", undefined, () => current)
+  const rejection = assert.rejects(result, /Phiên đăng nhập đã thay đổi/)
+  await settleUntil(() => held.pending.length === 4)
+  current = false
+  while (held.pending.length) held.pending.shift()()
+  await rejection
+  assert.equal(state.uploads.length, 4)
+})
+
 test("parallel uploads retry a temporary failure with the same bytes and reservation", async (t) => {
   const delays = []
   t.mock.method(globalThis, "setTimeout", (resolve, delay) => {

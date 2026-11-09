@@ -329,6 +329,19 @@ test("a RAM database restart renews its scoped credential once and retries the c
   assert.equal(state.token, "account-a")
 })
 
+test("a guarded chat request cannot use a new account after asynchronous session lookup", async (t) => {
+  const owner = state.token
+  const originalGet = sessions.getWssSession
+  // A valid cached session still performs asynchronous owner fingerprinting.
+  await originalGet()
+  let current = true
+  t.mock.method(globalThis, "fetch", async () => assert.fail("Obsolete request must not reach WSS"))
+  const request = wssFetch({ path: "/chat-uploads/images", method: "POST", body: {} }, () => current && state.token === owner)
+  current = false
+  state.token = "account-b"
+  await assert.rejects(request, /Phiên đăng nhập đã thay đổi/)
+})
+
 test("a repeatedly rejected WSS session stops after one renewal", async (t) => {
   await sessions.getWssSession()
   let calls = 0

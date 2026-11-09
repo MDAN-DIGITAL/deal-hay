@@ -135,8 +135,14 @@ function imageUploadError(
 export async function prepareImageUploads(
   formData: FormData,
   purpose: ImagePurpose,
-  onProgress?: (progress: ImageUploadProgress) => void
+  onProgress?: (progress: ImageUploadProgress) => void,
+  isCurrent?: () => boolean
 ): Promise<FormData> {
+  const assertCurrent = () => {
+    if (isCurrent && !isCurrent())
+      throw new Error("Phiên đăng nhập đã thay đổi.")
+  }
+  assertCurrent()
   const entries = Array.from(formData.entries())
   const images = entries.flatMap(([field, value], index) =>
     value instanceof File &&
@@ -155,7 +161,8 @@ export async function prepareImageUploads(
       total: file.size,
     })
   )
-  const publish = () =>
+  const publish = () => {
+    if (isCurrent && !isCurrent()) return
     onProgress?.({
       percent:
         progress.length === 0
@@ -167,6 +174,7 @@ export async function prepareImageUploads(
       completed: progress.filter((file) => file.stage === "complete").length,
       files: progress.map((file) => ({ ...file })),
     })
+  }
   publish()
   for (const [position, { field, file }] of images.entries()) {
     const parsed = imageFileSchema("Ảnh không hợp lệ.").safeParse(file)
@@ -194,9 +202,11 @@ export async function prepareImageUploads(
       prepareInPool(async () => {
         if (preparationFailure) return
         try {
+          assertCurrent()
           Object.assign(progress[position], { stage: "processing", percent: 0 })
           publish()
           const image = await prepareBrowserImage(file, purpose)
+          assertCurrent()
           processed[position] = image
           Object.assign(progress[position], {
             stage: "queued",
@@ -222,13 +232,15 @@ export async function prepareImageUploads(
   )
   if (failedPreparation?.status === "rejected") throw failedPreparation.reason
 
+  assertCurrent()
   const sessions = await requestImageUploadsAction(
     purpose,
     processed.map((file) => ({
       size: file.size,
       content_type: file.type,
       filename: file.name,
-    }))
+    })),
+    isCurrent
   )
   if (!sessions.success || !sessions.data) {
     throw new UploadError(sessions.message || uploadFallback, sessions.errors)
@@ -237,6 +249,7 @@ export async function prepareImageUploads(
   const stagedTokens = sessionData.tokens
   const references = new Map<number, string>()
   try {
+    assertCurrent()
     if (
       sessionData.uploads.length !== images.length ||
       stagedTokens.length !== images.length
@@ -258,6 +271,7 @@ export async function prepareImageUploads(
             for (let attempt = 0; ; attempt++) {
               if (uploadFailure) return
               try {
+                assertCurrent()
                 update({
                   stage: "uploading",
                   percent: 30,
@@ -265,6 +279,7 @@ export async function prepareImageUploads(
                   total: file.size,
                 })
                 await uploadImage(session, file, field, original.name, update)
+                assertCurrent()
                 break
               } catch (error) {
                 const retryable =
@@ -308,7 +323,7 @@ export async function prepareImageUploads(
     const failed = outcomes.find((outcome) => outcome.status === "rejected")
     if (failed?.status === "rejected") throw failed.reason
   } catch (error) {
-    await discardProductImageUploadsAction(stagedTokens, purpose)
+    await discardProductImageUploadsAction(stagedTokens, purpose, isCurrent)
     throw error
   }
 

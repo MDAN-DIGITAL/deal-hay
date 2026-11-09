@@ -450,7 +450,7 @@ export function ChatsPageClient({
   }, [socketId])
 
   const handleSent = useCallback(
-    (message: ChatMessage, submittedReplyId?: string | null) => {
+    (message: ChatMessage) => {
       messageRevisions.current.set(
         message.conversation_id,
         (messageRevisions.current.get(message.conversation_id) ?? 0) + 1
@@ -461,13 +461,6 @@ export function ChatsPageClient({
         (revisions.get(message.conversation_id) ?? 0) + 1
       )
       setState((current) => receiveChatMessage(current, message, currentUserId))
-      setReplyDrafts((current) => {
-        if (current[message.conversation_id]?.id !== submittedReplyId)
-          return current
-        const next = { ...current }
-        delete next[message.conversation_id]
-        return next
-      })
     },
     [currentUserId]
   )
@@ -789,12 +782,18 @@ export function ChatsPageClient({
                   const id = conversation.id
                   return (
                     <div
-                      key={id}
+                      key={`${currentUserId}:${id}`}
                       hidden={activeConversation?.id !== id}
                       className="shrink-0"
                     >
                       <ChatComposer
                         admins={state.admins ?? admins}
+                        confirmedClientMessageIds={conversation.messages.flatMap(
+                          (message) =>
+                            message.client_message_id
+                              ? [message.client_message_id]
+                              : []
+                        )}
                         conversationSlug={conversation.slug}
                         replyTo={replyDrafts[id] ?? null}
                         socketId={socketId}

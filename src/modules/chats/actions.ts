@@ -86,7 +86,8 @@ export async function markConversationReadAction(
 
 export async function sendMessageAction(
   conversationSlug: string,
-  formData: FormData
+  formData: FormData,
+  isCurrent?: () => boolean
 ): Promise<SendMessageActionState> {
   const parsed = sendMessageUploadSchema.safeParse({
     client_message_id: formData.get("client_message_id") ?? undefined,
@@ -125,7 +126,8 @@ export async function sendMessageAction(
       conversationSlug,
       payload,
       String(payload.get("client_message_id")),
-      validSocketId(formData.get("socket_id"))
+      validSocketId(formData.get("socket_id")),
+      isCurrent
     )
     return { success: true, message: "Đã gửi tin nhắn.", data: message }
   } catch (error) {

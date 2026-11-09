@@ -20,9 +20,201 @@ const {
   prepareChatSendAttempt,
   chatSendAttempts,
   prepareChatImageAttempts,
+  createChatSendQueue,
 } = await import(
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
 )
+
+const deferred = () => {
+  let resolve, reject
+  const promise = new Promise((yes, no) => {
+    resolve = yes
+    reject = no
+  })
+  return { promise, resolve, reject }
+}
+async function until(check) {
+  for (let index = 0; index < 100; index++) {
+    if (check()) return
+    await Promise.resolve()
+  }
+  assert.ok(check(), "queued work must settle")
+}
+const textAttempts = (body, conversationSlug = "shop-customer") =>
+  chatSendAttempts([], { conversationSlug, body, attachments: [] })
+
+test("a socket acknowledgement releases later drafts even when the first HTTP response never settles", async () => {
+  const response = deferred()
+  const sent = []
+  let visible = []
+  const queue = createChatSendQueue({
+    isCurrent: () => true,
+    prepare: async () => {},
+    send: async (attempt) => {
+      sent.push(attempt)
+      if (sent.length === 1) await response.promise
+    },
+    onChange: (batches) => { visible = batches },
+  })
+  const first = textAttempts("Socket confirmed first")
+  const second = textAttempts("Second can proceed")
+  queue.enqueue(first)
+  queue.enqueue(second)
+  await until(() => sent.length === 1)
+  queue.acknowledge([first[0].clientMessageId])
+  await until(() => visible.length === 0)
+  assert.deepEqual(sent, [first[0], second[0]])
+  response.reject(new Error("Late transport failure"))
+  await Promise.resolve()
+  assert.deepEqual(visible, [])
+})
+
+test("a second draft queues immediately while the first response is pending, with FIFO and distinct identities", async () => {
+  const firstResponse = deferred()
+  const sent = []
+  let visible = []
+  const queue = createChatSendQueue({
+    isCurrent: () => true,
+    prepare: async () => {},
+    send: async (attempt) => {
+      sent.push(attempt)
+      if (sent.length === 1) await firstResponse.promise
+    },
+    onChange: (batches) => { visible = batches },
+  })
+  const first = textAttempts("Same intentional message")
+  const second = textAttempts("Same intentional message")
+  assert.equal(queue.enqueue(first), true)
+  await until(() => sent.length === 1)
+  assert.equal(queue.enqueue(second), true)
+  assert.equal(visible.length, 2)
+  assert.equal(visible[1].status, "queued")
+  assert.notEqual(first[0].clientMessageId, second[0].clientMessageId)
+  assert.equal(sent.length, 1)
+  firstResponse.resolve()
+  await until(() => visible.length === 0)
+  assert.deepEqual(sent, [first[0], second[0]])
+})
+
+test("a failed send preserves its identity without blocking newer drafts and retries behind queued work", async () => {
+  const firstResponse = deferred()
+  const secondResponse = deferred()
+  const sent = []
+  let visible = []
+  const queue = createChatSendQueue({
+    isCurrent: () => true,
+    prepare: async () => {},
+    send: async (attempt) => {
+      sent.push(attempt)
+      if (sent.length === 1) await firstResponse.promise
+      if (sent.length === 2) await secondResponse.promise
+    },
+    onChange: (batches) => { visible = batches },
+  })
+  const first = textAttempts("First")
+  const second = textAttempts("Second")
+  const third = textAttempts("Third")
+  queue.enqueue(first)
+  queue.enqueue(second)
+  firstResponse.reject(new Error("Lost connection"))
+  await until(() => sent.length === 2)
+  assert.equal(visible[0].status, "failed")
+  assert.equal(visible[0].error, "Lost connection")
+  queue.enqueue(third)
+  queue.retry(first[0].clientMessageId)
+  queue.retry(first[0].clientMessageId)
+  secondResponse.resolve()
+  await until(() => visible.length === 0)
+  assert.deepEqual(sent, [first[0], second[0], third[0], first[0]])
+})
+
+test("partially confirmed photo batches retry only unsent files with the original uploads and identifiers", async () => {
+  const files = [1, 2, 3].map((id) => new File([String(id)], `${id}.webp`, { type: "image/webp" }))
+  const attempts = chatSendAttempts([], { conversationSlug: "photos", body: "Photos", attachments: files })
+  const sent = []
+  let visible = [], uploads = 0, rejectSecond = true
+  const queue = createChatSendQueue({
+    isCurrent: () => true,
+    prepare: (batch) => prepareChatImageAttempts(batch, async (input) => {
+      uploads++
+      const output = new FormData()
+      input.getAll("attachment").forEach((file) => output.append("attachment", `https://chat.test/uploads/${file.name}`))
+      return output
+    }),
+    send: async (attempt) => {
+      const payload = await prepareChatSendAttempt(attempt, async () => { throw new Error("Must reuse batch upload") })
+      sent.push({ attempt, attachment: payload.get("attachment") })
+      if (attempt === attempts[1] && rejectSecond) {
+        rejectSecond = false
+        throw new Error("Retry second photo")
+      }
+    },
+    onChange: (batches) => { visible = batches },
+  })
+  queue.enqueue(attempts)
+  await until(() => visible[0]?.status === "failed")
+  assert.deepEqual(visible[0].attempts, attempts.slice(1))
+  queue.retry(attempts[0].clientMessageId)
+  await until(() => visible.length === 0)
+  assert.equal(uploads, 1)
+  assert.deepEqual(sent.map(({ attempt }) => attempt), [attempts[0], attempts[1], attempts[1], attempts[2]])
+  assert.equal(sent[1].attachment, sent[2].attachment)
+})
+
+test("a socket acknowledgement wins over a lost HTTP response and cannot leave a duplicate retry", async () => {
+  const response = deferred()
+  let visible = [], sends = 0
+  const first = textAttempts("Already on server")
+  const queue = createChatSendQueue({
+    isCurrent: () => true,
+    prepare: async () => {},
+    send: async () => { sends++; await response.promise },
+    onChange: (batches) => { visible = batches },
+  })
+  queue.enqueue(first)
+  await until(() => sends === 1)
+  queue.acknowledge([first[0].clientMessageId])
+  assert.equal(visible.length, 0)
+  response.reject(new Error("HTTP response lost"))
+  await Promise.resolve()
+  await Promise.resolve()
+  queue.retry(first[0].clientMessageId)
+  assert.equal(sends, 1)
+  assert.equal(visible.length, 0)
+})
+
+test("conversation queues send independently and stop queued requests and updates after unmount or an account change", async () => {
+  const response = deferred()
+  const sent = [], snapshots = []
+  let current = true
+  const firstQueue = createChatSendQueue({
+    isCurrent: () => current,
+    prepare: async () => {},
+    send: async (attempt) => { sent.push(attempt.conversationSlug); await response.promise },
+    onChange: (batches) => snapshots.push(batches),
+  })
+  let otherVisible = []
+  const otherQueue = createChatSendQueue({
+    isCurrent: () => true,
+    prepare: async () => {},
+    send: async (attempt) => { sent.push(attempt.conversationSlug) },
+    onChange: (batches) => { otherVisible = batches },
+  })
+  firstQueue.enqueue(textAttempts("First room", "first-room"))
+  firstQueue.enqueue(textAttempts("Later in first room", "first-room"))
+  await until(() => sent.length === 1)
+  otherQueue.enqueue(textAttempts("Another room", "other-room"))
+  await until(() => otherVisible.length === 0)
+  assert.deepEqual(sent, ["first-room", "other-room"])
+  const beforeUnmount = snapshots.length
+  current = false
+  response.resolve()
+  await Promise.resolve()
+  await Promise.resolve()
+  assert.equal(firstQueue.enqueue(textAttempts("Wrong account")), false)
+  assert.equal(snapshots.length, beforeUnmount)
+  assert.deepEqual(sent, ["first-room", "other-room"])
+})
 
 test("an unchanged draft keeps its identifier until confirmed success or an actual payload change", () => {
   const attachment = new File(["image"], "image.webp", { type: "image/webp" })

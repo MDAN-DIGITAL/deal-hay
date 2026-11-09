@@ -42,6 +42,9 @@ const uiUrl = moduleUrl(`
   export const PackageCheckIcon = () => null
 `)
 const formatUrl = transpileModule("../src/lib/format.ts")
+const pricingUrl = transpileModule(
+  "../src/modules/public/lib/product-pricing.ts"
+)
 const { formatCurrency } = await import(formatUrl)
 const { ProductCard } = await import(
   transpileModule("../src/modules/public/components/product-card.tsx", {
@@ -52,6 +55,7 @@ const { ProductCard } = await import(
     "@/components/ui/badge": uiUrl,
     "@/components/ui/card": uiUrl,
     "@/lib/format": formatUrl,
+    "@/modules/public/lib/product-pricing": pricingUrl,
   })
 )
 
@@ -90,25 +94,35 @@ test("older API responses and simple products retain their base price", () => {
   assert.ok(renderCard({}).includes(formatCurrency(50000)))
 })
 
-test("a legacy ad availability flag cannot advertise an inactive reward price", () => {
+test("the sale price is primary and the original price is a struck reference", () => {
   const rendered = renderCard({
     display_price: 80000,
     display_original_price: 100000,
     advertisement_available: true,
   })
   assert.ok(rendered.includes(formatCurrency(100000)))
-  assert.ok(!rendered.includes(formatCurrency(80000)))
+  assert.ok(rendered.includes(formatCurrency(80000)))
+  assert.match(rendered, /aria-label="Giá bán"[^>]*>80/)
+  assert.match(rendered, /aria-label="Giá gốc"[^>]*line-through/)
   assert.ok(!rendered.includes("Giá khi dùng mã ưu đãi"))
-  assert.ok(!rendered.includes("line-through"))
 })
 
-test("an unavailable advertisement offers only the regular purchase price", () => {
+test("ad availability does not replace the sale price with the original or preview price", () => {
   const rendered = renderCard({
     display_price: 80000,
     display_original_price: 100000,
+    display_ad_price: 60000,
     advertisement_available: false,
   })
   assert.ok(rendered.includes(formatCurrency(100000)))
-  assert.ok(!rendered.includes(formatCurrency(80000)))
+  assert.ok(rendered.includes(formatCurrency(80000)))
+  assert.ok(!rendered.includes(formatCurrency(60000)))
   assert.ok(!rendered.includes("Giá khi dùng mã ưu đãi"))
+})
+
+test("a reference below the selected variant sale price is not shown as an offer", () => {
+  const rendered = renderCard({ display_price: 120000, old_price: 100000 })
+  assert.ok(rendered.includes(formatCurrency(120000)))
+  assert.ok(!rendered.includes(formatCurrency(100000)))
+  assert.ok(!rendered.includes("line-through"))
 })

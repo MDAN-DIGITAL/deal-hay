@@ -12,9 +12,14 @@ export function useImageUpload() {
   const [uploadProgress, setUploadProgress] =
     useState<ImageUploadProgress | null>(null)
   const prepareUploads = useCallback(
-    (formData: FormData, purpose: ImagePurpose) => {
+    (formData: FormData, purpose: ImagePurpose, isCurrent?: () => boolean) => {
       setUploadProgress(null)
-      return prepareImageUploads(formData, purpose, setUploadProgress)
+      return prepareImageUploads(
+        formData,
+        purpose,
+        setUploadProgress,
+        isCurrent
+      )
     },
     []
   )

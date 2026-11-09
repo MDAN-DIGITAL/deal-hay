@@ -8,12 +8,14 @@ import {
   BellIcon,
   HouseIcon,
   LayoutDashboardIcon,
+  LogInIcon,
   MenuIcon,
   MessageCircleIcon,
   ShieldCheckIcon,
   StoreIcon,
   TicketPercentIcon,
   UserRoundIcon,
+  UserPlusIcon,
 } from "lucide-react"
 
 import { ServerPing } from "@/components/layout/server-ping"
@@ -233,6 +235,7 @@ export function MobileNavigation({
                 href="/sign-in"
                 className={buttonVariants({ variant: "outline" })}
               >
+                <LogInIcon aria-hidden="true" />
                 Đăng nhập
               </Link>
               <Link
@@ -240,6 +243,7 @@ export function MobileNavigation({
                 href="/sign-up"
                 className={buttonVariants()}
               >
+                <UserPlusIcon aria-hidden="true" />
                 Đăng ký
               </Link>
             </div>

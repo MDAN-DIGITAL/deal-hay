@@ -110,7 +110,9 @@ export function ProductPricingForm({ product }: { product: ShopProduct }) {
             </div>
           ))}
           <p className="text-xs text-muted-foreground">
-            Giá gốc phải cao hơn giá bán. Video giới thiệu sản phẩm là tùy chọn.
+            Giá bán là giá mua ngay. Mã quảng cáo 25% hợp lệ giảm trên giá bán.
+            Giá gốc chỉ để so sánh và phải cao hơn giá bán. Video giới thiệu sản
+            phẩm là tùy chọn.
           </p>
           <Button className="w-full" type="submit" disabled={pending}>
             {pending ? "Đang lưu..." : "Lưu giá và ưu đãi"}

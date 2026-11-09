@@ -121,7 +121,7 @@ function validateProductCatalog(
     context.addIssue({
       code: "custom",
       path: ["old_price"],
-      message: "Giá gốc phải lớn hơn giá ưu đãi.",
+      message: "Giá gốc phải lớn hơn giá bán.",
     })
   if (!value.has_variants) return
 

@@ -28,7 +28,7 @@ test("products with an offer present separate offer and direct purchase actions"
   assert.match(source, /Mua với ưu đãi/)
   assert.match(source, /Mua ngay/)
   assert.match(source, /#checkout-discount-title/)
-  assert.match(source, /Xem quảng cáo là tùy chọn\./)
+  assert.match(source, /Xem quảng cáo\s+là\s+tùy chọn\./)
 })
 
 test("the footer contains dedicated customer and seller navigation", () => {

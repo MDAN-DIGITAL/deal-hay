@@ -32,30 +32,38 @@ export async function sendChatMessage(
   slug: string,
   body: FormData,
   idempotencyKey: string,
-  socketId?: string
+  socketId?: string,
+  isCurrent?: () => boolean
 ): Promise<ChatMessage> {
+  if (isCurrent && !isCurrent()) throw new Error("Phiên đăng nhập đã thay đổi.")
   const attachment = body.get("attachment")
   const reference =
-    attachment instanceof File ? await uploadChatFile(attachment) : attachment
-  return wssFetch({
-    path: chatRoutes.send(encodeURIComponent(slug)),
-    method: "POST",
-    body: {
-      client_message_id: idempotencyKey,
-      ...(body.get("body") ? { body: String(body.get("body")) } : {}),
-      ...(body.get("reply_to_id")
-        ? { reply_to_id: String(body.get("reply_to_id")) }
-        : {}),
-      ...(reference ? { attachment: String(reference) } : {}),
-      ...(body.getAll("mention_admin_ids").length
-        ? { mention_admin_ids: body.getAll("mention_admin_ids").map(String) }
-        : {}),
+    attachment instanceof File
+      ? await uploadChatFile(attachment, isCurrent)
+      : attachment
+  return wssFetch(
+    {
+      path: chatRoutes.send(encodeURIComponent(slug)),
+      method: "POST",
+      signal: AbortSignal.timeout(30_000),
+      body: {
+        client_message_id: idempotencyKey,
+        ...(body.get("body") ? { body: String(body.get("body")) } : {}),
+        ...(body.get("reply_to_id")
+          ? { reply_to_id: String(body.get("reply_to_id")) }
+          : {}),
+        ...(reference ? { attachment: String(reference) } : {}),
+        ...(body.getAll("mention_admin_ids").length
+          ? { mention_admin_ids: body.getAll("mention_admin_ids").map(String) }
+          : {}),
+      },
+      headers: {
+        "Idempotency-Key": idempotencyKey,
+        ...(socketId ? { "X-Socket-ID": socketId } : {}),
+      },
     },
-    headers: {
-      "Idempotency-Key": idempotencyKey,
-      ...(socketId ? { "X-Socket-ID": socketId } : {}),
-    },
-  })
+    isCurrent
+  )
 }
 
 export function markConversationRead(

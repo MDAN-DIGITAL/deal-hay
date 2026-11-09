@@ -42,7 +42,7 @@ export function ProductGallery({
   const thumbnailsReady = galleryKey !== null && loadedGalleryKey === galleryKey
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       {videoUrl ? (
         <video
           className="aspect-video w-full rounded-lg bg-black"

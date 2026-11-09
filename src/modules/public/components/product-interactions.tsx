@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
+import { cn } from "cn"
 
 import { FormSelect } from "@/components/form-select"
 import { FormSubmitButton } from "@/components/form-submit-button"
@@ -67,6 +68,7 @@ import {
   variantHasOption,
 } from "@/modules/public/lib/variant-selection"
 import { productCheckoutHref } from "@/modules/public/lib/product-checkout"
+import { productPricing } from "@/modules/public/lib/product-pricing"
 import type { PublicProduct, PublicShop } from "@/types/catalog"
 
 function ReviewProductForm({
@@ -221,18 +223,16 @@ export function ProductInteractions({
         (variant) => variant.id === selectedVariantId && variant.is_active
       ) ?? defaultProductVariant(product.variants))
     : undefined
-  const displayedPrice = selectedVariant?.price ?? product.price
-  const regularPrice =
-    product.old_price && product.old_price > product.price && product.price > 0
-      ? Math.max(
-          displayedPrice,
-          Math.round((displayedPrice * product.old_price) / product.price)
-        )
-      : displayedPrice
+  const {
+    salePrice,
+    originalPrice,
+    afterAdPrice,
+    adDiscount,
+    adDiscountPercent,
+  } = productPricing(product, selectedVariant)
   const displayedStock =
     selectedVariant?.stock ?? (hasVariants ? 0 : product.stock)
-  const hasOfferPrice = regularPrice > displayedPrice
-  const savings = Math.max(0, regularPrice - displayedPrice)
+  const hasOfferPrice = adDiscount > 0
   const checkoutHref = productCheckoutHref(shop.code, product.slug, {
     variantId: selectedVariant?.id,
     discountCode: initialDiscountCode,
@@ -257,7 +257,7 @@ export function ProductInteractions({
     })
 
   return (
-    <div className="space-y-4 lg:sticky lg:top-28">
+    <div className="min-w-0 space-y-4 lg:sticky lg:top-28">
       <Card>
         <CardHeader>
           <div className="flex flex-wrap gap-2">
@@ -283,22 +283,37 @@ export function ProductInteractions({
               <p className="text-sm font-medium text-muted-foreground">
                 Giá mua ngay
               </p>
-              <p className="text-3xl font-semibold">
-                {formatCurrency(regularPrice)}
+              <p aria-label="Giá mua ngay" className="text-3xl font-semibold">
+                {formatCurrency(salePrice)}
               </p>
+              {originalPrice !== null ? (
+                <p className="text-sm text-muted-foreground">
+                  Giá gốc:{" "}
+                  <span className="line-through">
+                    {formatCurrency(originalPrice)}
+                  </span>
+                </p>
+              ) : null}
             </div>
             {hasOfferPrice ? (
               <>
                 <Separator />
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">
-                    Giá ưu đãi qua quảng cáo
+                    Giá ưu đãi qua quảng cáo (giảm {adDiscountPercent}%)
                   </p>
-                  <p className="text-3xl font-semibold text-primary">
-                    {formatCurrency(displayedPrice)}
+                  <p
+                    aria-label="Giá dự kiến sau mã quảng cáo 25%"
+                    className="text-3xl font-semibold text-primary"
+                  >
+                    {formatCurrency(afterAdPrice)}
                   </p>
                   <p className="text-sm font-medium text-primary">
-                    Tiết kiệm {formatCurrency(savings)} so với giá mua ngay
+                    Tiết kiệm {formatCurrency(adDiscount)} so với giá mua ngay
+                  </p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Giá dự kiến khi áp dụng mã quảng cáo {adDiscountPercent}%
+                    hợp lệ ở bước thanh toán.
                   </p>
                 </div>
               </>
@@ -421,10 +436,10 @@ export function ProductInteractions({
                   size="lg"
                 >
                   <CirclePlayIcon />
-                  <span className="flex flex-col items-start leading-tight">
+                  <span className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
                     <span>Mua với ưu đãi</span>
                     <span className="text-xs font-normal opacity-80">
-                      Xem ưu đãi ở bước thanh toán
+                      Áp dụng mã ưu đãi ở bước thanh toán
                     </span>
                   </span>
                 </Button>
@@ -436,7 +451,7 @@ export function ProductInteractions({
                 variant={hasOfferPrice ? "outline" : "default"}
               >
                 <ShoppingBagIcon />
-                <span className="flex flex-col items-start leading-tight">
+                <span className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
                   <span>Mua ngay</span>
                   {hasOfferPrice ? (
                     <span className="text-xs font-normal text-muted-foreground">
@@ -450,33 +465,37 @@ export function ProductInteractions({
             <div className="space-y-3">
               {hasOfferPrice ? (
                 <Link
-                  className={buttonVariants({
-                    className:
-                      "h-auto min-h-12 w-full gap-3 py-3 whitespace-normal",
-                    size: "lg",
-                  })}
+                  className={cn(
+                    buttonVariants({
+                      className:
+                        "h-auto min-h-12 w-full gap-3 py-3 whitespace-normal",
+                      size: "lg",
+                    })
+                  )}
                   href={offerCheckoutHref}
                 >
                   <CirclePlayIcon />
-                  <span className="flex flex-col items-start leading-tight">
+                  <span className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
                     <span>Mua với ưu đãi</span>
                     <span className="text-xs font-normal opacity-80">
-                      Xem ưu đãi ở bước thanh toán
+                      Áp dụng mã ưu đãi ở bước thanh toán
                     </span>
                   </span>
                 </Link>
               ) : null}
               <Link
-                className={buttonVariants({
-                  className:
-                    "h-auto min-h-12 w-full gap-3 py-3 whitespace-normal",
-                  size: "lg",
-                  variant: hasOfferPrice ? "outline" : "default",
-                })}
+                className={cn(
+                  buttonVariants({
+                    className:
+                      "h-auto min-h-12 w-full gap-3 py-3 whitespace-normal",
+                    size: "lg",
+                    variant: hasOfferPrice ? "outline" : "default",
+                  })
+                )}
                 href={checkoutHref}
               >
                 <ShoppingBagIcon />
-                <span className="flex flex-col items-start leading-tight">
+                <span className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
                   <span>Mua ngay</span>
                   {hasOfferPrice ? (
                     <span className="text-xs font-normal text-muted-foreground">
@@ -487,7 +506,8 @@ export function ProductInteractions({
               </Link>
               {hasOfferPrice ? (
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Giá ưu đãi do người bán cung cấp. Xem quảng cáo là tùy chọn.
+                  Ưu đãi chỉ áp dụng khi có mã quảng cáo hợp lệ. Xem quảng cáo
+                  là tùy chọn.
                 </p>
               ) : null}
             </div>

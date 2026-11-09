@@ -123,6 +123,7 @@ export async function getWssSession(force = false): Promise<WssSession> {
           method: "POST",
           path: "/private/realtime/socket-session",
           token: account,
+          signal: AbortSignal.timeout(30_000),
         })
       )
       const owner = await ownerFingerprint(account)

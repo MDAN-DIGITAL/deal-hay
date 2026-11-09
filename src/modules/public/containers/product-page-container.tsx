@@ -98,7 +98,7 @@ export function ProductPageContainer({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <section className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] lg:items-start">
+      <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] lg:items-start">
         <ProductGallery
           imageUrl={data.product.image_url}
           images={data.product.images}

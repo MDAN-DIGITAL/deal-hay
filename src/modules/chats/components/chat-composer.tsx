@@ -4,7 +4,6 @@ import {
   useEffect,
   useRef,
   useState,
-  useTransition,
   type ClipboardEvent,
   type FormEvent,
 } from "react"
@@ -14,6 +13,7 @@ import {
   LoaderCircleIcon,
   PaperclipIcon,
   PlusIcon,
+  RotateCcwIcon,
   SendIcon,
   XIcon,
 } from "lucide-react"
@@ -21,8 +21,17 @@ import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from "@/components/ui/item"
 import { SelectedFilePreview } from "@/components/selected-file-preview"
 import {
   Form,
@@ -38,7 +47,8 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group"
-import { applyServerErrors, runUploadAction } from "@/lib/form-utils"
+import { runUploadAction } from "@/lib/form-utils"
+import { getAccessToken } from "@/lib/session"
 import {
   CHAT_ATTACHMENT_ACCEPT,
   chatAttachmentFileSchema,
@@ -48,9 +58,10 @@ import { useImageUpload } from "@/hooks/use-image-upload"
 import { sendMessageAction } from "@/modules/chats/actions"
 import {
   chatSendAttempts,
+  createChatSendQueue,
   prepareChatSendAttempt,
   prepareChatImageAttempts,
-  type ChatSendAttempt,
+  type ChatSendBatch,
 } from "@/modules/chats/lib/chat-send-attempt"
 import { uploadChatFile } from "@/lib/chat-upload"
 import { ChatEmojiPicker } from "@/modules/chats/components/chat-emoji-picker"
@@ -68,6 +79,7 @@ export function ChatComposer({
   onCancelReply,
   onSent,
   admins = [],
+  confirmedClientMessageIds = [],
 }: {
   conversationSlug: string
   admins?: { id: string; name: string }[]
@@ -75,12 +87,16 @@ export function ChatComposer({
   replyTo?: ChatReply | null
   onCancelReply?: () => void
   onSent: (message: ChatMessage, replyToId?: string | null) => void
+  confirmedClientMessageIds?: string[]
 }) {
-  const [isPending, startTransition] = useTransition()
   const { prepareUploads, uploadProgress } = useImageUpload()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
-  const attemptRef = useRef<ChatSendAttempt[]>([])
+  const submittingRef = useRef(false)
+  const queueRef = useRef<ReturnType<typeof createChatSendQueue> | null>(null)
+  const callbacksRef = useRef({ socketId, onSent })
+  const [accountToken] = useState(getAccessToken)
+  const [outgoing, setOutgoing] = useState<ChatSendBatch[]>([])
   const [showAdminPicker, setShowAdminPicker] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
   const form = useForm<SendMessageValues>({
@@ -95,6 +111,72 @@ export function ChatComposer({
     body.trim().length > 0 ||
     attachments.length > 0 ||
     mentionAdminIds.length > 0
+  useEffect(() => {
+    let active = true
+    const isCurrent = () => active && getAccessToken() === accountToken
+    queueRef.current = createChatSendQueue({
+      isCurrent,
+      onChange: setOutgoing,
+      prepare: async (attempts) => {
+        const state = await runUploadAction(async () => {
+          await prepareChatImageAttempts(attempts, (input) =>
+            prepareUploads(input, "chat", isCurrent)
+          )
+          return { success: true as const, message: "" }
+        })
+        if (!state.success)
+          throw new Error(
+            Object.values(state.errors ?? {})
+              .flat()
+              .find(Boolean) || state.message
+          )
+      },
+      send: async (attempt, isUnconfirmed) => {
+        const state = await runUploadAction(async () => {
+          const payload = await prepareChatSendAttempt(
+            attempt,
+            async (input) => {
+              const prepared = await prepareUploads(input, "chat", isCurrent)
+              const file = prepared.get("attachment")
+              if (file instanceof File)
+                prepared.set(
+                  "attachment",
+                  await uploadChatFile(file, isCurrent)
+                )
+              return prepared
+            }
+          )
+          if (!isCurrent()) throw new Error("Phiên đăng nhập đã thay đổi.")
+          const socketId = callbacksRef.current.socketId
+          if (socketId) payload.set("socket_id", socketId)
+          else payload.delete("socket_id")
+          return sendMessageAction(attempt.conversationSlug, payload, isCurrent)
+        })
+        if (!state.success || !state.data)
+          throw new Error(
+            Object.values(state.errors ?? {})
+              .flat()
+              .find(Boolean) ||
+              state.message ||
+              "Không thể gửi tin nhắn. Vui lòng thử lại."
+          )
+        if (isCurrent() && isUnconfirmed())
+          callbacksRef.current.onSent(state.data, attempt.replyToId ?? null)
+      },
+    })
+    return () => {
+      active = false
+      queueRef.current = null
+    }
+  }, [accountToken, prepareUploads])
+
+  useEffect(() => {
+    callbacksRef.current = { socketId, onSent }
+  }, [socketId, onSent])
+
+  useEffect(() => {
+    queueRef.current?.acknowledge(confirmedClientMessageIds)
+  }, [confirmedClientMessageIds])
 
   const chooseFiles = () => {
     if (!fileInputRef.current) return
@@ -109,7 +191,6 @@ export function ChatComposer({
   }, [form, replyTo?.id])
 
   const addFiles = (files: File[]) => {
-    if (isPending) return
     const current = form.getValues("attachments")
     if (current.length + files.length > 50) {
       toast.error("Mỗi lần được gửi tối đa 50 tệp.")
@@ -137,7 +218,6 @@ export function ChatComposer({
   }
 
   const pasteImage = (event: ClipboardEvent<HTMLTextAreaElement>) => {
-    if (isPending) return
     const items = Array.from(event.clipboardData.items ?? [])
       .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
       .map((item) => item.getAsFile())
@@ -153,8 +233,6 @@ export function ChatComposer({
   }
 
   const insertEmoji = (emoji: string) => {
-    if (isPending) return
-
     const textarea = textareaRef.current
     const body = form.getValues("body") ?? ""
     const start = textarea?.selectionStart ?? body.length
@@ -175,83 +253,33 @@ export function ChatComposer({
   }
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    void form.handleSubmit((values) => {
-      const attempts = chatSendAttempts(attemptRef.current, {
+    event.preventDefault()
+    if (submittingRef.current) return
+    submittingRef.current = true
+    // Validation is synchronous so the accepted snapshot is cleared before the next keystroke.
+    const parsed = sendMessageSchema.safeParse(form.getValues())
+    if (!parsed.success) {
+      submittingRef.current = false
+      void form.trigger()
+      return
+    }
+    try {
+      const values = parsed.data
+      const attempts = chatSendAttempts([], {
         conversationSlug,
         body: values.body,
         attachments: values.attachments,
         replyToId: replyTo?.id,
         mentionAdminIds: values.mention_admin_ids,
       })
-      attemptRef.current = attempts
-      startTransition(async () => {
-        const prepared = await runUploadAction(async () => {
-          await prepareChatImageAttempts(attempts, (input) =>
-            prepareUploads(input, "chat")
-          )
-          return { success: true as const, message: "" }
-        })
-        if (!prepared.success) {
-          const hasFieldErrors = applyServerErrors(
-            {
-              ...prepared.errors,
-              ...(prepared.errors?.attachment
-                ? { attachments: prepared.errors.attachment }
-                : {}),
-            },
-            form.setError
-          )
-          if (!hasFieldErrors && prepared.message) toast.error(prepared.message)
-          return
-        }
-        for (const attempt of attempts) {
-          const state = await runUploadAction(async () => {
-            const payload = await prepareChatSendAttempt(
-              attempt,
-              async (input) => {
-                const prepared = await prepareUploads(input, "chat")
-                const file = prepared.get("attachment")
-                if (file instanceof File)
-                  prepared.set("attachment", await uploadChatFile(file))
-                return prepared
-              }
-            )
-            if (socketId) payload.set("socket_id", socketId)
-            else payload.delete("socket_id")
-            return sendMessageAction(conversationSlug, payload)
-          })
-          const hasFieldErrors = applyServerErrors(
-            {
-              ...state.errors,
-              ...(state.errors?.attachment
-                ? { attachments: state.errors.attachment }
-                : {}),
-            },
-            form.setError
-          )
-          if (!state.success || !state.data) {
-            if (!hasFieldErrors && state.message) toast.error(state.message)
-            return
-          }
-          attemptRef.current = attemptRef.current.filter(
-            (item) => item !== attempt
-          )
-          onSent(state.data, attempt.replyToId ?? null)
-          // Remove confirmed files immediately; a retry sends only the remaining files.
-          form.setValue(
-            "attachments",
-            form
-              .getValues("attachments")
-              .filter((file) => file !== attempt.attachment)
-          )
-          if (attempt === attempts[0]) {
-            form.setValue("body", "")
-            form.setValue("mention_admin_ids", [])
-          }
-        }
-        form.reset({ body: "", attachments: [], mention_admin_ids: [] })
-      })
-    })(event)
+      if (!queueRef.current?.enqueue(attempts)) return
+      form.reset({ body: "", attachments: [], mention_admin_ids: [] })
+      if (replyTo) onCancelReply?.()
+      setShowMoreActions(false)
+      textareaRef.current?.focus()
+    } finally {
+      submittingRef.current = false
+    }
   }
 
   return (
@@ -262,11 +290,73 @@ export function ChatComposer({
         onSubmit={onSubmit}
       >
         <div className="mx-auto w-full max-w-[920px] px-3 sm:px-6">
+          {outgoing.length ? (
+            <ItemGroup
+              aria-label="Tin nhắn chờ gửi"
+              aria-live="polite"
+              className="mb-2 max-h-40 overflow-auto"
+            >
+              {outgoing.map((batch) => (
+                <Item key={batch.id} role="listitem" size="xs" variant="muted">
+                  <ItemContent className="min-w-0">
+                    <ItemTitle className="max-w-full">
+                      {batch.attempts[0]?.body ||
+                        batch.attempts[0]?.attachment?.name ||
+                        "Tin nhắn tag admin"}
+                    </ItemTitle>
+                    {batch.attempts.some((attempt) => attempt.attachment) ? (
+                      <ItemDescription>
+                        {
+                          batch.attempts.filter((attempt) => attempt.attachment)
+                            .length
+                        }{" "}
+                        tệp đính kèm
+                      </ItemDescription>
+                    ) : null}
+                    {batch.error ? (
+                      <ItemDescription
+                        className="text-destructive"
+                        role="alert"
+                      >
+                        {batch.error}
+                      </ItemDescription>
+                    ) : null}
+                  </ItemContent>
+                  <ItemActions>
+                    <Badge
+                      variant={
+                        batch.status === "failed" ? "destructive" : "secondary"
+                      }
+                    >
+                      {batch.status === "sending" ? (
+                        <LoaderCircleIcon className="animate-spin" />
+                      ) : null}
+                      {batch.status === "failed"
+                        ? "Chưa gửi"
+                        : batch.status === "sending"
+                          ? "Đang gửi"
+                          : "Chờ gửi"}
+                    </Badge>
+                    {batch.status === "failed" ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => queueRef.current?.retry(batch.id)}
+                      >
+                        <RotateCcwIcon /> Gửi lại
+                      </Button>
+                    ) : null}
+                  </ItemActions>
+                </Item>
+              ))}
+            </ItemGroup>
+          ) : null}
           {replyTo ? (
             <ChatReplyPreview
               className="mb-2 max-w-none"
               reply={replyTo}
-              onCancel={isPending ? undefined : onCancelReply}
+              onCancel={onCancelReply}
             />
           ) : null}
           {form.formState.errors.reply_to_id?.message ? (
@@ -282,17 +372,12 @@ export function ChatComposer({
                   compact
                   className="w-56 shrink-0"
                   file={file}
-                  onRemove={
-                    isPending
-                      ? undefined
-                      : () =>
-                          form.setValue(
-                            "attachments",
-                            attachments.filter(
-                              (_, position) => position !== index
-                            ),
-                            { shouldValidate: true }
-                          )
+                  onRemove={() =>
+                    form.setValue(
+                      "attachments",
+                      attachments.filter((_, position) => position !== index),
+                      { shouldValidate: true }
+                    )
                   }
                 />
               ))}
@@ -303,7 +388,6 @@ export function ChatComposer({
               {mentionAdminIds.map((id) => (
                 <Button
                   key={id}
-                  disabled={isPending}
                   size="sm"
                   variant="secondary"
                   type="button"
@@ -335,7 +419,6 @@ export function ChatComposer({
                   >
                     <Checkbox
                       aria-label={`@${admin.name}`}
-                      disabled={isPending}
                       checked={mentionAdminIds.includes(admin.id)}
                       onCheckedChange={(checked) =>
                         form.setValue(
@@ -362,7 +445,13 @@ export function ChatComposer({
               {form.formState.errors.mention_admin_ids.message}
             </p>
           ) : null}
-          <ImageUploadProgress progress={isPending ? uploadProgress : null} />
+          <ImageUploadProgress
+            progress={
+              outgoing.some((batch) => batch.status === "sending")
+                ? uploadProgress
+                : null
+            }
+          />
           {showMoreActions ? (
             <div
               className="mb-2 flex gap-2 sm:hidden"
@@ -373,7 +462,6 @@ export function ChatComposer({
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={isPending}
                 onClick={chooseFiles}
               >
                 <PaperclipIcon /> Ảnh / tệp
@@ -382,7 +470,6 @@ export function ChatComposer({
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={isPending}
                 onClick={() => {
                   setShowAdminPicker((current) => !current)
                   setShowMoreActions(false)
@@ -408,7 +495,6 @@ export function ChatComposer({
                         aria-label="Thêm ảnh, tệp hoặc tag admin"
                         title="Thêm vào tin nhắn"
                         className="size-10 rounded-xl text-muted-foreground sm:hidden"
-                        disabled={isPending}
                         size="icon-sm"
                         aria-expanded={showMoreActions}
                         onClick={() =>
@@ -420,7 +506,6 @@ export function ChatComposer({
                       <InputGroupButton
                         aria-label="Đính kèm tệp"
                         className="hidden size-10 rounded-xl text-muted-foreground hover:text-foreground sm:flex"
-                        disabled={isPending}
                         size="icon-sm"
                         title="Đính kèm tệp"
                         onClick={chooseFiles}
@@ -435,7 +520,6 @@ export function ChatComposer({
                             ? "hidden size-10 rounded-xl bg-primary/10 text-primary sm:flex"
                             : "hidden size-10 rounded-xl text-muted-foreground hover:text-foreground sm:flex"
                         }
-                        disabled={isPending}
                         size="icon-sm"
                         aria-expanded={showAdminPicker}
                         onClick={() =>
@@ -445,7 +529,6 @@ export function ChatComposer({
                         <AtSignIcon />
                       </InputGroupButton>
                       <ChatEmojiPicker
-                        disabled={isPending}
                         focusTarget={textareaRef}
                         onSelect={insertEmoji}
                       />
@@ -453,7 +536,6 @@ export function ChatComposer({
                     <InputGroupTextarea
                       aria-label="Nội dung tin nhắn"
                       className="max-h-32 min-h-11 min-w-0 px-2 py-2.5 text-base leading-6 md:text-base"
-                      disabled={isPending}
                       placeholder="Nhắn tin..."
                       rows={1}
                       title="Enter để gửi · Shift + Enter để xuống dòng · Dán ảnh bằng Ctrl/⌘ + V"
@@ -482,17 +564,13 @@ export function ChatComposer({
                       <InputGroupButton
                         aria-label="Gửi tin nhắn"
                         className="size-10 rounded-xl"
-                        disabled={isPending || !canSend}
+                        disabled={!canSend}
                         size="icon-sm"
                         title="Gửi tin nhắn"
                         type="submit"
                         variant="default"
                       >
-                        {isPending ? (
-                          <LoaderCircleIcon className="animate-spin" />
-                        ) : (
-                          <SendIcon />
-                        )}
+                        <SendIcon />
                       </InputGroupButton>
                     </InputGroupAddon>
                   </InputGroup>

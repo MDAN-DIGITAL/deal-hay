@@ -318,6 +318,10 @@ export function CreateProductForm({
                       }
                     />
                   </FormControl>
+                  <FormDescription>
+                    Giá mua ngay. Ưu đãi quảng cáo 25% được tính trên giá bán
+                    này, không tính trên giá gốc.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -340,8 +344,8 @@ export function CreateProductForm({
                     />
                   </FormControl>
                   <FormDescription>
-                    Giá gốc phải cao hơn giá bán. Để trống nếu sản phẩm không có
-                    giá gốc.
+                    Chỉ dùng để so sánh với giá bán, không dùng để tính tiền.
+                    Phải cao hơn giá bán; để trống nếu không có giá gốc.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

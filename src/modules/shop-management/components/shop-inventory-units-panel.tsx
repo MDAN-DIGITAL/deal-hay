@@ -6,6 +6,7 @@ import { useEffect, useId, useState } from "react"
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  ListXIcon,
   LoaderCircleIcon,
   PrinterIcon,
   RefreshCwIcon,
@@ -24,7 +25,11 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
 import {
   Table,
@@ -185,22 +190,24 @@ export function ShopInventoryUnitsPanel({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-          <div className="space-y-2">
+        <div className="grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor={`${prefix}-search`}>Tìm đơn vị hàng hóa</Label>
-            <div className="relative">
-              <SearchIcon className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground" />
-              <Input
+            <InputGroup>
+              <InputGroupAddon>
+                <SearchIcon aria-hidden="true" />
+              </InputGroupAddon>
+              <InputGroupInput
                 id={`${prefix}-search`}
-                className="pl-9"
+                type="search"
                 placeholder="Tên sản phẩm hoặc SKU trên tem"
                 value={search}
                 maxLength={200}
                 onChange={(event) => setSearch(event.target.value)}
               />
-            </div>
+            </InputGroup>
           </div>
-          <div className="space-y-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor={`${prefix}-product`}>Sản phẩm</Label>
             <AppSelect
               id={`${prefix}-product`}
@@ -220,7 +227,6 @@ export function ShopInventoryUnitsPanel({
           <Button
             type="button"
             variant="outline"
-            className="self-end"
             onClick={reload}
             disabled={loading}
             aria-label="Tải lại danh sách đơn vị hàng hóa"
@@ -249,7 +255,7 @@ export function ShopInventoryUnitsPanel({
               disabled={!selected.size || printing}
               onClick={() => setSelected(new Map())}
             >
-              Bỏ chọn tất cả
+              <ListXIcon aria-hidden="true" /> Bỏ chọn tất cả
             </Button>
             <Button
               type="button"
