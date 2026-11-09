@@ -8,7 +8,7 @@ import {
 const passwordSchema = z
   .string()
   .min(6, "Mật khẩu phải có ít nhất 6 ký tự.")
-  .max(255, "Mật khẩu không được vượt quá 255 ký tự.")
+  .max(72, "Mật khẩu không được vượt quá 72 ký tự.")
   .regex(
     lowercaseAlphanumericPasswordRegex,
     "Mật khẩu chỉ được gồm chữ thường và số, đồng thời phải có cả hai."
@@ -18,7 +18,7 @@ const passwordConfirmationSchema = (message: string) =>
   z
     .string()
     .min(1, message)
-    .max(255, "Xác nhận mật khẩu không được vượt quá 255 ký tự.")
+    .max(72, "Xác nhận mật khẩu không được vượt quá 72 ký tự.")
 
 const optionalAdminCodeSchema = z.union([
   z

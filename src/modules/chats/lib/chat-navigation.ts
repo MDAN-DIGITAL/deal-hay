@@ -1,5 +1,9 @@
 import type { SelectedConversation, ConversationAlias } from "@/types/chat"
-import { ACCESS_TOKEN_STORAGE_KEY, getAccessToken } from "@/lib/session"
+import {
+  ACCESS_TOKEN_SESSION_ONLY_KEY,
+  ACCESS_TOKEN_STORAGE_KEY,
+  getAccessToken,
+} from "@/lib/session"
 
 export const CHAT_NAVIGATION_EVENT = "dealhay:chat-navigation"
 
@@ -52,8 +56,15 @@ export function reserveChatPage(): ReservedChatPage | null {
       "dealhay_wss_session",
       account ? realtime || "" : ""
     )
-    if (account) page.sessionStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, account)
-    else page.sessionStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
+    if (account) {
+      page.sessionStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, account)
+      // A copied credential must not become a remembered login. A real shared
+      // token still takes precedence when the source account was remembered.
+      page.sessionStorage.setItem(ACCESS_TOKEN_SESSION_ONLY_KEY, "1")
+    } else {
+      page.sessionStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
+      page.sessionStorage.removeItem(ACCESS_TOKEN_SESSION_ONLY_KEY)
+    }
   } catch {
     page.close()
     return null

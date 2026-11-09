@@ -152,12 +152,16 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="items-start">
-                    <Checkbox
-                      checked={field.value}
-                      disabled={isPending}
-                      onBlur={field.onBlur}
-                      onCheckedChange={field.onChange}
-                    />
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        disabled={isPending}
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
                     <span className="space-y-0.5">
                       <span className="block">Ghi nhớ đăng nhập</span>
                       <span className="block text-xs font-normal text-muted-foreground">

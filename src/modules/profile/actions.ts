@@ -1,6 +1,7 @@
 import { invalidateQueries } from "@/lib/query-cache"
 
 import { ApiError } from "@/api/client"
+import { clearAccessToken, getAccessToken } from "@/lib/session"
 import {
   updateAvatar,
   updatePassword,
@@ -45,10 +46,11 @@ export async function updateProfileAction(
   try {
     const response = await updateProfile({
       ...parsed.data,
-      phone_number: parsed.data.phone_number || undefined,
-      province: parsed.data.province || undefined,
-      ward: parsed.data.ward || undefined,
-      address_detail: parsed.data.address_detail || undefined,
+      email_change_code: parsed.data.email_change_code || undefined,
+      phone_number: parsed.data.phone_number || null,
+      province: parsed.data.province || null,
+      ward: parsed.data.ward || null,
+      address_detail: parsed.data.address_detail || null,
     })
     invalidateQueries()
     return { success: true, message: response.message }
@@ -70,9 +72,14 @@ export async function updatePasswordAction(
     }
   }
 
+  const account = getAccessToken()
   try {
     const response = await updatePassword(parsed.data)
-    return { success: true, message: response.message }
+    if (account && getAccessToken() === account) clearAccessToken(account)
+    return {
+      success: true,
+      message: `${response.message} Vui lòng đăng nhập lại.`,
+    }
   } catch (error) {
     return toState(error, "Không thể cập nhật mật khẩu.")
   }
@@ -144,7 +151,10 @@ export async function updateShopProfileAction(
   }
 
   try {
-    const response = await updateShop(parsed.data)
+    const response = await updateShop({
+      ...parsed.data,
+      email_change_code: parsed.data.email_change_code || undefined,
+    })
     invalidateQueries()
     return { success: true, message: response.message }
   } catch (error) {

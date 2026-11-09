@@ -115,6 +115,27 @@ test("registration, reset and profile changes reject every unsupported password 
   }
 })
 
+test("new passwords respect bcrypt's 72-byte boundary without restricting legacy login passwords", () => {
+  const limit = `a${"1".repeat(71)}`
+  for (const [schema, values] of [
+    [authSchemas.signUpSchema, signUpValues],
+    [authSchemas.resetPasswordSchema, resetPasswordValues],
+    [profileSchemas.updatePasswordSchema, updatePasswordValues],
+  ]) {
+    assert.equal(schema.safeParse(values(limit)).success, true)
+    assert.equal(schema.safeParse(values(`${limit}1`)).success, false)
+  }
+  assert.equal(
+    authSchemas.signInSchema.safeParse({
+      email: "person@example.com",
+      password: `${limit}Legacy!`,
+      remember: false,
+      admin_verification_code: "",
+    }).success,
+    true
+  )
+})
+
 test("login keeps accepting legacy passwords while requiring an explicit remember choice", () => {
   const result = authSchemas.signInSchema.safeParse({
     email: "person@example.com",

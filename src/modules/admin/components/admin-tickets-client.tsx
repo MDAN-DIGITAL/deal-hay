@@ -50,14 +50,24 @@ function TicketForm({ ticket }: { ticket: Ticket }) {
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
       const state = await reviewTicketAction(ticket.id, values)
-      const hasFieldErrors = applyServerErrors(state.errors, form.setError)
+      const generalError = state.errors?.general?.[0]
+      const fieldErrors = state.errors
+        ? Object.fromEntries(
+            Object.entries(state.errors).filter(
+              ([field]) => field !== "general"
+            )
+          )
+        : undefined
+      const hasFieldErrors = applyServerErrors(fieldErrors, form.setError)
 
       if (state.success) {
         toast.success(state.message)
         return
       }
 
-      if (!hasFieldErrors && state.message) {
+      if (generalError) {
+        toast.error(generalError)
+      } else if (!hasFieldErrors && state.message) {
         toast.error(state.message)
       }
     })

@@ -39,6 +39,8 @@ export class ApiError extends Error {}
 export const calls=[]
 export const state={response:null}
 export const invalidateQueries=()=>{}
+export const getAccessToken=()=>null
+export const clearAccessToken=()=>{}
 export const updateAvatar=async(...args)=>{calls.push(args);return{message:'Saved'}}
 export const updatePassword=()=>{}; export const updateProfile=()=>{}; export const updateShop=()=>{}; export const createShopOwnerUpgrade=()=>{}
 export const profileRoutes={avatar:'/private/me/avatar',shopAvatar:'/private/shop/avatar'}
@@ -49,6 +51,7 @@ const { calls, state } = await import(api)
 const actions = await import(
   module("../src/modules/profile/actions.ts", {
     "@/lib/query-cache": api,
+    "@/lib/session": api,
     "@/api/client": api,
     "@/api/wss-client": api,
     "@/api/profile/mutations": api,

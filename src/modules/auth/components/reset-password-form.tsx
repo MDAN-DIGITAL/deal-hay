@@ -124,7 +124,7 @@ export function ResetPasswordForm({
                     <PasswordInput
                       autoCapitalize="none"
                       autoComplete="new-password"
-                      maxLength={255}
+                      maxLength={72}
                       minLength={6}
                       pattern="[a-z0-9]+"
                       spellCheck={false}
@@ -149,7 +149,7 @@ export function ResetPasswordForm({
                     <PasswordInput
                       autoCapitalize="none"
                       autoComplete="new-password"
-                      maxLength={255}
+                      maxLength={72}
                       minLength={6}
                       pattern="[a-z0-9]+"
                       spellCheck={false}

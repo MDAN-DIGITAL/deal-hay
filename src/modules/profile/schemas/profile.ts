@@ -30,6 +30,15 @@ export const updateProfileSchema = z
       .min(1, "Vui lòng nhập email.")
       .email("Email không đúng định dạng.")
       .max(255, "Email không được vượt quá 255 ký tự."),
+    email_change_code: z
+      .union([
+        z
+          .string()
+          .trim()
+          .regex(/^\d{6}$/, "Mã xác thực phải gồm đúng 6 chữ số."),
+        z.literal(""),
+      ])
+      .optional(),
     phone_number: optionalPhoneString,
     province: optionalProfileString,
     ward: optionalProfileString,
@@ -60,7 +69,7 @@ export const updatePasswordSchema = z
     password: z
       .string()
       .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự.")
-      .max(255, "Mật khẩu mới không được vượt quá 255 ký tự.")
+      .max(72, "Mật khẩu mới không được vượt quá 72 ký tự.")
       .regex(
         lowercaseAlphanumericPasswordRegex,
         "Mật khẩu chỉ được gồm chữ thường và số, đồng thời phải có cả hai."
@@ -68,7 +77,7 @@ export const updatePasswordSchema = z
     password_confirmation: z
       .string()
       .min(1, "Vui lòng xác nhận mật khẩu mới.")
-      .max(255, "Xác nhận mật khẩu mới không được vượt quá 255 ký tự."),
+      .max(72, "Xác nhận mật khẩu mới không được vượt quá 72 ký tự."),
   })
   .refine((value) => value.password !== value.current_password, {
     path: ["password"],
@@ -97,6 +106,15 @@ export const updateShopProfileSchema = z.object({
     .min(1, "Vui lòng nhập email shop.")
     .email("Email shop không đúng định dạng.")
     .max(255, "Email shop không được vượt quá 255 ký tự."),
+  email_change_code: z
+    .union([
+      z
+        .string()
+        .trim()
+        .regex(/^\d{6}$/, "Mã xác thực phải gồm đúng 6 chữ số."),
+      z.literal(""),
+    ])
+    .optional(),
   shop_phone_number: requiredText("Vui lòng nhập số điện thoại shop.").regex(
     phoneNumberRegex,
     "Số điện thoại shop không hợp lệ."

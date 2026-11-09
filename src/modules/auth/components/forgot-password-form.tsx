@@ -60,7 +60,7 @@ export function ForgotPasswordForm() {
       <CardHeader>
         <CardTitle>Quên mật khẩu</CardTitle>
         <CardDescription>
-          Nhập email để nhận hướng dẫn đặt lại mật khẩu từ hệ thống Laravel.
+          Nhập email để nhận hướng dẫn đặt lại mật khẩu qua email.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -65,6 +65,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -462,11 +463,14 @@ function ShopAvatarForm({ user }: { user: User }) {
 
 function ShopProfileForm({ user }: { user: User }) {
   const [isPending, startTransition] = useTransition()
+  const [requiresEmailVerification, setRequiresEmailVerification] =
+    useState(false)
   const form = useForm<UpdateShopProfileValues>({
     resolver: zodResolver(updateShopProfileSchema),
     defaultValues: {
       shop_name: user.shop_name ?? "",
       shop_email: user.shop_email ?? "",
+      email_change_code: "",
       shop_phone_number: user.shop_phone_number ?? "",
       shop_province: user.shop_province ?? "",
       shop_ward: user.shop_ward ?? "",
@@ -474,12 +478,28 @@ function ShopProfileForm({ user }: { user: User }) {
     },
   })
 
-  const onSubmit = form.handleSubmit((values) => {
+  const submitProfile = (
+    values: UpdateShopProfileValues,
+    resendCode = false
+  ) => {
+    if (requiresEmailVerification && !resendCode && !values.email_change_code) {
+      form.setError("email_change_code", {
+        type: "required",
+        message: "Vui lòng nhập mã xác thực gồm 6 chữ số.",
+      })
+      form.setFocus("email_change_code")
+      return
+    }
     startTransition(async () => {
       const state = await updateShopProfileAction(values)
+      if (state.errors?.email_change_code?.length)
+        setRequiresEmailVerification(true)
       const hasFieldErrors = applyServerErrors(state.errors, form.setError)
 
       if (state.success) {
+        setRequiresEmailVerification(false)
+        form.setValue("email_change_code", "")
+        form.clearErrors("email_change_code")
         toast.success(state.message)
         return
       }
@@ -488,7 +508,13 @@ function ShopProfileForm({ user }: { user: User }) {
         toast.error(state.message)
       }
     })
-  })
+  }
+  const onSubmit = form.handleSubmit((values) => submitProfile(values))
+  const resendVerificationCode = () => {
+    form.setValue("email_change_code", "")
+    form.clearErrors("email_change_code")
+    void form.handleSubmit((values) => submitProfile(values, true))()
+  }
 
   return (
     <Form {...form}>
@@ -514,12 +540,61 @@ function ShopProfileForm({ user }: { user: User }) {
               <FormItem>
                 <FormLabel>Email shop</FormLabel>
                 <FormControl>
-                  <Input inputMode="email" type="text" {...field} />
+                  <Input
+                    autoComplete="email"
+                    inputMode="email"
+                    type="text"
+                    {...field}
+                    disabled={isPending}
+                    onChange={(event) => {
+                      field.onChange(event)
+                      setRequiresEmailVerification(false)
+                      form.setValue("email_change_code", "")
+                      form.clearErrors("email_change_code")
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+          {requiresEmailVerification ? (
+            <FormField
+              control={form.control}
+              name="email_change_code"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Mã xác thực đổi email shop</FormLabel>
+                  <FormControl>
+                    <Input
+                      autoComplete="one-time-code"
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="Nhập mã gồm 6 chữ số"
+                      type="text"
+                      {...field}
+                      value={field.value ?? ""}
+                      disabled={isPending}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Nhập mã được gửi đến email shop hiện tại để xác nhận thay
+                    đổi.
+                  </FormDescription>
+                  <FormMessage />
+                  <Button
+                    disabled={isPending}
+                    onClick={resendVerificationCode}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    Gửi lại mã
+                  </Button>
+                </FormItem>
+              )}
+            />
+          ) : null}
           <FormField
             control={form.control}
             name="shop_phone_number"

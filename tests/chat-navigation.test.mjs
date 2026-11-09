@@ -13,6 +13,7 @@ const sessionSource = ts.transpileModule(
   }
 ).outputText
 const sessionUrl = `data:text/javascript;base64,${Buffer.from(sessionSource).toString("base64")}`
+const { getAccessToken, saveAccessToken } = await import(sessionUrl)
 const source = ts
   .transpileModule(
     readFileSync(
@@ -231,6 +232,26 @@ test("reserved chat tabs retain the shared WSS record for offline API access wit
   )
   assert.deepEqual(opened.page.destinations, ["/chats/thread?message=target"])
   assert.equal(opened.page.opener, null)
+})
+
+test("opening chat from an unremembered login never promotes its copied account to persistent storage", (t) => {
+  const source = browser(t, "/profile")
+  saveAccessToken("temporary-account", false)
+  assert.equal(openChatPage("/chats/thread"), true)
+  const destination = source.opens[0].page
+
+  globalThis.window = {
+    localStorage: source.localStorage,
+    sessionStorage: destination.sessionStorage,
+  }
+  assert.equal(getAccessToken(), "temporary-account")
+  assert.equal(source.localStorage.getItem("dealhay_access_token"), null)
+  assert.equal(
+    destination.sessionStorage.getItem("dealhay_access_token_session_only"),
+    "1"
+  )
+  assert.equal(getAccessToken(), "temporary-account")
+  assert.equal(source.localStorage.getItem("dealhay_access_token"), null)
 })
 
 test("a shared WSS tombstone overrides the old tab's cached credential when reserving chat", (t) => {

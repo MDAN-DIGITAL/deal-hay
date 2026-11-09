@@ -93,7 +93,7 @@ export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                     <PasswordInput
                       autoCapitalize="none"
                       autoComplete="new-password"
-                      maxLength={255}
+                      maxLength={72}
                       minLength={6}
                       pattern="[a-z0-9]+"
                       spellCheck={false}
@@ -118,7 +118,7 @@ export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                     <PasswordInput
                       autoCapitalize="none"
                       autoComplete="new-password"
-                      maxLength={255}
+                      maxLength={72}
                       minLength={6}
                       pattern="[a-z0-9]+"
                       spellCheck={false}
@@ -135,11 +135,15 @@ export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="items-start">
-                    <Checkbox
-                      checked={field.value}
-                      onBlur={field.onBlur}
-                      onCheckedChange={field.onChange}
-                    />
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
                     <span>
                       Tôi đồng ý với{" "}
                       <Link
