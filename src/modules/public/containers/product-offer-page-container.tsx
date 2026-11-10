@@ -122,12 +122,13 @@ export function ProductOfferPageContainer({
         title="Mua với ưu đãi"
         description="Xem quảng cáo tùy chọn trước khi hoàn tất đơn hàng."
       />
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <section aria-labelledby="offer-ad-title" className="min-w-0">
+      <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section aria-labelledby="offer-ad-title" className="flex min-w-0">
           <Section
             title={<h2 id="offer-ad-title">Quảng cáo</h2>}
             icon={<CirclePlayIcon aria-hidden="true" />}
-            contentClassName="gap-5"
+            className="w-full"
+            contentClassName="flex-1 gap-5"
           >
             <ProductAdvertisement
               key={`${product.id}:${variant?.id ?? "base"}`}
@@ -135,14 +136,12 @@ export function ProductOfferPageContainer({
           </Section>
         </section>
 
-        <aside
-          aria-labelledby="offer-product-title"
-          className="min-w-0 lg:sticky lg:top-24"
-        >
+        <aside aria-labelledby="offer-product-title" className="flex min-w-0">
           <Section
             title={<h2 id="offer-product-title">Sản phẩm đã chọn</h2>}
             icon={<ShoppingBagIcon aria-hidden="true" />}
-            contentClassName="gap-5"
+            className="w-full"
+            contentClassName="flex-1 gap-5"
           >
             <div className="flex min-w-0 items-start gap-4">
               <MediaImage
@@ -187,7 +186,7 @@ export function ProductOfferPageContainer({
               />
               Áp dụng mã giảm giá ở bước thanh toán.
             </p>
-            <div className="grid gap-2">
+            <div className="mt-auto grid gap-2">
               <Link
                 href={checkoutHref}
                 className={cn(

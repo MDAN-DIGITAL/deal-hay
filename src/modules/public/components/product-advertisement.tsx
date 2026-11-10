@@ -73,7 +73,7 @@ export function ProductAdvertisement() {
 
   return (
     <Empty
-      className="min-h-72 rounded-none border-0 bg-transparent p-0 sm:min-h-96 sm:p-0"
+      className="min-h-48 rounded-none border-0 bg-transparent p-0 sm:min-h-56 sm:p-0"
       data-ad-status={loading ? "loading" : reason ? "error" : "initialized"}
       data-ad-error={reason}
       aria-live="polite"
