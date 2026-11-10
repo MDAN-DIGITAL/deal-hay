@@ -20,7 +20,7 @@ function transpile(path, imports = {}) {
 }
 const configuration = transpile("../src/config/advertising.ts")
 const { ADCASH_SCRIPT_URL, ADCASH_AUTOTAG_ZONE_ID } = await import(configuration)
-const { startAdcashAutoTag } = await import(transpile("../src/lib/adcash-autotag.ts", {
+const { startAdcashAutoTag, AdcashError } = await import(transpile("../src/lib/adcash-autotag.ts", {
   "@/config/advertising": configuration,
 }))
 
@@ -87,7 +87,7 @@ test("the supplied HTTPS library and zone start once after load, including concu
   document.finish()
   await Promise.all([first, second])
   await startAdcashAutoTag(document)
-  assert.deepEqual(document.calls, [{ zoneId: "utezyhpn4y" }])
+  assert.deepEqual(document.calls, [{ zoneId: "s8qbsqnjo" }])
   assert.equal(document.calls[0].zoneId, ADCASH_AUTOTAG_ZONE_ID)
   assert.equal(document.timers.size, 0)
 })
@@ -119,7 +119,7 @@ test("a failed download clears its state and can be retried without a late load 
   const first = startAdcashAutoTag(document)
   const failed = document.scripts[0]
   failed.dispatchEvent(new Event("error"))
-  await assert.rejects(first, /Không tải được quảng cáo/)
+  await assert.rejects(first, (error) => error instanceof AdcashError && error.reason === "script_unreachable")
   assert.equal(document.scripts.length, 0)
   assert.equal(document.timers.size, 0)
   document.finish(failed)
@@ -151,7 +151,7 @@ test("a script without runAutoTag fails and retries rather than claiming initial
   const first = startAdcashAutoTag(document)
   document.defaultView.aclib = {}
   document.scripts[0].dispatchEvent(new Event("load"))
-  await assert.rejects(first, /chưa sẵn sàng/)
+  await assert.rejects(first, (error) => error instanceof AdcashError && error.reason === "library_unavailable")
   assert.equal(document.scripts.length, 0)
   const retry = startAdcashAutoTag(document)
   document.finish()
@@ -165,7 +165,7 @@ test("a blocked script times out after fifteen seconds and supports a fresh retr
   const timer = [...document.timers.values()][0]
   assert.equal(timer.delay, 15000)
   timer.callback()
-  await assert.rejects(first, /tải quá lâu/)
+  await assert.rejects(first, (error) => error instanceof AdcashError && error.reason === "script_timeout")
   assert.equal(document.timers.size, 0)
   assert.equal(document.scripts.length, 0)
   assert.deepEqual(document.calls, [])
@@ -219,8 +219,9 @@ test("aborting between the load event and its continuation prevents zone initial
 
 test("initialization errors are reported and retry reuses the library", async () => {
   const document = setup()
-  document.install(() => { throw new Error("Unavailable") })
-  await assert.rejects(startAdcashAutoTag(document), /Không mở được quảng cáo/)
+  const cause = new Error("Unavailable")
+  document.install(() => { throw cause })
+  await assert.rejects(startAdcashAutoTag(document), (error) => error instanceof AdcashError && error.reason === "initialization_failed" && error.cause === cause)
   document.install()
   await startAdcashAutoTag(document)
   assert.equal(document.calls.length, 2)

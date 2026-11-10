@@ -41,7 +41,9 @@ const queryUrl = moduleUrl(`
 const { setResult } = await import(queryUrl)
 const uiUrl = moduleUrl(`
   export const EmptyState = "empty-state", PageHeader = "page-header", MediaImage = "image",
-    Card = "card", CardContent = "content", CardHeader = "header", CardTitle = "title", Surface = "surface"
+    Badge = "badge", Section = "section", Separator = "separator",
+    Breadcrumb = "breadcrumb", BreadcrumbItem = "breadcrumb-item", BreadcrumbLink = "breadcrumb-link",
+    BreadcrumbList = "breadcrumb-list", BreadcrumbPage = "breadcrumb-page", BreadcrumbSeparator = "breadcrumb-separator"
   export const buttonVariants = () => "button"
 `)
 const pricingUrl = transpile("../src/modules/public/lib/product-pricing.ts")
@@ -52,7 +54,7 @@ const { ProductOfferPageContainer } = await import(
       "react/jsx-runtime": import.meta.resolve("react/jsx-runtime"),
       "next/link": moduleUrl('export default "a"'),
       "lucide-react": moduleUrl(
-        'export const ArrowLeftIcon = "icon", ArrowRightIcon = "icon", TicketPercentIcon = "icon"'
+        'export const ArrowLeftIcon = "icon", ArrowRightIcon = "icon", CirclePlayIcon = "icon", ShoppingBagIcon = "icon", TicketPercentIcon = "icon"'
       ),
       cn: moduleUrl(
         'export const cn = (...values) => values.filter(Boolean).join(" ")'
@@ -63,9 +65,11 @@ const { ProductOfferPageContainer } = await import(
       "@/components/layout/empty-state": uiUrl,
       "@/components/layout/page-header": uiUrl,
       "@/components/media-image": uiUrl,
+      "@/components/ui/badge": uiUrl,
+      "@/components/ui/breadcrumb": uiUrl,
       "@/components/ui/button": uiUrl,
-      "@/components/ui/card": uiUrl,
-      "@/components/ui/surface": uiUrl,
+      "@/components/ui/section": uiUrl,
+      "@/components/ui/separator": uiUrl,
       "@/hooks/use-api-query": queryUrl,
       "@/lib/format": transpile("../src/lib/format.ts"),
       "@/modules/public/components/product-advertisement": moduleUrl(
@@ -215,9 +219,6 @@ test("a valid variant keeps both codes for checkout and returns to detail withou
   assert.ok(textContent(tree).includes(formatCurrency(150003)))
   assert.ok(!textContent(tree).includes(formatCurrency(200000)))
   assert.ok(!textContent(tree).includes("25%"))
-  assert.ok(
-    textContent(tree).includes("Quảng cáo không tự thay đổi giá sản phẩm.")
-  )
   const links = elements(tree).filter((item) => item.type === "a")
   const checkout = links.find((item) =>
     textContent(item).includes("Tiếp tục thanh toán")

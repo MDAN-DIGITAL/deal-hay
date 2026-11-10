@@ -1,5 +1,24 @@
 import { ADCASH_AUTOTAG_ZONE_ID, ADCASH_SCRIPT_URL } from "@/config/advertising"
 
+export type AdcashFailureReason =
+  | "browser_unavailable"
+  | "script_conflict"
+  | "script_unreachable"
+  | "script_timeout"
+  | "library_unavailable"
+  | "initialization_failed"
+
+export class AdcashError extends Error {
+  constructor(
+    public readonly reason: AdcashFailureReason,
+    message: string,
+    options?: ErrorOptions
+  ) {
+    super(message, options)
+    this.name = "AdcashError"
+  }
+}
+
 type AdcashLibrary = {
   runAutoTag: (options: { zoneId: string }) => void
 }
@@ -28,7 +47,12 @@ function loadLibrary(
   const loading = new Promise<AdcashLibrary>((resolve, reject) => {
     const view = document.defaultView
     if (!view) {
-      reject(new Error("Quảng cáo chỉ khả dụng trong trình duyệt."))
+      reject(
+        new AdcashError(
+          "browser_unavailable",
+          "Quảng cáo chỉ khả dụng trong trình duyệt."
+        )
+      )
       return
     }
 
@@ -42,7 +66,12 @@ function loadLibrary(
       (existing.tagName !== "SCRIPT" ||
         (existing as HTMLScriptElement).src !== ADCASH_SCRIPT_URL)
     ) {
-      reject(new Error("Không thể khởi tạo quảng cáo. Vui lòng tải lại trang."))
+      reject(
+        new AdcashError(
+          "script_conflict",
+          "Không thể khởi tạo quảng cáo. Vui lòng tải lại trang."
+        )
+      )
       return
     }
 
@@ -53,15 +82,18 @@ function loadLibrary(
       script.removeEventListener("load", onLoad)
       script.removeEventListener("error", onError)
     }
-    const fail = (message: string) => {
+    const fail = (reason: AdcashFailureReason, message: string) => {
       cleanup()
       script.remove()
-      reject(new Error(message))
+      reject(new AdcashError(reason, message))
     }
     const onLoad = () => {
       const library = libraryFor(document)
       if (!library) {
-        fail("Dịch vụ quảng cáo chưa sẵn sàng. Vui lòng thử lại.")
+        fail(
+          "library_unavailable",
+          "Dịch vụ quảng cáo chưa sẵn sàng. Vui lòng thử lại."
+        )
         return
       }
       cleanup()
@@ -69,6 +101,7 @@ function loadLibrary(
     }
     const onError = () =>
       fail(
+        "script_unreachable",
         "Không tải được quảng cáo. Vui lòng thử lại hoặc kiểm tra trình chặn quảng cáo."
       )
 
@@ -76,7 +109,10 @@ function loadLibrary(
     script.addEventListener("error", onError)
     const timeout = view.setTimeout(
       () =>
-        fail("Quảng cáo tải quá lâu. Vui lòng thử lại hoặc tiếp tục mua hàng."),
+        fail(
+          "script_timeout",
+          "Quảng cáo tải quá lâu. Vui lòng thử lại hoặc tiếp tục mua hàng."
+        ),
       15_000
     )
 
@@ -150,8 +186,12 @@ export async function startAdcashAutoTag(
   state.started = true
   try {
     library.runAutoTag({ zoneId: ADCASH_AUTOTAG_ZONE_ID })
-  } catch {
+  } catch (cause) {
     state.started = false
-    throw new Error("Không mở được quảng cáo. Vui lòng thử lại.")
+    throw new AdcashError(
+      "initialization_failed",
+      "Không mở được quảng cáo. Vui lòng thử lại.",
+      { cause }
+    )
   }
 }

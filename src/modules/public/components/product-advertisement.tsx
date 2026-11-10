@@ -5,20 +5,53 @@ import {
   LoaderCircleIcon,
   RefreshCwIcon,
   TvMinimalPlayIcon,
+  WifiOffIcon,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Surface } from "@/components/ui/surface"
-import { startAdcashAutoTag } from "@/lib/adcash-autotag"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import {
+  AdcashError,
+  startAdcashAutoTag,
+  type AdcashFailureReason,
+} from "@/lib/adcash-autotag"
+
+function failureContent(reason: AdcashFailureReason | "unknown") {
+  if (reason === "script_unreachable") {
+    return {
+      title: "Chưa kết nối được quảng cáo",
+      description:
+        "Kiểm tra kết nối hoặc trình chặn nội dung rồi thử lại. Bạn vẫn có thể tiếp tục thanh toán.",
+    }
+  }
+  if (reason === "script_timeout") {
+    return {
+      title: "Quảng cáo tải lâu hơn dự kiến",
+      description: "Bạn có thể thử tải lại hoặc tiếp tục thanh toán.",
+    }
+  }
+  return {
+    title: "Quảng cáo chưa sẵn sàng",
+    description: "Vui lòng thử lại sau. Bạn vẫn có thể tiếp tục thanh toán.",
+  }
+}
 
 export function ProductAdvertisement() {
   const [attempt, setAttempt] = useState(0)
   const [result, setResult] = useState<{
     attempt: number
-    error?: string
+    reason?: AdcashFailureReason | "unknown"
   } | null>(null)
   const loading = result?.attempt !== attempt
-  const error = !loading ? result?.error : undefined
+  const reason = !loading ? result?.reason : undefined
+  const failure = reason ? failureContent(reason) : undefined
 
   useEffect(() => {
     const controller = new AbortController()
@@ -26,12 +59,11 @@ export function ProductAdvertisement() {
       () => {
         if (!controller.signal.aborted) setResult({ attempt })
       },
-      () => {
+      (error: unknown) => {
         if (!controller.signal.aborted) {
           setResult({
             attempt,
-            error:
-              "Chưa tải được quảng cáo. Bạn có thể thử lại hoặc tiếp tục thanh toán.",
+            reason: error instanceof AdcashError ? error.reason : "unknown",
           })
         }
       }
@@ -40,58 +72,46 @@ export function ProductAdvertisement() {
   }, [attempt])
 
   return (
-    <Surface
-      variant="muted"
-      padding="default"
-      className="space-y-3"
-      aria-labelledby="product-advertisement-title"
+    <Empty
+      className="min-h-72 rounded-none border-0 bg-transparent p-0 sm:min-h-96 sm:p-0"
+      data-ad-status={loading ? "loading" : reason ? "error" : "initialized"}
+      data-ad-error={reason}
+      aria-live="polite"
+      aria-atomic="true"
     >
-      <p
-        id="product-advertisement-title"
-        className="flex items-center gap-2 font-medium"
-      >
-        <TvMinimalPlayIcon
-          className="size-4 shrink-0 text-primary"
-          aria-hidden="true"
-        />
-        Quảng cáo Adcash
-      </p>
-      <div aria-live="polite" aria-atomic="true">
-        {loading ? (
-          <p
-            className="flex items-center gap-2 text-sm text-muted-foreground"
-            role="status"
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          {loading ? (
+            <LoaderCircleIcon className="animate-spin" aria-hidden="true" />
+          ) : failure ? (
+            <WifiOffIcon aria-hidden="true" />
+          ) : (
+            <TvMinimalPlayIcon aria-hidden="true" />
+          )}
+        </EmptyMedia>
+        <EmptyTitle>
+          {loading
+            ? "Đang kết nối quảng cáo"
+            : (failure?.title ?? "Quảng cáo mở tự động")}
+        </EmptyTitle>
+        <EmptyDescription>
+          {loading
+            ? "Vui lòng chờ trong giây lát…"
+            : (failure?.description ??
+              "Quảng cáo có thể xuất hiện ở cửa sổ hoặc lớp phủ của trình duyệt. Bạn có thể tiếp tục mua hàng khi sẵn sàng.")}
+        </EmptyDescription>
+      </EmptyHeader>
+      {failure ? (
+        <EmptyContent>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setAttempt((value) => value + 1)}
           >
-            <LoaderCircleIcon
-              className="size-4 shrink-0 animate-spin"
-              aria-hidden="true"
-            />
-            Đang tải quảng cáo…
-          </p>
-        ) : error ? (
-          <p className="text-sm text-muted-foreground" role="alert">
-            {error}
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Quảng cáo được phân phối tự động và có thể xuất hiện dạng cửa sổ
-            hoặc lớp phủ.
-          </p>
-        )}
-      </div>
-      {error ? (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => setAttempt((value) => value + 1)}
-        >
-          <RefreshCwIcon aria-hidden="true" /> Thử tải lại quảng cáo
-        </Button>
+            <RefreshCwIcon aria-hidden="true" /> Thử lại
+          </Button>
+        </EmptyContent>
       ) : null}
-      <p className="text-xs leading-5 text-muted-foreground">
-        Xem quảng cáo là tùy chọn. Bạn có thể tiếp tục thanh toán khi sẵn sàng.
-      </p>
-    </Surface>
+    </Empty>
   )
 }
