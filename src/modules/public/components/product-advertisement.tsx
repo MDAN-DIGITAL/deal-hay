@@ -98,7 +98,7 @@ export function ProductAdvertisement() {
           {loading
             ? "Vui lòng chờ trong giây lát…"
             : (failure?.description ??
-              "Quảng cáo có thể xuất hiện ở cửa sổ hoặc lớp phủ của trình duyệt. Bạn có thể tiếp tục mua hàng khi sẵn sàng.")}
+              "Quảng cáo có thể xuất hiện ở cửa sổ hoặc lớp phủ của trình duyệt. Ưu đãi từ shop được áp dụng độc lập với quảng cáo.")}
         </EmptyDescription>
       </EmptyHeader>
       {failure ? (

@@ -83,10 +83,14 @@ export default function PrivacyPage() {
           chuyển theo điều kiện được hiển thị trước khi xem.
         </p>
         <p>
-          Google và các đối tác quảng cáo có thể sử dụng cookie, địa chỉ IP,
-          thông tin thiết bị, trình duyệt và hoạt động tương tác để phân phối,
-          đo lường quảng cáo và phòng chống gian lận theo chính sách của họ. Xem
-          thêm tại{" "}
+          Adcash được sử dụng cho quảng cáo thông thường. Mã ưu đãi từ shop được
+          áp dụng độc lập với việc xem hoặc tương tác quảng cáo.
+        </p>
+        <p>
+          Google, Adcash và các đối tác quảng cáo có thể sử dụng cookie, địa chỉ
+          IP, thông tin thiết bị, trình duyệt và hoạt động tương tác để phân
+          phối, đo lường quảng cáo và phòng chống gian lận theo chính sách của
+          họ. Xem thêm tại{" "}
           <a
             className="text-primary underline"
             href="https://policies.google.com/technologies/partner-sites"

@@ -431,7 +431,7 @@ export function ProductInteractions({
                   <span className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
                     <span>Mua với ưu đãi</span>
                     <span className="text-xs font-normal opacity-80">
-                      Xem quảng cáo tùy chọn trước khi thanh toán
+                      Chọn mã giảm giá từ cửa hàng
                     </span>
                   </span>
                 </Button>
@@ -447,7 +447,7 @@ export function ProductInteractions({
                   <span>Mua ngay</span>
                   {hasOfferPrice ? (
                     <span className="text-xs font-normal text-muted-foreground">
-                      Không cần xem quảng cáo
+                      Thanh toán theo giá đang bán
                     </span>
                   ) : null}
                 </span>
@@ -471,7 +471,7 @@ export function ProductInteractions({
                   <span className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
                     <span>Mua với ưu đãi</span>
                     <span className="text-xs font-normal opacity-80">
-                      Xem quảng cáo tùy chọn trước khi thanh toán
+                      Chọn mã giảm giá từ cửa hàng
                     </span>
                   </span>
                 </Link>
@@ -492,15 +492,14 @@ export function ProductInteractions({
                   <span>Mua ngay</span>
                   {hasOfferPrice ? (
                     <span className="text-xs font-normal text-muted-foreground">
-                      Không cần xem quảng cáo
+                      Thanh toán theo giá đang bán
                     </span>
                   ) : null}
                 </span>
               </Link>
               {hasOfferPrice ? (
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Ưu đãi được tính theo mã giảm giá hợp lệ. Xem quảng cáo là tùy
-                  chọn.
+                  Ưu đãi từ shop không yêu cầu xem hoặc nhấp quảng cáo.
                 </p>
               ) : null}
             </div>

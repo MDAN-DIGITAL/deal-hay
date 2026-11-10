@@ -64,12 +64,18 @@ export default function TermsPage() {
           đã về 0đ được giữ lại. Mức giảm và hạn dùng được hiển thị trên mã.
         </p>
         <p>
-          Deal Hay sử dụng quảng cáo của Google. Bạn có thể tự chọn xem quảng
-          cáo có thưởng để nhận ưu đãi vận chuyển theo điều kiện được hiển thị
-          trước khi xem. Deal Hay cấp ưu đãi khi bạn đạt điều kiện nhận thưởng
-          được hiển thị. Bạn không cần nhấp vào quảng cáo để nhận thưởng; việc
-          nhấp hoặc mở quảng cáo thông thường không cấp ưu đãi. Bạn vẫn có thể
-          đặt hàng với phí vận chuyển thông thường khi bỏ qua quảng cáo hoặc
+          Mã ưu đãi từ shop do cửa hàng tạo và tài trợ, áp dụng theo sản phẩm,
+          thời hạn, hạn mức và điều kiện của từng mã. Quảng cáo Adcash được hiển
+          thị độc lập với các mã này; bạn không cần xem, nhấp hoặc hoàn thành
+          quảng cáo để được chọn và áp dụng ưu đãi từ shop.
+        </p>
+        <p>
+          Deal Hay cũng sử dụng quảng cáo của Google. Bạn có thể tự chọn xem
+          quảng cáo có thưởng để nhận ưu đãi vận chuyển theo điều kiện được hiển
+          thị trước khi xem. Deal Hay cấp ưu đãi khi bạn đạt điều kiện nhận
+          thưởng được hiển thị. Bạn không cần nhấp vào quảng cáo để nhận thưởng;
+          việc nhấp hoặc mở quảng cáo thông thường không cấp ưu đãi. Bạn vẫn có
+          thể đặt hàng với phí vận chuyển thông thường khi bỏ qua quảng cáo hoặc
           quảng cáo không khả dụng. Nội dung trên trang quảng cáo bên thứ ba
           tuân theo điều khoản của bên cung cấp trang đó.
         </p>

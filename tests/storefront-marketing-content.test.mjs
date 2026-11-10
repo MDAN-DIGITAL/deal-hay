@@ -5,7 +5,7 @@ import test from "node:test"
 const readSource = (relativePath) =>
   readFileSync(new URL(relativePath, import.meta.url), "utf8")
 
-test("the storefront hero explains the optional advertising offer flow", () => {
+test("the storefront hero explains shop-funded promotions without advertising rewards", () => {
   const source = readSource(
     "../src/modules/public/containers/home-page-container.tsx"
   )
@@ -13,7 +13,7 @@ test("the storefront hero explains the optional advertising offer flow", () => {
   assert.match(source, /Mua sắm thông minh, tiết kiệm hơn/)
   assert.match(
     source,
-    /Xem quảng cáo tự nguyện để mở khóa giá ưu đãi từ người bán\./
+    /Chọn sản phẩm và áp dụng ưu đãi do cửa hàng cung cấp\./
   )
   assert.match(source, /id="cach-thuc-hoat-dong"/)
 })
@@ -28,14 +28,14 @@ test("products with an offer present separate offer and direct purchase actions"
   assert.match(source, /Mua với ưu đãi/)
   assert.match(source, /Mua ngay/)
   assert.match(source, /productOfferHref/)
-  assert.match(source, /Xem quảng cáo\s+là\s+tùy\s+chọn\./)
+  assert.match(source, /Ưu đãi từ shop không yêu cầu xem hoặc nhấp quảng cáo\./)
 })
 
 test("the footer contains dedicated customer and seller navigation", () => {
   const source = readSource("../src/components/layout/site-footer.tsx")
 
   assert.match(source, /Dành cho khách hàng/)
-  assert.match(source, /Chính sách ưu đãi quảng cáo/)
+  assert.match(source, /Chính sách ưu đãi từ shop/)
   assert.match(source, /Chính sách đổi trả/)
   assert.match(source, /Dành cho người bán/)
   assert.match(source, /Chính sách giá/)

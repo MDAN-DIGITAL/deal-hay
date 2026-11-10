@@ -27,7 +27,7 @@ const customerLinks = [
   },
   {
     href: "/terms",
-    label: "Chính sách ưu đãi quảng cáo",
+    label: "Chính sách ưu đãi từ shop",
     icon: TicketPercentIcon,
   },
   { href: "/terms", label: "Chính sách đổi trả", icon: RotateCcwIcon },

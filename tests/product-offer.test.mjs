@@ -41,10 +41,16 @@ const queryUrl = moduleUrl(`
 const { setResult } = await import(queryUrl)
 const uiUrl = moduleUrl(`
   export const EmptyState = "empty-state", PageHeader = "page-header", MediaImage = "image",
-    Badge = "badge", Section = "section", Separator = "separator",
+    Badge = "badge", Section = "section", Separator = "separator", Button = "button",
     Breadcrumb = "breadcrumb", BreadcrumbItem = "breadcrumb-item", BreadcrumbLink = "breadcrumb-link",
     BreadcrumbList = "breadcrumb-list", BreadcrumbPage = "breadcrumb-page", BreadcrumbSeparator = "breadcrumb-separator"
   export const buttonVariants = () => "button"
+`)
+const hookUrl = moduleUrl(`
+  export const useState = (initial) => globalThis.__offerScreen.useState(initial)
+  export const useEffect = (effect, deps) => globalThis.__offerScreen.useEffect(effect, deps)
+  export const loadShopOffersAction = (shop, product) => globalThis.__offerScreen.loadOffers(shop, product)
+  export const ShopOfferSelector = "shop-offer-selector"
 `)
 const pricingUrl = transpile("../src/modules/public/lib/product-pricing.ts")
 const { ProductOfferPageContainer } = await import(
@@ -52,6 +58,7 @@ const { ProductOfferPageContainer } = await import(
     "../src/modules/public/containers/product-offer-page-container.tsx",
     {
       "react/jsx-runtime": import.meta.resolve("react/jsx-runtime"),
+      react: hookUrl,
       "next/link": moduleUrl('export default "a"'),
       "lucide-react": moduleUrl(
         'export const ArrowLeftIcon = "icon", ArrowRightIcon = "icon", CirclePlayIcon = "icon", ShoppingBagIcon = "icon", TicketPercentIcon = "icon"'
@@ -75,6 +82,9 @@ const { ProductOfferPageContainer } = await import(
       "@/modules/public/components/product-advertisement": moduleUrl(
         'export const ProductAdvertisement = "product-advertisement"'
       ),
+      "@/modules/public/components/shop-offers": hookUrl,
+      "@/modules/public/lib/shop-offers": transpile("../src/modules/public/lib/shop-offers.ts"),
+      "@/modules/public/shop-offer-actions": hookUrl,
       "@/modules/public/lib/product-checkout": navigationUrl,
       "@/modules/public/lib/product-pricing": pricingUrl,
     }
@@ -119,18 +129,105 @@ function product(overrides = {}) {
   }
 }
 
-function render(productData, props = {}) {
+let screens = []
+test.beforeEach(() => {
+  const intervals = new Map(), events = new Map()
+  globalThis.window = {
+    intervals, events,
+    setInterval(fn) { const id = Symbol("interval"); intervals.set(id, fn); return id },
+    clearInterval(id) { intervals.delete(id) },
+    addEventListener(event, fn) { events.set(event, fn) },
+    removeEventListener(event, fn) { if (events.get(event) === fn) events.delete(event) },
+  }
+  screens = []
+})
+test.afterEach(() => {
+  for (const screen of screens) screen.dispose()
+  delete globalThis.__offerScreen
+  delete globalThis.window
+})
+
+function mount(productData, props = {}, response = { success: true, data: [] }) {
   setResult({ data: { shop: { name: "Shop thử" }, product: productData } })
-  return ProductOfferPageContainer({
+  const root = ProductOfferPageContainer({
     shopUserCode: "SHOP /1",
     productSlug: "áo/thun?new=1",
     ...props,
   })
+  const slots = []
+  let cursor = 0, dirty = false, effects = []
+  const screen = {
+    root, tree: root, response, requests: [],
+    useState(initial) {
+      const index = cursor++
+      if (!(index in slots)) slots[index] = typeof initial === "function" ? initial() : initial
+      return [slots[index], (next) => {
+        const value = typeof next === "function" ? next(slots[index]) : next
+        if (!Object.is(value, slots[index])) { slots[index] = value; dirty = true }
+      }]
+    },
+    useEffect(effect, deps) {
+      const index = cursor++, previous = slots[index]
+      if (!previous || deps.some((value, position) => !Object.is(value, previous.deps[position])))
+        effects.push(() => { previous?.cleanup?.(); slots[index] = { deps, cleanup: effect() } })
+    },
+    loadOffers(shop, productId) {
+      this.requests.push({ shop, productId })
+      return Promise.resolve(this.response)
+    },
+    render() {
+      if (typeof this.root.type !== "function") return this.tree
+      globalThis.__offerScreen = this
+      let count = 0
+      do {
+        assert.ok(++count < 20, "offer state must settle")
+        cursor = 0; dirty = false; effects = []
+        this.tree = this.root.type(this.root.props)
+        effects.forEach((effect) => effect())
+      } while (dirty)
+      return this.tree
+    },
+    async settle() {
+      for (let count = 0; count < 20; count++) {
+        await Promise.resolve()
+        if (dirty) this.render()
+      }
+      return this.tree
+    },
+    select(id) {
+      elements(this.tree).find((item) => item.type === "shop-offer-selector").props.onSelect(id)
+      this.render()
+    },
+    reload() {
+      elements(this.tree).find((item) => item.type === "shop-offer-selector").props.onReload()
+      this.render()
+    },
+    dispose() { slots.forEach((slot) => slot?.cleanup?.()) },
+  }
+  screens.push(screen)
+  screen.render()
+  return screen
+}
+
+function render(productData, props = {}) {
+  return mount(productData, props).tree
 }
 
 function advertisements(tree) {
   return elements(tree).filter((item) => item.type === "product-advertisement")
 }
+
+function checkout(tree) {
+  return elements(tree).find((item) => item.type === "a" && textContent(item).includes("Tiếp tục thanh toán"))
+}
+function checkoutUrl(tree) { return new URL(checkout(tree).props.href, "https://deal-hay.local") }
+function picker(tree) { return elements(tree).find((item) => item.type === "shop-offer-selector") }
+const offer = (overrides = {}) => ({
+  id: "shop-offer", code: "SHOP-OFFER", name: "Ưu đãi từ cửa hàng",
+  discount_type: "percent", discount_value: 15, minimum_order_amount: 0,
+  maximum_discount_amount: null, remaining_uses: 10, starts_at: null, ends_at: null,
+  products: [{ id: "product", name: "Sản phẩm thử", slug: "san-pham" }], ...overrides,
+})
 
 test("the offer route waits for successful product data before mounting any advertisement", () => {
   for (const result of [{}, { error: "Không thể tải sản phẩm" }]) {
@@ -276,4 +373,79 @@ test("default available variants and simple products can continue without invent
     assert.equal(url.searchParams.has("discount_code"), false)
     assert.equal(url.searchParams.has("shop_coupon_code"), false)
   }
+})
+
+test("a shop coupon applies to the selected sale price and checkout without waiting for any advertisement signal", async () => {
+  const screen = mount(product({ has_variants: true, variants: [variant("chosen", { price: 150003 })] }), {
+    variantId: "chosen", initialDiscountCode: "SAVED-WALLET-CODE",
+  }, { success: true, data: [offer()] })
+  assert.equal(checkout(screen.tree).props["aria-disabled"], undefined)
+  assert.equal(picker(screen.tree).props.disabled, false)
+  await screen.settle()
+  screen.select("shop-offer")
+  assert.ok(textContent(screen.tree).includes(formatCurrency(22500)))
+  assert.ok(textContent(screen.tree).includes(formatCurrency(127503)))
+  assert.ok(textContent(screen.tree).includes("Tạm tính chưa gồm mã cá nhân và phí vận chuyển"))
+  assert.equal(checkoutUrl(screen.tree).searchParams.get("variant_id"), "chosen")
+  assert.equal(checkoutUrl(screen.tree).searchParams.get("shop_coupon_code"), "SHOP-OFFER")
+  assert.equal(checkoutUrl(screen.tree).searchParams.get("discount_code"), "SAVED-WALLET-CODE")
+  assert.equal(advertisements(screen.tree).length, 1)
+})
+
+test("an initial linked shop coupon resolves and respects its maximum discount", async () => {
+  const screen = mount(product(), { initialShopCouponCode: "shop-offer" }, { success: true, data: [offer({ maximum_discount_amount: 10000 })] })
+  assert.equal(checkoutUrl(screen.tree).searchParams.get("shop_coupon_code"), "shop-offer")
+  await screen.settle()
+  assert.equal(picker(screen.tree).props.selectedId, "shop-offer")
+  assert.ok(textContent(screen.tree).includes(formatCurrency(90000)))
+  assert.ok(!textContent(screen.tree).includes("Mã đã chọn chưa được xác nhận"))
+})
+
+test("a missing or failed linked coupon is carried to checkout visibly until the customer explicitly removes it", async () => {
+  for (const response of [{ success: true, data: [] }, { success: false, message: "Ưu đãi chưa tải được" }]) {
+    const screen = mount(product(), { initialShopCouponCode: "MISSING-CODE" }, response)
+    await screen.settle()
+    assert.ok(textContent(screen.tree).includes("Mã đã chọn chưa được xác nhận"))
+    assert.equal(checkoutUrl(screen.tree).searchParams.get("shop_coupon_code"), "MISSING-CODE")
+    assert.ok(textContent(screen.tree).includes(formatCurrency(100000)))
+    assert.equal(picker(screen.tree).props.disabled, false)
+    screen.select("")
+    assert.equal(checkoutUrl(screen.tree).searchParams.has("shop_coupon_code"), false)
+  }
+})
+
+test("explicitly skipping an initial coupon while it loads prevents the fetched response from restoring it", async () => {
+  const screen = mount(product(), { initialShopCouponCode: "SHOP-OFFER" }, { success: true, data: [offer()] })
+  screen.select("")
+  await screen.settle()
+  assert.equal(picker(screen.tree).props.selectedId, "")
+  assert.equal(checkoutUrl(screen.tree).searchParams.has("shop_coupon_code"), false)
+  assert.ok(textContent(screen.tree).includes(formatCurrency(100000)))
+})
+
+test("a selected coupon that disappears during refresh loses its estimate but is not silently discarded", async () => {
+  const screen = mount(product(), {}, { success: true, data: [offer()] })
+  await screen.settle()
+  screen.select("shop-offer")
+  assert.ok(textContent(screen.tree).includes(formatCurrency(85000)))
+  screen.response = { success: true, data: [] }
+  screen.reload()
+  await screen.settle()
+  assert.ok(textContent(screen.tree).includes("Mã đã chọn chưa được xác nhận"))
+  assert.ok(textContent(screen.tree).includes(formatCurrency(100000)))
+  assert.equal(checkoutUrl(screen.tree).searchParams.get("shop_coupon_code"), "SHOP-OFFER")
+})
+
+test("an idle page stops previewing an expired coupon while retaining explicit selection for checkout validation", async (t) => {
+  let now = Date.parse("2030-01-01T00:00:00Z")
+  t.mock.method(Date, "now", () => now)
+  const screen = mount(product(), { initialShopCouponCode: "SHOP-OFFER" }, { success: true, data: [offer({ ends_at: "2030-01-01T00:01:00Z" })] })
+  await screen.settle()
+  assert.ok(textContent(screen.tree).includes(formatCurrency(85000)))
+  now += 61000
+  for (const tick of window.intervals.values()) tick()
+  screen.render()
+  assert.ok(textContent(screen.tree).includes(formatCurrency(100000)))
+  assert.ok(textContent(screen.tree).includes("Mã đã chọn chưa được xác nhận"))
+  assert.equal(checkoutUrl(screen.tree).searchParams.get("shop_coupon_code"), "SHOP-OFFER")
 })

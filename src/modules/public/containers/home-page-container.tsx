@@ -5,7 +5,6 @@ import Link from "next/link"
 import {
   ArrowRightIcon,
   BadgeCheckIcon,
-  CirclePlayIcon,
   MapPinIcon,
   PackageSearchIcon,
   ShoppingBagIcon,
@@ -45,14 +44,14 @@ const shoppingSteps = [
     description: "Tìm sản phẩm bạn yêu thích.",
   },
   {
-    icon: CirclePlayIcon,
-    title: "2. Mở khóa ưu đãi",
-    description: "Tự nguyện xem quảng cáo khi có ưu đãi.",
+    icon: TicketPercentIcon,
+    title: "2. Chọn ưu đãi từ shop",
+    description: "Áp dụng mã giảm giá phù hợp với sản phẩm.",
   },
   {
-    icon: TicketPercentIcon,
-    title: "3. Chọn cách mua",
-    description: "Mua với ưu đãi hoặc mua ngay.",
+    icon: BadgeCheckIcon,
+    title: "3. Kiểm tra và đặt hàng",
+    description: "Xác nhận giá và thông tin giao hàng.",
   },
 ]
 
@@ -111,7 +110,7 @@ export function HomePageContainer({
                 Mua sắm thông minh, tiết kiệm hơn
               </CardTitle>
               <CardDescription className="max-w-lg leading-6 sm:text-base sm:leading-7">
-                Xem quảng cáo tự nguyện để mở khóa giá ưu đãi từ người bán.
+                Chọn sản phẩm và áp dụng ưu đãi do cửa hàng cung cấp.
               </CardDescription>
             </CardHeader>
             <Link
