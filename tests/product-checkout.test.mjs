@@ -28,6 +28,7 @@ const {
   normalizeShopCouponCode,
   productCheckoutHref,
   productDetailHref,
+  productOfferHref,
   resolveCheckoutVariant,
 } = await import(
   transpile("../src/modules/public/lib/product-checkout.ts", {
@@ -44,6 +45,15 @@ const variant = (id, overrides = {}) => ({
   is_active: true,
   is_default: false,
   ...overrides,
+})
+
+test("advertising offer links preserve the selected variant and existing codes across the extra step", () => {
+  const options = { variantId: "variant/&", discountCode: "CODE&A", shopCouponCode: "SHOP+CODE" }
+  const offer = new URL(productOfferHref("SHOP 1", "áo/thun", options), "https://dealhay.test")
+  assert.equal(offer.pathname, "/shops/SHOP%201/products/%C3%A1o%2Fthun/offer")
+  const checkout = new URL(productCheckoutHref("SHOP 1", "áo/thun", options), "https://dealhay.test")
+  assert.deepEqual([...checkout.searchParams], [...offer.searchParams])
+  assert.equal(productOfferHref("SHOP", "product"), "/shops/SHOP/products/product/offer")
 })
 
 test("checkout links open a dedicated route and encode each product segment", () => {

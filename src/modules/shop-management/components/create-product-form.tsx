@@ -319,8 +319,8 @@ export function CreateProductForm({
                     />
                   </FormControl>
                   <FormDescription>
-                    Giá mua ngay. Ưu đãi quảng cáo 25% được tính trên giá bán
-                    này, không tính trên giá gốc.
+                    Giá mua ngay. Mức giảm thực tế được tính theo mã giảm giá
+                    hợp lệ trên giá bán, không tính trên giá gốc.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

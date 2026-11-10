@@ -48,6 +48,16 @@ export function productCheckoutHref(
   return query.size > 0 ? `${path}?${query}` : path
 }
 
+export function productOfferHref(
+  shopUserCode: string,
+  productSlug: string,
+  options: ProductNavigationOptions = {}
+): string {
+  const query = productQuery(options)
+  const path = `${productPath(shopUserCode, productSlug)}/offer`
+  return query.size > 0 ? `${path}?${query}` : path
+}
+
 export function normalizeShopCouponCode(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined
   const normalized = value.trim().toUpperCase()

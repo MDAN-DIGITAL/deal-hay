@@ -67,7 +67,10 @@ import {
   selectProductVariant,
   variantHasOption,
 } from "@/modules/public/lib/variant-selection"
-import { productCheckoutHref } from "@/modules/public/lib/product-checkout"
+import {
+  productCheckoutHref,
+  productOfferHref,
+} from "@/modules/public/lib/product-checkout"
 import { productPricing } from "@/modules/public/lib/product-pricing"
 import type { PublicProduct, PublicShop } from "@/types/catalog"
 
@@ -223,22 +226,20 @@ export function ProductInteractions({
         (variant) => variant.id === selectedVariantId && variant.is_active
       ) ?? defaultProductVariant(product.variants))
     : undefined
-  const {
-    salePrice,
-    originalPrice,
-    afterAdPrice,
-    adDiscount,
-    adDiscountPercent,
-  } = productPricing(product, selectedVariant)
+  const { salePrice, originalPrice } = productPricing(product, selectedVariant)
   const displayedStock =
     selectedVariant?.stock ?? (hasVariants ? 0 : product.stock)
-  const hasOfferPrice = adDiscount > 0
+  const hasOfferPrice = salePrice > 0
   const checkoutHref = productCheckoutHref(shop.code, product.slug, {
     variantId: selectedVariant?.id,
     discountCode: initialDiscountCode,
     shopCouponCode: initialShopCouponCode,
   })
-  const offerCheckoutHref = `${checkoutHref}#checkout-discount-title`
+  const offerHref = productOfferHref(shop.code, product.slug, {
+    variantId: selectedVariant?.id,
+    discountCode: initialDiscountCode,
+    shopCouponCode: initialShopCouponCode,
+  })
   const checkoutDisabled =
     isPending || displayedStock < 1 || (hasVariants && !selectedVariant)
 
@@ -300,20 +301,11 @@ export function ProductInteractions({
                 <Separator />
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">
-                    Giá ưu đãi qua quảng cáo (giảm {adDiscountPercent}%)
+                    Ưu đãi khi thanh toán
                   </p>
-                  <p
-                    aria-label="Giá dự kiến sau mã quảng cáo 25%"
-                    className="text-3xl font-semibold text-primary"
-                  >
-                    {formatCurrency(afterAdPrice)}
-                  </p>
-                  <p className="text-sm font-medium text-primary">
-                    Tiết kiệm {formatCurrency(adDiscount)} so với giá mua ngay
-                  </p>
-                  <p className="text-xs leading-5 text-muted-foreground">
-                    Giá dự kiến khi áp dụng mã quảng cáo {adDiscountPercent}%
-                    hợp lệ ở bước thanh toán.
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    Chọn mã giảm giá hợp lệ ở bước thanh toán để xem mức giảm và
+                    số tiền cần trả.
                   </p>
                 </div>
               </>
@@ -439,7 +431,7 @@ export function ProductInteractions({
                   <span className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
                     <span>Mua với ưu đãi</span>
                     <span className="text-xs font-normal opacity-80">
-                      Áp dụng mã ưu đãi ở bước thanh toán
+                      Xem quảng cáo tùy chọn trước khi thanh toán
                     </span>
                   </span>
                 </Button>
@@ -472,13 +464,14 @@ export function ProductInteractions({
                       size: "lg",
                     })
                   )}
-                  href={offerCheckoutHref}
+                  href={offerHref}
+                  prefetch={false}
                 >
                   <CirclePlayIcon />
                   <span className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
                     <span>Mua với ưu đãi</span>
                     <span className="text-xs font-normal opacity-80">
-                      Áp dụng mã ưu đãi ở bước thanh toán
+                      Xem quảng cáo tùy chọn trước khi thanh toán
                     </span>
                   </span>
                 </Link>
@@ -506,8 +499,8 @@ export function ProductInteractions({
               </Link>
               {hasOfferPrice ? (
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Ưu đãi chỉ áp dụng khi có mã quảng cáo hợp lệ. Xem quảng cáo
-                  là tùy chọn.
+                  Ưu đãi được tính theo mã giảm giá hợp lệ. Xem quảng cáo là tùy
+                  chọn.
                 </p>
               ) : null}
             </div>

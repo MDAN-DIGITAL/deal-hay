@@ -40,15 +40,19 @@ const { summarizeDiscountCodes } = await import(
   })
 )
 
-test("original, direct sale, and after-ad prices remain three separate amounts", () => {
+test("original prices remain references and do not create a fixed demo ad discount", () => {
   assert.deepEqual(productPricing({ price: 100000, old_price: 200000 }), {
     salePrice: 100000,
     originalPrice: 200000,
-    adDiscount: 25000,
-    afterAdPrice: 75000,
-    adDiscountPercent: 25,
   })
-  assert.equal(productPricing({ price: 100000 }).afterAdPrice, 75000)
+  assert.deepEqual(
+    productPricing({
+      price: 100000,
+      display_ad_price: 75000,
+      ad_discount_percent: 25,
+    }),
+    { salePrice: 100000, originalPrice: null }
+  )
   for (const old_price of [null, 100000, 50000]) {
     assert.equal(
       productPricing({ price: 100000, old_price }).originalPrice,
@@ -68,31 +72,26 @@ test("selected variant sale prices override the initial catalog price without sc
   assert.deepEqual(productPricing(product, { price: 120000 }), {
     salePrice: 120000,
     originalPrice: 200000,
-    adDiscount: 30000,
-    afterAdPrice: 90000,
-    adDiscountPercent: 25,
   })
   assert.equal(productPricing(product, { price: 250000 }).originalPrice, null)
   assert.equal(productPricing(product, { price: null }).salePrice, 100000)
   assert.equal(productPricing(product, { price: 0 }).salePrice, 0)
-  assert.equal(productPricing(product, { price: 0 }).afterAdPrice, 0)
 })
 
-test("VND discount previews round the discount half up, including large odd prices", () => {
-  for (const [price, afterAdPrice] of [
-    [100000, 75000],
-    [100001, 75001],
-    [100002, 75001],
-    [100003, 75002],
-    [999999997, 749999998],
-    [999999999, 749999999],
-    [Number.MAX_SAFE_INTEGER, 6755399441055743],
+test("VND sale amounts retain exact integer values without applying an ad percentage", () => {
+  for (const price of [
+    100000,
+    100001,
+    100002,
+    100003,
+    999999997,
+    999999999,
+    Number.MAX_SAFE_INTEGER,
   ]) {
-    assert.equal(
-      productPricing({ price }).afterAdPrice,
-      afterAdPrice,
-      `${price}`
-    )
+    assert.deepEqual(productPricing({ price }), {
+      salePrice: price,
+      originalPrice: null,
+    })
   }
 })
 
@@ -130,6 +129,20 @@ test("checkout keeps the sale amount until a verified code is selected and round
       code("unused"),
     ]).total,
     0
+  )
+})
+
+test("verified saved percentage codes use their configured value instead of the former demo percentage", () => {
+  const selected = [{ ...code("configured"), reward_value: 1575 }]
+  assert.deepEqual(summarizeDiscountCodes(100002, 3, selected), {
+    subtotal: 300006,
+    discount: 47251,
+    total: 252755,
+    appliedCodes: selected,
+  })
+  assert.equal(
+    summarizeDiscountCodes(999999999, 9999, selected).discount,
+    1574842498425
   )
 })
 
@@ -237,7 +250,9 @@ const noopUrl = moduleUrl(`
 `)
 const { ProductInteractions } = await import(
   transpile("../src/modules/public/components/product-interactions.tsx", {
-    cn: moduleUrl('export const cn = (...classes) => classes.filter(Boolean).join(" ")'),
+    cn: moduleUrl(
+      'export const cn = (...classes) => classes.filter(Boolean).join(" ")'
+    ),
     react: moduleUrl(`
       export const useState = (initial) => [typeof initial === "function" ? initial() : initial, () => {}]
       export const useTransition = () => [false, () => {}]
@@ -294,12 +309,13 @@ function textContent(node) {
   return node?.props ? textContent(node.props.children) : ""
 }
 
-test("product detail labels the selected variant sale and the separate conditional 25% preview", () => {
+test("product detail keeps the sale price and opens an optional ad route without a demo price promise", () => {
   for (const old_price of [200000, null]) {
     const tree = ProductInteractions({
       shop: { code: "shop", viewer: {} },
       product: {
         price: 100000,
+        slug: "product /&",
         old_price,
         variants: [
           {
@@ -323,26 +339,27 @@ test("product detail labels the selected variant sale and the separate condition
       ),
       formatCurrency(120000)
     )
-    assert.equal(
-      textContent(
-        values.find(
-          (item) =>
-            item.props?.["aria-label"] === "Giá dự kiến sau mã quảng cáo 25%"
-        )
-      ),
-      formatCurrency(90000)
-    )
-    assert.ok(
-      textContent(tree).includes(
-        "Giá dự kiến khi áp dụng mã quảng cáo 25% hợp lệ"
-      )
-    )
+    assert.ok(!textContent(tree).includes("25%"))
+    assert.ok(!textContent(tree).includes(formatCurrency(90000)))
     assert.equal(textContent(tree).includes("Giá gốc:"), old_price !== null)
     const offer = values.find(
       (item) =>
         item.type === "a" && textContent(item).includes("Mua với ưu đãi")
     )
-    assert.ok(offer.props.href.endsWith("#checkout-discount-title"))
-    assert.ok(!offer.props.href.includes("discount_code"))
+    const offerUrl = new URL(offer.props.href, "https://deal-hay.local")
+    assert.equal(
+      offerUrl.pathname,
+      "/shops/shop/products/product%20%2F%26/offer"
+    )
+    assert.equal(offerUrl.searchParams.get("variant_id"), "chosen")
+    assert.equal(offerUrl.searchParams.has("discount_code"), false)
+    assert.equal(offer.props.prefetch, false)
+    const direct = values.find(
+      (item) => item.type === "a" && textContent(item).includes("Mua ngay")
+    )
+    assert.equal(
+      new URL(direct.props.href, "https://deal-hay.local").pathname,
+      "/shops/shop/products/product%20%2F%26/checkout"
+    )
   }
 })
