@@ -127,7 +127,6 @@ import {
 } from "@/modules/shop-management/schemas/shop-management"
 import { CreateProductForm } from "@/modules/shop-management/components/create-product-form"
 import { ProductPricingForm } from "@/modules/shop-management/components/product-pricing-form"
-import { ShopInventoryWorkspace } from "@/modules/shop-management/components/shop-inventory-workspace"
 import { ShopCouponManager } from "@/modules/shop-management/components/shop-coupon-manager"
 import { ShopShippingSettings } from "@/modules/shop-management/components/shop-shipping-settings"
 
@@ -1581,7 +1580,6 @@ export function ShopManagementClient({
         </TabsContent>
 
         <TabsContent className="space-y-6 pt-4" value="inventory">
-          <ShopInventoryWorkspace products={products} />
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)]">
             <Card>
               <CardHeader>

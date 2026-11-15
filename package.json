@@ -16,7 +16,6 @@
     "test:realtime": "node --test tests/realtime-chat-state.test.mjs tests/realtime-transport.test.mjs tests/notification-visibility.test.mjs tests/realtime-toast.test.mjs tests/notification-sound.test.mjs tests/background-notifications.test.mjs tests/notification-logout.test.mjs tests/chat-navigation.test.mjs tests/chat-message-focus.test.mjs tests/chat-scroll.test.mjs tests/chat-panel-layout.test.mjs tests/chat-conversation-list.test.mjs tests/floating-chat.test.mjs",
     "test:chat-image": "node tests/chat-image-send.test.mjs",
     "test:socketio": "node --test tests/socket-realtime-client.test.mjs",
-    "test:inventory": "node --test tests/inventory-labels.test.mjs tests/inventory-camera.test.mjs tests/inventory-scan.test.mjs tests/inventory-unit-actions.test.mjs tests/stocktake-report.test.mjs",
     "test:image-upload": "node --test tests/image-upload.test.mjs tests/backend-image-validation.test.mjs tests/shop-product-automatic-ads.test.mjs",
     "test": "node --test tests/*.test.mjs src/modules/public/lib/*.test.mjs src/modules/shop-management/lib/*.test.mjs"
   },
@@ -25,7 +24,6 @@
     "@hookform/resolvers": "^5.9.1",
     "@shadcn/react": "^0.3.1",
     "@vercel/analytics": "^2.0.1",
-    "@zxing/browser": "^0.2.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -36,7 +34,6 @@
     "lucide-react": "^1.52.0",
     "next": "16.4.5",
     "next-themes": "^0.4.6",
-    "qrcode": "^1.5.4",
     "react": "19.3.0",
     "react-day-picker": "^10.0.2",
     "react-dom": "19.3.0",
@@ -53,7 +50,6 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
