@@ -82,7 +82,13 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Sheet,
   SheetContent,
@@ -153,6 +159,27 @@ import { CreateProductForm } from "@/modules/shop-management/components/create-p
 import { ProductPricingForm } from "@/modules/shop-management/components/product-pricing-form"
 import { ShopCouponManager } from "@/modules/shop-management/components/shop-coupon-manager"
 import { ShopShippingSettings } from "@/modules/shop-management/components/shop-shipping-settings"
+
+const productFilterOptions: { value: ProductFilter; label: string }[] = [
+  { value: "all", label: "Tất cả sản phẩm" },
+  { value: "active", label: "Đang bán" },
+  { value: "hidden", label: "Đang ẩn" },
+  { value: "low-stock", label: "Sắp hết hàng (≤ 5)" },
+]
+
+const inventoryFilterOptions: { value: ProductFilter; label: string }[] = [
+  { value: "all", label: "Tất cả tồn kho" },
+  { value: "low-stock", label: "Sắp hết hàng (≤ 5)" },
+]
+
+const orderFilterOptions: { value: OrderFilter; label: string }[] = [
+  { value: "all", label: "Tất cả trạng thái" },
+  { value: "open", label: "Đơn đang mở" },
+  ...Object.entries(orderStatusLabels).map(([value, label]) => ({
+    value: value as ShopOrder["status"],
+    label,
+  })),
+]
 
 function ProductInventoryForm({ product }: { product: ShopProduct }) {
   const [isPending, startTransition] = useTransition()
@@ -1233,6 +1260,10 @@ export function ShopManagementClient({
   const unansweredReviews = productReviews.filter(
     (review) => !review.shop_reply
   ).length
+  const reviewFilterOptions = [
+    { value: "all", label: "Tất cả đánh giá" },
+    { value: "unanswered", label: `Chưa phản hồi (${unansweredReviews})` },
+  ]
   const visibleProducts = filterShopProducts(
     products,
     productSearch,
@@ -1455,27 +1486,25 @@ export function ShopManagementClient({
                     onChange={(event) => setProductSearch(event.target.value)}
                   />
                 </InputGroup>
-                <NativeSelect
-                  aria-label="Trạng thái sản phẩm"
-                  className="w-full sm:w-52"
+                <Select
+                  items={productFilterOptions}
                   value={productStatus}
-                  onChange={(event) =>
-                    setProductStatus(event.target.value as ProductFilter)
-                  }
+                  onValueChange={(value) => setProductStatus(value ?? "all")}
                 >
-                  <NativeSelectOption value="all">
-                    Tất cả sản phẩm
-                  </NativeSelectOption>
-                  <NativeSelectOption value="active">
-                    Đang bán
-                  </NativeSelectOption>
-                  <NativeSelectOption value="hidden">
-                    Đang ẩn
-                  </NativeSelectOption>
-                  <NativeSelectOption value="low-stock">
-                    Sắp hết hàng (≤ 5)
-                  </NativeSelectOption>
-                </NativeSelect>
+                  <SelectTrigger
+                    aria-label="Trạng thái sản phẩm"
+                    className="w-full sm:w-52"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productFilterOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <p className="text-xs text-muted-foreground" role="status">
                 {visibleProducts.length} / {products.length} sản phẩm
@@ -1548,21 +1577,27 @@ export function ShopManagementClient({
                       }
                     />
                   </InputGroup>
-                  <NativeSelect
-                    aria-label="Lọc tồn kho"
-                    className="w-full sm:w-48"
+                  <Select
+                    items={inventoryFilterOptions}
                     value={inventoryStatus}
-                    onChange={(event) =>
-                      setInventoryStatus(event.target.value as ProductFilter)
+                    onValueChange={(value) =>
+                      setInventoryStatus(value ?? "all")
                     }
                   >
-                    <NativeSelectOption value="all">
-                      Tất cả tồn kho
-                    </NativeSelectOption>
-                    <NativeSelectOption value="low-stock">
-                      Sắp hết hàng (≤ 5)
-                    </NativeSelectOption>
-                  </NativeSelect>
+                    <SelectTrigger
+                      aria-label="Lọc tồn kho"
+                      className="w-full sm:w-48"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {inventoryFilterOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <p className="text-xs text-muted-foreground" role="status">
                   {inventoryProducts.length} / {products.length} sản phẩm
@@ -1646,19 +1681,25 @@ export function ShopManagementClient({
               </CardAction>
             </CardHeader>
             <CardContent>
-              <NativeSelect
-                aria-label="Lọc đánh giá"
-                className="w-full sm:w-60"
+              <Select
+                items={reviewFilterOptions}
                 value={reviewStatus}
-                onChange={(event) => setReviewStatus(event.target.value)}
+                onValueChange={(value) => setReviewStatus(value ?? "all")}
               >
-                <NativeSelectOption value="all">
-                  Tất cả đánh giá
-                </NativeSelectOption>
-                <NativeSelectOption value="unanswered">
-                  Chưa phản hồi ({unansweredReviews})
-                </NativeSelectOption>
-              </NativeSelect>
+                <SelectTrigger
+                  aria-label="Lọc đánh giá"
+                  className="w-full sm:w-60"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {reviewFilterOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Accordion className="gap-3" multiple>
                 {visibleReviews.map((review) => (
                   <ReviewReplyForm key={review.id} review={review} />
@@ -1702,26 +1743,25 @@ export function ShopManagementClient({
                     onChange={(event) => setOrderSearch(event.target.value)}
                   />
                 </InputGroup>
-                <NativeSelect
-                  aria-label="Trạng thái đơn hàng"
-                  className="w-full sm:w-52"
+                <Select
+                  items={orderFilterOptions}
                   value={orderStatus}
-                  onChange={(event) =>
-                    setOrderStatus(event.target.value as OrderFilter)
-                  }
+                  onValueChange={(value) => setOrderStatus(value ?? "all")}
                 >
-                  <NativeSelectOption value="all">
-                    Tất cả trạng thái
-                  </NativeSelectOption>
-                  <NativeSelectOption value="open">
-                    Đơn đang mở
-                  </NativeSelectOption>
-                  {Object.entries(orderStatusLabels).map(([value, label]) => (
-                    <NativeSelectOption key={value} value={value}>
-                      {label}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
+                  <SelectTrigger
+                    aria-label="Trạng thái đơn hàng"
+                    className="w-full sm:w-52"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orderFilterOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <p className="text-xs text-muted-foreground" role="status">
                 {visibleOrders.length} / {orders.length} đơn hàng gần đây
