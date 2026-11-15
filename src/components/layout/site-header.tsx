@@ -41,6 +41,7 @@ import {
 } from "@/components/layout/unread-count-badge"
 import { UserAvatar } from "@/components/user-avatar"
 import { ChatPageLink } from "@/components/chat-page-link"
+import { openAuthenticatedTab } from "@/lib/authenticated-tab"
 
 type NavigationItem = {
   href: string
@@ -111,6 +112,27 @@ export function SiteHeader() {
               <NavigationLink
                 key={item.href}
                 href={item.href}
+                onClick={
+                  item.href === "/shop-manage"
+                    ? openAuthenticatedTab
+                    : undefined
+                }
+                onAuxClick={
+                  item.href === "/shop-manage"
+                    ? openAuthenticatedTab
+                    : undefined
+                }
+                target={item.href === "/shop-manage" ? "_blank" : undefined}
+                rel={
+                  item.href === "/shop-manage"
+                    ? "noopener noreferrer"
+                    : undefined
+                }
+                title={
+                  item.href === "/shop-manage"
+                    ? "Kênh người bán (mở trong tab mới)"
+                    : undefined
+                }
                 aria-current={active(item.href) ? "page" : undefined}
                 className={buttonVariants({
                   variant: active(item.href) ? "secondary" : "ghost",

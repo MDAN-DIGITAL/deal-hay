@@ -12,7 +12,12 @@ export function SiteShell({
   advertising?: React.ReactNode
 }) {
   const pathname = usePathname()
+  const shopManagement =
+    pathname === "/shop-manage" || pathname.startsWith("/shop-manage/")
   const chat = pathname === "/chats" || pathname.startsWith("/chats/")
+
+  if (shopManagement) return <div className="min-h-svh">{children}</div>
+
   return (
     <div className="flex min-h-svh flex-col">
       {!chat ? <SiteHeader /> : null}

@@ -25,10 +25,17 @@ const { SiteShell } = await import(
     source.replace(
       /from (["'])([^"']+)\1/g,
       (_match, quote, name) =>
-        `from ${quote}${name === "react/jsx-runtime" ? url("export const jsx=(type,props)=>({type,props});export const jsxs=jsx") : widgets}${quote}`
+        `from ${quote}${name === "react/jsx-runtime" ? url("export const jsx=(type,props)=>({type,props});export const jsxs=jsx;export const Fragment='fragment'") : widgets}${quote}`
     )
   )
 )
+test("shop management owns its full-width workspace without storefront navigation or advertising", () => {
+  for (const path of ["/shop-manage", "/shop-manage/orders"]) {
+    globalThis.__shellPath = path
+    const shell = SiteShell({ children: "workspace", advertising: "ad" })
+    assert.equal(shell.props.children, "workspace")
+  }
+})
 test("chat routes dedicate the screen to messages while other pages keep navigation and advertising", () => {
   for (const path of ["/chats", "/chats/saved-admin-room"]) {
     globalThis.__shellPath = path

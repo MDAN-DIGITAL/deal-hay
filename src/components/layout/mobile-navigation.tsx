@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/sheet"
 import { UserAvatar } from "@/components/user-avatar"
 import { ChatPageLink } from "@/components/chat-page-link"
+import { openAuthenticatedTab } from "@/lib/authenticated-tab"
 import type { User } from "@/types/auth"
 
 const publicItems = [
@@ -169,8 +170,15 @@ export function MobileNavigation({
           ) : null}
           {user?.role === "shop_owner" ? (
             <Link
-              onNavigate={() => setOpen(false)}
+              onClick={(event) => {
+                setOpen(false)
+                openAuthenticatedTab(event)
+              }}
+              onAuxClick={openAuthenticatedTab}
               href="/shop-manage"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Kênh người bán (mở trong tab mới)"
               aria-current={active("/shop-manage") ? "page" : undefined}
               className={buttonVariants({
                 className: "justify-start",

@@ -1,27 +1,18 @@
 "use client"
 
 import { Surface } from "@/components/ui/surface"
-import { StatCard } from "@/components/ui/section"
 
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   ArrowDownIcon,
   ArrowUpIcon,
-  BoxesIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ExternalLinkIcon,
-  LayoutDashboardIcon,
-  MessageSquareTextIcon,
   PackageIcon,
-  ReceiptTextIcon,
-  SettingsIcon,
-  StoreIcon,
-  TicketPercentIcon,
+  SearchIcon,
   Trash2Icon,
-  TrendingUpIcon,
 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -29,7 +20,6 @@ import { toast } from "sonner"
 import { FormSelect } from "@/components/form-select"
 import { FormSubmitButton } from "@/components/form-submit-button"
 import { AddressFields } from "@/components/address-fields"
-import { PageHeader } from "@/components/layout/page-header"
 import { MediaImage } from "@/components/media-image"
 import { SelectedFilePreview } from "@/components/selected-file-preview"
 import {
@@ -51,7 +41,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import {
   Card,
@@ -78,9 +68,43 @@ import {
   PaginationEllipsis,
   PaginationItem,
 } from "@/components/ui/pagination"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { ShopManagementOverview } from "@/modules/shop-management/components/shop-management-overview"
+import { ShopManagementWorkspace } from "@/modules/shop-management/components/shop-management-workspace"
+import {
+  filterShopOrders,
+  filterShopProducts,
+  isLowStock,
+  isOpenOrder,
+  orderStatusLabels,
+  type OrderFilter,
+  type ProductFilter,
+} from "@/modules/shop-management/lib/management-data"
+import {
+  managementHref,
+  type ManagementTab,
+} from "@/modules/shop-management/lib/management-navigation"
 import { UserAvatar } from "@/components/user-avatar"
 import {
   appendOptionalFile,
@@ -636,15 +660,6 @@ function ShopProfileForm({ user }: { user: User }) {
   )
 }
 
-const orderStatusLabels: Record<ShopOrder["status"], string> = {
-  pending: "Chờ xác nhận",
-  confirmed: "Đã xác nhận",
-  processing: "Đang chuẩn bị",
-  shipping: "Đang giao",
-  completed: "Hoàn thành",
-  cancelled: "Đã hủy",
-}
-
 const orderActionLabels: Partial<Record<ShopOrder["status"], string>> = {
   confirmed: "Xác nhận đơn",
   processing: "Bắt đầu chuẩn bị",
@@ -1027,7 +1042,11 @@ function OrderCard({ order }: { order: ShopOrder }) {
   }
 
   return (
-    <Surface padding="none" className="p-4">
+    <Surface
+      id={`order-${order.id}`}
+      padding="none"
+      className="scroll-mt-24 p-4"
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -1195,10 +1214,54 @@ export function ShopManagementClient({
   metrics?: ShopMetrics
   inventoryMovements: InventoryMovement[]
   productReviews: ShopProductReview[]
-  initialTab?: string
+  initialTab?: ManagementTab
 }) {
   const [pending, startTransition] = useTransition()
-  const [activeTab, setActiveTab] = useState(initialTab)
+  const router = useRouter()
+  const activeTab = initialTab
+  const [createProductOpen, setCreateProductOpen] = useState(false)
+  const [productSearch, setProductSearch] = useState("")
+  const [productStatus, setProductStatus] = useState<ProductFilter>("all")
+  const [inventorySearch, setInventorySearch] = useState("")
+  const [inventoryStatus, setInventoryStatus] = useState<ProductFilter>("all")
+  const [orderSearch, setOrderSearch] = useState("")
+  const [orderStatus, setOrderStatus] = useState<OrderFilter>("all")
+  const [reviewStatus, setReviewStatus] = useState("all")
+  const openOrders =
+    metrics?.open_orders_count ?? orders.filter(isOpenOrder).length
+  const lowStock = products.filter(isLowStock).length
+  const unansweredReviews = productReviews.filter(
+    (review) => !review.shop_reply
+  ).length
+  const visibleProducts = filterShopProducts(
+    products,
+    productSearch,
+    productStatus
+  )
+  const inventoryProducts = filterShopProducts(
+    products,
+    inventorySearch,
+    inventoryStatus
+  )
+  const visibleOrders = filterShopOrders(orders, orderSearch, orderStatus)
+  const visibleReviews =
+    reviewStatus === "unanswered"
+      ? productReviews.filter((review) => !review.shop_reply)
+      : productReviews
+  const setActiveTab = (tab: ManagementTab) =>
+    router.push(managementHref(tab), { scroll: false })
+  const openTask = (tab: "orders" | "inventory" | "reviews") => {
+    if (tab === "orders") {
+      setOrderSearch("")
+      setOrderStatus("open")
+    } else if (tab === "inventory") {
+      setInventorySearch("")
+      setInventoryStatus("low-stock")
+    } else {
+      setReviewStatus("unanswered")
+    }
+    setActiveTab(tab)
+  }
   const [orderedCategories, setOrderedCategories] = useState(
     categories.map((category) => category.id)
   )
@@ -1207,31 +1270,6 @@ export function ShopManagementClient({
     orderedCategories.some(
       (categoryId, index) => categoryId !== categories[index]?.id
     )
-  const summaryMetrics = [
-    {
-      label: "Sản phẩm đang bán",
-      value: metrics?.products_count ?? products.length,
-      icon: PackageIcon,
-    },
-    {
-      label: "Đơn hàng",
-      value: metrics?.total_orders_count ?? orders.length,
-      icon: ReceiptTextIcon,
-    },
-    {
-      label: "Doanh thu",
-      value: formatCurrency(metrics?.total_revenue ?? 0),
-      icon: TrendingUpIcon,
-    },
-    {
-      label: "Tổng tồn kho",
-      value:
-        metrics?.total_stock ??
-        products.reduce((total, product) => total + product.stock, 0),
-      icon: BoxesIcon,
-    },
-  ]
-
   const moveCategory = (index: number, direction: -1 | 1) => {
     const nextIndex = index + direction
     if (nextIndex < 0 || nextIndex >= orderedCategories.length) return
@@ -1240,185 +1278,35 @@ export function ShopManagementClient({
     setOrderedCategories(next)
   }
 
-  const openProductTab = () => {
-    setActiveTab("products")
-    requestAnimationFrame(() => {
-      const heading = document.getElementById("create-product-heading")
-      heading?.focus({ preventScroll: true })
-    })
-  }
-
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Kênh người bán"
-        description="Theo dõi hoạt động kinh doanh, quản lý sản phẩm, đơn hàng và trải nghiệm khách hàng."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={openProductTab}>
-              <PackageIcon /> Đăng sản phẩm
-            </Button>
-            <Link
-              href={`/shops/${user.user_code}`}
-              className={buttonVariants({ variant: "outline" })}
-            >
-              <ExternalLinkIcon /> Xem cửa hàng
-            </Link>
-          </div>
-        }
-      />
+    <ShopManagementWorkspace
+      user={user}
+      activeTab={activeTab}
+      openOrders={openOrders}
+      unansweredReviews={unansweredReviews}
+      onCreateProduct={() => setCreateProductOpen(true)}
+    >
+      {activeTab === "overview" ? (
+        <ShopManagementOverview
+          products={products}
+          orders={orders}
+          metrics={metrics}
+          openOrders={openOrders}
+          lowStock={lowStock}
+          unansweredReviews={unansweredReviews}
+          onNavigate={(tab) => {
+            if (tab === "orders") {
+              setOrderSearch("")
+              setOrderStatus("all")
+            }
+            setActiveTab(tab)
+          }}
+          onTask={openTask}
+        />
+      ) : null}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <ScrollArea className="w-full">
-          <div className="w-max min-w-full pb-3">
-            <TabsList className="h-auto w-full justify-start p-1">
-              <TabsTrigger className="min-w-28" value="overview">
-                <LayoutDashboardIcon /> Tổng quan
-              </TabsTrigger>
-              <TabsTrigger className="min-w-28" value="products">
-                <PackageIcon /> Sản phẩm
-              </TabsTrigger>
-              <TabsTrigger className="min-w-28" value="inventory">
-                <BoxesIcon /> Kho hàng
-              </TabsTrigger>
-              <TabsTrigger className="min-w-28" value="orders">
-                <ReceiptTextIcon /> Đơn hàng
-              </TabsTrigger>
-              <TabsTrigger className="min-w-28" value="promotions">
-                <TicketPercentIcon /> Khuyến mãi
-              </TabsTrigger>
-              <TabsTrigger className="min-w-28" value="reviews">
-                <MessageSquareTextIcon /> Đánh giá
-              </TabsTrigger>
-              <TabsTrigger className="min-w-28" value="settings">
-                <SettingsIcon /> Cửa hàng
-              </TabsTrigger>
-            </TabsList>
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
-
-        <TabsContent className="space-y-6 pt-4" value="overview">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {summaryMetrics.map((metric) => (
-              <StatCard
-                key={metric.label}
-                label={metric.label}
-                value={metric.value}
-                icon={<metric.icon />}
-              />
-            ))}
-          </div>
-
-          <div className="grid items-start gap-6 xl:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <StoreIcon className="size-5 text-primary" />{" "}
-                  {user.shop_name ?? "Cửa hàng của bạn"}
-                </CardTitle>
-                <CardDescription>
-                  Các chỉ số về khách hàng và hiệu quả vận hành.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3 sm:grid-cols-2">
-                <Surface padding="none" variant="muted" className="p-4">
-                  <p className="text-xs text-muted-foreground">
-                    Người theo dõi
-                  </p>
-                  <p className="mt-1 text-xl font-semibold">
-                    {metrics?.followers_count ?? 0}
-                  </p>
-                </Surface>
-                <Surface padding="none" variant="muted" className="p-4">
-                  <p className="text-xs text-muted-foreground">
-                    Tỷ lệ hài lòng
-                  </p>
-                  <p className="mt-1 text-xl font-semibold">
-                    {metrics?.satisfaction_rate === null ||
-                    metrics?.satisfaction_rate === undefined
-                      ? "—"
-                      : `${metrics.satisfaction_rate}%`}
-                  </p>
-                </Surface>
-                <Surface padding="none" variant="muted" className="p-4">
-                  <p className="text-xs text-muted-foreground">
-                    Hội thoại khách hàng
-                  </p>
-                  <p className="mt-1 text-xl font-semibold">
-                    {metrics?.customer_conversations_count ?? 0}
-                  </p>
-                </Surface>
-                <Surface padding="none" variant="muted" className="p-4">
-                  <p className="text-xs text-muted-foreground">
-                    Tỷ lệ phản hồi
-                  </p>
-                  <p className="mt-1 text-xl font-semibold">
-                    {metrics?.response_rate === null ||
-                    metrics?.response_rate === undefined
-                      ? "—"
-                      : `${metrics.response_rate}%`}
-                  </p>
-                </Surface>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Công việc cần xử lý</CardTitle>
-                <CardDescription>
-                  Những mục nên được ưu tiên trong phiên làm việc này.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="gap-3">
-                {[
-                  {
-                    label: "Đơn hàng đang mở",
-                    value: metrics?.open_orders_count ?? 0,
-                    hint: "Xử lý trong tab Đơn hàng",
-                    tab: "orders",
-                  },
-                  {
-                    label: "Đánh giá gần đây chưa phản hồi",
-                    value: productReviews.filter((review) => !review.shop_reply)
-                      .length,
-                    hint: "Phản hồi trong tab Đánh giá",
-                    tab: "reviews",
-                  },
-                  {
-                    label: "Sản phẩm đang ẩn",
-                    value: metrics?.hidden_products_count ?? 0,
-                    hint: "Kiểm tra trong tab Sản phẩm",
-                    tab: "products",
-                  },
-                  {
-                    label: "Coupon đang hoạt động",
-                    value: metrics?.active_coupons_count ?? 0,
-                    hint: "Quản lý trong tab Khuyến mãi",
-                    tab: "promotions",
-                  },
-                ].map((item) => (
-                  <Button
-                    key={item.label}
-                    className="h-auto w-full justify-between gap-4 p-3 text-left whitespace-normal"
-                    variant="outline"
-                    onClick={() => setActiveTab(item.tab)}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p>{item.label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.hint}
-                      </p>
-                    </div>
-                    <span className="text-xl font-semibold">{item.value}</span>
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent className="space-y-6 pt-4" value="settings">
+      {activeTab === "settings" ? (
+        <div className="space-y-6">
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.65fr)]">
             <Card>
               <CardHeader>
@@ -1539,47 +1427,104 @@ export function ShopManagementClient({
             </Card>
           </div>
           <ShopShippingSettings />
-        </TabsContent>
+        </div>
+      ) : null}
 
-        <TabsContent className="space-y-6 pt-4" value="products">
-          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.75fr)]">
-            <Card className="h-fit">
-              <CardHeader>
-                <CardTitle
-                  id="create-product-heading"
-                  role="heading"
-                  tabIndex={-1}
-                  aria-level={2}
+      {activeTab === "products" ? (
+        <div className="space-y-6">
+          <Card className="min-w-0">
+            <CardHeader>
+              <CardTitle>Danh sách sản phẩm</CardTitle>
+              <CardDescription>
+                Quản lý trạng thái và thông tin cơ bản của sản phẩm.
+              </CardDescription>
+              <CardAction>
+                <Badge variant="secondary">{products.length} sản phẩm</Badge>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <InputGroup className="flex-1">
+                  <InputGroupAddon>
+                    <SearchIcon aria-hidden="true" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    aria-label="Tìm sản phẩm"
+                    placeholder="Tìm theo tên, mã SKU, danh mục..."
+                    value={productSearch}
+                    onChange={(event) => setProductSearch(event.target.value)}
+                  />
+                </InputGroup>
+                <NativeSelect
+                  aria-label="Trạng thái sản phẩm"
+                  className="w-full sm:w-52"
+                  value={productStatus}
+                  onChange={(event) =>
+                    setProductStatus(event.target.value as ProductFilter)
+                  }
                 >
-                  Đăng sản phẩm mới
-                </CardTitle>
-                <CardDescription>
-                  Tải ảnh và nhập thông tin để đưa sản phẩm lên cửa hàng.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <CreateProductForm categories={categories} />
-              </CardContent>
-            </Card>
+                  <NativeSelectOption value="all">
+                    Tất cả sản phẩm
+                  </NativeSelectOption>
+                  <NativeSelectOption value="active">
+                    Đang bán
+                  </NativeSelectOption>
+                  <NativeSelectOption value="hidden">
+                    Đang ẩn
+                  </NativeSelectOption>
+                  <NativeSelectOption value="low-stock">
+                    Sắp hết hàng (≤ 5)
+                  </NativeSelectOption>
+                </NativeSelect>
+              </div>
+              <p className="text-xs text-muted-foreground" role="status">
+                {visibleProducts.length} / {products.length} sản phẩm
+              </p>
+              {visibleProducts.length > 0 ? (
+                <ProductList
+                  key={`${productSearch}:${productStatus}`}
+                  products={visibleProducts}
+                />
+              ) : (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <PackageIcon />
+                    </EmptyMedia>
+                    <EmptyTitle>
+                      {products.length === 0
+                        ? "Đăng sản phẩm đầu tiên"
+                        : "Không tìm thấy sản phẩm"}
+                    </EmptyTitle>
+                    <EmptyDescription>
+                      {products.length === 0
+                        ? "Thêm ảnh, giá bán và tồn kho để bắt đầu bán hàng."
+                        : "Thử tên, mã SKU hoặc trạng thái khác."}
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (products.length === 0) setCreateProductOpen(true)
+                        else {
+                          setProductSearch("")
+                          setProductStatus("all")
+                        }
+                      }}
+                    >
+                      {products.length === 0 ? "Đăng sản phẩm" : "Xóa bộ lọc"}
+                    </Button>
+                  </EmptyContent>
+                </Empty>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
 
-            <Card className="min-w-0">
-              <CardHeader>
-                <CardTitle>Danh sách sản phẩm</CardTitle>
-                <CardDescription>
-                  Quản lý trạng thái và thông tin cơ bản của sản phẩm.
-                </CardDescription>
-                <CardAction>
-                  <Badge variant="secondary">{products.length} sản phẩm</Badge>
-                </CardAction>
-              </CardHeader>
-              <CardContent className="gap-4">
-                <ProductList products={products} />
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent className="space-y-6 pt-4" value="inventory">
+      {activeTab === "inventory" ? (
+        <div className="space-y-6">
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)]">
             <Card>
               <CardHeader>
@@ -1589,8 +1534,41 @@ export function ShopManagementClient({
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <InputGroup className="flex-1">
+                    <InputGroupAddon>
+                      <SearchIcon aria-hidden="true" />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      aria-label="Tìm sản phẩm trong kho"
+                      placeholder="Tìm tên hoặc mã SKU..."
+                      value={inventorySearch}
+                      onChange={(event) =>
+                        setInventorySearch(event.target.value)
+                      }
+                    />
+                  </InputGroup>
+                  <NativeSelect
+                    aria-label="Lọc tồn kho"
+                    className="w-full sm:w-48"
+                    value={inventoryStatus}
+                    onChange={(event) =>
+                      setInventoryStatus(event.target.value as ProductFilter)
+                    }
+                  >
+                    <NativeSelectOption value="all">
+                      Tất cả tồn kho
+                    </NativeSelectOption>
+                    <NativeSelectOption value="low-stock">
+                      Sắp hết hàng (≤ 5)
+                    </NativeSelectOption>
+                  </NativeSelect>
+                </div>
+                <p className="text-xs text-muted-foreground" role="status">
+                  {inventoryProducts.length} / {products.length} sản phẩm
+                </p>
                 <Accordion className="gap-3" multiple>
-                  {products.map((product) => (
+                  {inventoryProducts.map((product) => (
                     <AccordionItem
                       key={product.id}
                       className="rounded-xl border px-4"
@@ -1622,9 +1600,9 @@ export function ShopManagementClient({
                     </AccordionItem>
                   ))}
                 </Accordion>
-                {products.length === 0 ? (
+                {inventoryProducts.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    Chưa có sản phẩm để điều chỉnh tồn kho.
+                    Không có sản phẩm phù hợp để điều chỉnh tồn kho.
                   </p>
                 ) : null}
               </CardContent>
@@ -1642,13 +1620,17 @@ export function ShopManagementClient({
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        </div>
+      ) : null}
 
-        <TabsContent className="space-y-6 pt-4" value="promotions">
+      {activeTab === "promotions" ? (
+        <div className="space-y-6">
           <ShopCouponManager coupons={coupons} products={products} />
-        </TabsContent>
+        </div>
+      ) : null}
 
-        <TabsContent className="space-y-6 pt-4" value="reviews">
+      {activeTab === "reviews" ? (
+        <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Đánh giá sản phẩm</CardTitle>
@@ -1664,21 +1646,38 @@ export function ShopManagementClient({
               </CardAction>
             </CardHeader>
             <CardContent>
+              <NativeSelect
+                aria-label="Lọc đánh giá"
+                className="w-full sm:w-60"
+                value={reviewStatus}
+                onChange={(event) => setReviewStatus(event.target.value)}
+              >
+                <NativeSelectOption value="all">
+                  Tất cả đánh giá
+                </NativeSelectOption>
+                <NativeSelectOption value="unanswered">
+                  Chưa phản hồi ({unansweredReviews})
+                </NativeSelectOption>
+              </NativeSelect>
               <Accordion className="gap-3" multiple>
-                {productReviews.map((review) => (
+                {visibleReviews.map((review) => (
                   <ReviewReplyForm key={review.id} review={review} />
                 ))}
               </Accordion>
-              {productReviews.length === 0 ? (
+              {visibleReviews.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Cửa hàng chưa có đánh giá sản phẩm.
+                  {reviewStatus === "unanswered"
+                    ? "Không có đánh giá nào đang chờ phản hồi."
+                    : "Cửa hàng chưa có đánh giá sản phẩm."}
                 </p>
               ) : null}
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      ) : null}
 
-        <TabsContent className="space-y-6 pt-4" value="orders">
+      {activeTab === "orders" ? (
+        <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Đơn hàng</CardTitle>
@@ -1691,18 +1690,91 @@ export function ShopManagementClient({
               </CardAction>
             </CardHeader>
             <CardContent className="gap-3">
-              {orders.map((order) => (
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <InputGroup className="flex-1">
+                  <InputGroupAddon>
+                    <SearchIcon aria-hidden="true" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    aria-label="Tìm đơn hàng"
+                    placeholder="Mã đơn, tên khách, số điện thoại, sản phẩm..."
+                    value={orderSearch}
+                    onChange={(event) => setOrderSearch(event.target.value)}
+                  />
+                </InputGroup>
+                <NativeSelect
+                  aria-label="Trạng thái đơn hàng"
+                  className="w-full sm:w-52"
+                  value={orderStatus}
+                  onChange={(event) =>
+                    setOrderStatus(event.target.value as OrderFilter)
+                  }
+                >
+                  <NativeSelectOption value="all">
+                    Tất cả trạng thái
+                  </NativeSelectOption>
+                  <NativeSelectOption value="open">
+                    Đơn đang mở
+                  </NativeSelectOption>
+                  {Object.entries(orderStatusLabels).map(([value, label]) => (
+                    <NativeSelectOption key={value} value={value}>
+                      {label}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
+              <p className="text-xs text-muted-foreground" role="status">
+                {visibleOrders.length} / {orders.length} đơn hàng gần đây
+              </p>
+              {visibleOrders.map((order) => (
                 <OrderCard key={order.id} order={order} />
               ))}
-              {orders.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Chưa có đơn hàng nào.
-                </p>
+              {visibleOrders.length === 0 ? (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyTitle>
+                      {orders.length === 0
+                        ? "Chưa có đơn hàng"
+                        : "Không có đơn hàng phù hợp"}
+                    </EmptyTitle>
+                    <EmptyDescription>
+                      {orders.length === 0
+                        ? "Đơn hàng mới sẽ xuất hiện tại đây."
+                        : "Thử thay đổi từ khóa hoặc trạng thái đơn hàng."}
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  {orders.length > 0 ? (
+                    <EmptyContent>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setOrderSearch("")
+                          setOrderStatus("all")
+                        }}
+                      >
+                        Xóa bộ lọc
+                      </Button>
+                    </EmptyContent>
+                  ) : null}
+                </Empty>
               ) : null}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+        </div>
+      ) : null}
+      <Sheet open={createProductOpen} onOpenChange={setCreateProductOpen}>
+        <SheetContent className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>Đăng sản phẩm mới</SheetTitle>
+            <SheetDescription>
+              Tải ảnh và nhập thông tin để đưa sản phẩm lên cửa hàng.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="px-4 pb-6">
+            <CreateProductForm categories={categories} />
+          </div>
+        </SheetContent>
+      </Sheet>
+    </ShopManagementWorkspace>
   )
 }

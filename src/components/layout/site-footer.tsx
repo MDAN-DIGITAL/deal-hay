@@ -18,6 +18,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Brand } from "@/components/ui/brand"
 import { ChatPageLink } from "@/components/chat-page-link"
+import { openAuthenticatedTab } from "@/lib/authenticated-tab"
 
 const customerLinks = [
   {
@@ -60,6 +61,21 @@ function footerLinkGroup(title: string, links: typeof customerLinks) {
               key={item.label}
               className="flex w-fit items-center gap-2 transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:outline-ring"
               href={item.href}
+              onClick={
+                item.href === "/shop-manage" ? openAuthenticatedTab : undefined
+              }
+              onAuxClick={
+                item.href === "/shop-manage" ? openAuthenticatedTab : undefined
+              }
+              target={item.href === "/shop-manage" ? "_blank" : undefined}
+              rel={
+                item.href === "/shop-manage" ? "noopener noreferrer" : undefined
+              }
+              title={
+                item.href === "/shop-manage"
+                  ? "Kênh người bán (mở trong tab mới)"
+                  : undefined
+              }
             >
               <item.icon className="size-4 shrink-0" aria-hidden="true" />
               {item.label}

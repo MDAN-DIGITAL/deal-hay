@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 
 import { getShopManage } from "@/api/profile/queries"
 import { ShopManagementClient } from "@/modules/shop-management/components/shop-management-client"
+import { managementTab } from "@/modules/shop-management/lib/management-navigation"
 
 export function ShopManagementPageContainer({
   initialTab,
@@ -29,20 +30,7 @@ export function ShopManagementPageContainer({
       metrics={data.shopMetrics ?? data.metrics}
       inventoryMovements={data.inventoryMovements ?? []}
       productReviews={data.productReviews ?? []}
-      initialTab={
-        initialTab &&
-        [
-          "overview",
-          "products",
-          "inventory",
-          "orders",
-          "promotions",
-          "reviews",
-          "settings",
-        ].includes(initialTab)
-          ? initialTab
-          : "overview"
-      }
+      initialTab={managementTab(initialTab)}
     />
   )
 }

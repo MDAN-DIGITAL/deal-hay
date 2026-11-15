@@ -13,6 +13,7 @@ const widgets = moduleUrl(`
   export const usePathname=()=>globalThis.__siteNavigation.path
   export const useSession=()=>({user:globalThis.__siteNavigation.user,loading:globalThis.__siteNavigation.loading??false})
   export const useRealtime=()=>({unreadCounts:{messages:2,notifications:1}})
+  export const openAuthenticatedTab=()=>{}
   export const buttonVariants=({variant='default'}={})=>variant
   export const BellIcon='bell',ChevronDownIcon='chevron',MessageCircleIcon='message',ActivityIcon='activity',HouseIcon='home',LayoutDashboardIcon='dashboard',MenuIcon='menu',ShieldCheckIcon='shield',StoreIcon='store',TicketPercentIcon='ticket',UserRoundIcon='user'
   export const DropdownMenu='menu-root',DropdownMenuTrigger='menu-trigger',DropdownMenuContent='menu-content',DropdownMenuGroup='menu-group',DropdownMenuLabel='menu-label',DropdownMenuItem='menu-item',DropdownMenuSeparator='separator'
@@ -165,5 +166,24 @@ test("desktop, mobile and footer chat entries use the shared new-tab link", () =
   ]) {
     const entry = tree.find((node) => node.props?.href === "/chats")
     assert.equal(entry.type, "chat-link")
+  }
+})
+
+test("seller entries open a separate authenticated tab on desktop, mobile and footer", () => {
+  globalThis.__siteNavigation = {
+    user: user("shop_owner"),
+    path: "/",
+    open: false,
+  }
+  for (const tree of [
+    nodes(SiteHeader()),
+    nodes(MobileNavigation({ user: user("shop_owner") })),
+    nodes(SiteFooter()),
+  ]) {
+    const entry = tree.find((node) => node.props?.href === "/shop-manage")
+    assert.equal(entry.props.target, "_blank")
+    assert.equal(entry.props.rel, "noopener noreferrer")
+    assert.equal(typeof entry.props.onClick, "function")
+    assert.equal(typeof entry.props.onAuxClick, "function")
   }
 })
