@@ -1,6 +1,7 @@
 import { apiFetch } from "@/api/client"
 import { profileRoutes } from "@/api/profile/routes"
 import type { ApiMessageResponse } from "@/types/common"
+import type { PasswordChangeResponse } from "@/api/auth/types"
 
 export function updateProfile(
   payload: Record<string, unknown>
@@ -14,7 +15,7 @@ export function updateProfile(
 
 export function updatePassword(
   payload: Record<string, unknown>
-): Promise<ApiMessageResponse> {
+): Promise<PasswordChangeResponse> {
   return apiFetch({
     method: "PATCH",
     path: profileRoutes.updatePassword,

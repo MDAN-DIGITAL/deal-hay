@@ -86,6 +86,13 @@ export function getAccessToken(): string | null {
   return previous
 }
 
+export function isAccessTokenRemembered(): boolean {
+  const token = getAccessToken()
+  return (
+    token !== null && read("localStorage", ACCESS_TOKEN_STORAGE_KEY) === token
+  )
+}
+
 export function saveAccessToken(token: string, remember = true): void {
   if (typeof window === "undefined") return
   const previous = getAccessToken()

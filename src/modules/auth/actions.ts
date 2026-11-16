@@ -128,9 +128,11 @@ export async function forgotPasswordAction(
   }
 }
 
+export type ResetPasswordActionState = ActionState & { authenticated?: boolean }
+
 export async function resetPasswordAction(
   values: ResetPasswordValues
-): Promise<ActionState> {
+): Promise<ResetPasswordActionState> {
   const parsed = resetPasswordSchema.safeParse(values)
 
   if (!parsed.success) {
@@ -141,19 +143,42 @@ export async function resetPasswordAction(
     }
   }
 
+  const account = getAccessToken()
+  let response
   try {
-    const response = await resetPassword({
+    response = await resetPassword({
       email: parsed.data.email,
       token: parsed.data.token,
       password: parsed.data.password,
       password_confirmation: parsed.data.password_confirmation,
     })
-    return { success: true, message: response.message }
   } catch (error) {
     if (error instanceof ApiError) {
       return fromApiError(error)
     }
     return { success: false, message: "Không thể đặt lại mật khẩu." }
+  }
+
+  if (response.token && getAccessToken() === account) {
+    try {
+      await setAuthSession({ ...response, token: response.token }, false)
+    } catch {
+      return {
+        success: true,
+        authenticated: false,
+        message:
+          "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập để tiếp tục.",
+      }
+    }
+    window.location.replace("/")
+    return { success: true, authenticated: true, message: response.message }
+  }
+  return {
+    success: true,
+    authenticated: false,
+    message: response.token
+      ? "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập để tiếp tục."
+      : response.message,
   }
 }
 

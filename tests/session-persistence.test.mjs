@@ -94,6 +94,16 @@ test("server rendering reads no account and does not access browser storage", as
   assert.equal(session.getAccessToken(), null)
 })
 
+test("the remember preference distinguishes a persistent account from a temporary login", async (t) => {
+  activate(t, page())
+  const session = await loadSession()
+  assert.equal(session.isAccessTokenRemembered(), false)
+  session.saveAccessToken("persistent-token", true)
+  assert.equal(session.isAccessTokenRemembered(), true)
+  session.saveAccessToken("temporary-token", false)
+  assert.equal(session.isAccessTokenRemembered(), false)
+})
+
 test("remembered login is available to a fresh native tab and a reopened browser", async (t) => {
   const shared = new Map()
   const first = activate(t, page(shared))

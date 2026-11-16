@@ -11,7 +11,7 @@ export function ResetPasswordPageContainer({
   return (
     <AuthShell
       title="Đặt lại mật khẩu mới"
-      description="Hoàn tất quy trình khôi phục mật khẩu bằng token được gửi từ backend."
+      description="Tạo mật khẩu mới để khôi phục tài khoản và tiếp tục sử dụng Deal Hay."
     >
       <ResetPasswordForm email={email} token={token} />
     </AuthShell>

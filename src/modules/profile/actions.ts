@@ -1,7 +1,12 @@
 import { invalidateQueries } from "@/lib/query-cache"
 
 import { ApiError } from "@/api/client"
-import { clearAccessToken, getAccessToken } from "@/lib/session"
+import {
+  clearAccessToken,
+  getAccessToken,
+  isAccessTokenRemembered,
+} from "@/lib/session"
+import { setAuthSession } from "@/lib/auth"
 import {
   updateAvatar,
   updatePassword,
@@ -73,12 +78,26 @@ export async function updatePasswordAction(
   }
 
   const account = getAccessToken()
+  const remember = isAccessTokenRemembered()
   try {
     const response = await updatePassword(parsed.data)
-    if (account && getAccessToken() === account) clearAccessToken(account)
+    if (account && getAccessToken() === account) {
+      if (response.token) {
+        try {
+          await setAuthSession({ ...response, token: response.token }, remember)
+        } catch {
+          if (getAccessToken() === account) clearAccessToken(account)
+          return {
+            success: true,
+            message:
+              "Mật khẩu đã được cập nhật. Vui lòng đăng nhập để tiếp tục.",
+          }
+        }
+      } else clearAccessToken(account)
+    }
     return {
       success: true,
-      message: `${response.message} Vui lòng đăng nhập lại.`,
+      message: response.message,
     }
   } catch (error) {
     return toState(error, "Không thể cập nhật mật khẩu.")

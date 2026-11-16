@@ -30,6 +30,9 @@ export type MeResponse = {
   }
 }
 export type LoginResponse = AuthPayload
+export type PasswordChangeResponse = Omit<AuthPayload, "token"> & {
+  token: string | null
+}
 export type RegisterResponse = AuthPayload
 export type LogoutResponse = { message: string }
 export type SessionResponse = SessionUser

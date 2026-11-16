@@ -32,11 +32,13 @@ const schema = transpile("../src/modules/profile/schemas/profile.ts", {
   "@/lib/validation": validation,
 })
 const mocks = moduleUrl(`
-  export const state = { token: "account-a", calls: [], profileCalls: [], profileError: null, shopCalls: [], shopError: null, cleared: [], error: null, wait: null }
+  export const state = { token: "account-a", remembered: false, saved: [], calls: [], profileCalls: [], profileError: null, shopCalls: [], shopError: null, cleared: [], error: null, wait: null }
   export class ApiError extends Error {
     constructor(message, errors = {current_password:[message]}) { super(message); this.errors = errors }
   }
   export function getAccessToken() { return state.token }
+  export function isAccessTokenRemembered() { return state.remembered }
+  export async function setAuthSession(payload, remember) { state.saved.push({payload,remember});state.token=payload.token }
   export function clearAccessToken(expected) {
     state.cleared.push(expected)
     if (state.token === expected) state.token = null
@@ -45,7 +47,7 @@ const mocks = moduleUrl(`
     state.calls.push(values)
     await state.wait
     if (state.error) throw state.error
-    return {message:"Cập nhật mật khẩu thành công."}
+    return {message:"Cập nhật mật khẩu thành công.",token:"replacement-token",user:{id:"user-a"}}
   }
   export function invalidateQueries() {}
   export function updateAvatar() { throw new Error("Unexpected avatar update") }
@@ -68,6 +70,7 @@ const { updatePasswordAction, updateProfileAction, updateShopProfileAction } =
     transpile("../src/modules/profile/actions.ts", {
       "@/lib/query-cache": mocks,
       "@/lib/session": mocks,
+      "@/lib/auth": mocks,
       "@/api/client": mocks,
       "@/api/profile/mutations": mocks,
       "@/api/profile/routes": mocks,
@@ -98,6 +101,8 @@ const shopProfile = {
 
 test.beforeEach(() => {
   state.token = "account-a"
+  state.remembered = false
+  state.saved = []
   state.calls = []
   state.profileCalls = []
   state.profileError = null
@@ -108,13 +113,22 @@ test.beforeEach(() => {
   state.wait = null
 })
 
-test("a successful password change immediately removes the revoked browser credential", async () => {
+test("a successful password change replaces the revoked credential while keeping a temporary login", async () => {
   const result = await updatePasswordAction(password)
   assert.equal(result.success, true)
-  assert.match(result.message, /Vui lòng đăng nhập lại/)
+  assert.equal(result.message, "Cập nhật mật khẩu thành công.")
   assert.deepEqual(state.calls, [password])
-  assert.deepEqual(state.cleared, ["account-a"])
-  assert.equal(state.token, null)
+  assert.deepEqual(state.cleared, [])
+  assert.equal(state.token, "replacement-token")
+  assert.equal(state.saved[0].remember, false)
+})
+
+test("password rotation preserves the user's remembered login choice", async () => {
+  state.remembered = true
+  const result = await updatePasswordAction(password)
+  assert.equal(result.success, true)
+  assert.equal(state.token, "replacement-token")
+  assert.equal(state.saved[0].remember, true)
 })
 
 test("an invalid password never reaches the API or logs the account out", async () => {
@@ -145,6 +159,7 @@ test("a delayed password response cannot clear the account signed in from anothe
   assert.equal((await result).success, true)
   assert.deepEqual(state.cleared, [])
   assert.equal(state.token, "account-b")
+  assert.deepEqual(state.saved, [])
 })
 
 test("clearing optional contact fields sends explicit null values instead of silently retaining saved values", async () => {

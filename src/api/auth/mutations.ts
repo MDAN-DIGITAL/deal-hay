@@ -11,6 +11,7 @@ import type {
   RegisterPayload,
   RegisterResponse,
   ResetPasswordPayload,
+  PasswordChangeResponse,
 } from "@/api/auth/types"
 
 export function login(payload: LoginPayload): Promise<LoginResponse> {
@@ -33,7 +34,7 @@ export function forgotPassword(
 
 export function resetPassword(
   payload: ResetPasswordPayload
-): Promise<{ message: string }> {
+): Promise<PasswordChangeResponse> {
   return apiFetch({
     method: "POST",
     path: authRoutes.resetPassword,

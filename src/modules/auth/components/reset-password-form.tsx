@@ -1,13 +1,15 @@
 "use client"
 
 import Link from "next/link"
-import { useTransition } from "react"
+import { useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 
 import { FormSubmitButton } from "@/components/form-submit-button"
 import { PasswordInput } from "@/components/password-input"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -40,6 +42,8 @@ export function ResetPasswordForm({
   token?: string
 }) {
   const [isPending, startTransition] = useTransition()
+  const [linkError, setLinkError] = useState("")
+  const [completed, setCompleted] = useState("")
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
@@ -51,36 +55,85 @@ export function ResetPasswordForm({
   })
 
   const onSubmit = form.handleSubmit((values) => {
+    setLinkError("")
     startTransition(async () => {
       const state = await resetPasswordAction(values)
-      const hasFieldErrors = applyServerErrors(state.errors, form.setError)
+      const linkMessage = state.errors?.token?.[0] ?? state.errors?.general?.[0]
+      const visibleErrors = state.errors
+        ? Object.fromEntries(
+            Object.entries(state.errors).filter(
+              ([field]) => field !== "token" && field !== "general"
+            )
+          )
+        : undefined
+      const hasFieldErrors = applyServerErrors(visibleErrors, form.setError)
 
       if (state.success) {
+        setCompleted(state.message)
         toast.success(state.message)
         form.reset({
           email: values.email,
-          token: values.token,
+          token: "",
           password: "",
           password_confirmation: "",
         })
         return
       }
 
-      if (!hasFieldErrors && state.message) {
+      if (linkMessage) {
+        setLinkError(linkMessage)
+      } else if (!hasFieldErrors && state.message) {
         toast.error(state.message)
       }
     })
   })
+
+  if (!token || completed)
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {completed ? "Đã đặt lại mật khẩu" : "Liên kết không hợp lệ"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="gap-4">
+          <Alert variant={completed ? "success" : "destructive"}>
+            <AlertDescription>
+              {completed ||
+                "Vui lòng mở liên kết trong email hoặc yêu cầu một liên kết đặt lại mật khẩu mới."}
+            </AlertDescription>
+          </Alert>
+          <Button
+            nativeButton={false}
+            render={<Link href={completed ? "/sign-in" : "/forgot-password"} />}
+          >
+            {completed ? "Đến trang đăng nhập" : "Yêu cầu liên kết mới"}
+          </Button>
+        </CardContent>
+      </Card>
+    )
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Đặt lại mật khẩu</CardTitle>
         <CardDescription>
-          Điền token từ email và mật khẩu mới để hoàn tất khôi phục tài khoản.
+          Nhập mật khẩu mới. Bạn sẽ được đăng nhập ngay sau khi cập nhật thành
+          công.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {linkError ? (
+          <Alert variant="destructive">
+            <AlertTitle>Không thể sử dụng liên kết này</AlertTitle>
+            <AlertDescription>
+              <p>{linkError}</p>
+              <Link href="/forgot-password" className="text-primary underline">
+                Yêu cầu liên kết mới
+              </Link>
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <Form {...form}>
           <form className="space-y-4" noValidate onSubmit={onSubmit}>
             <FormField
@@ -96,19 +149,6 @@ export function ResetPasswordForm({
                       type="text"
                       {...field}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="token"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Token</FormLabel>
-                  <FormControl>
-                    <Input type="text" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

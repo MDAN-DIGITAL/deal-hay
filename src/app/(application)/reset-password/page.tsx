@@ -4,7 +4,10 @@ import { Suspense } from "react"
 import PageLoading from "@/components/layout/page-loading"
 import { ResetPasswordPageContent } from "./content"
 
-export const metadata: Metadata = { title: "Đặt lại mật khẩu" }
+export const metadata: Metadata = {
+  title: "Đặt lại mật khẩu",
+  referrer: "no-referrer",
+}
 
 export default function ResetPasswordPage() {
   return (
