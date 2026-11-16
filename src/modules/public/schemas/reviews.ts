@@ -10,6 +10,7 @@ export const reviewProductSchema = z.object({
     .min(5, "Nội dung đánh giá phải có ít nhất 5 ký tự.")
     .max(2000, "Nội dung đánh giá không được vượt quá 2.000 ký tự."),
   image: imageFileSchema("Ảnh đánh giá phải là một tệp hợp lệ.").optional(),
+  remove_image: z.boolean().optional(),
 })
 
 export type ReviewProductValues = z.infer<typeof reviewProductSchema>

@@ -68,7 +68,7 @@ export function ProductPageContainer({
 
   return (
     <div
-      className="space-y-10"
+      className="min-w-0 space-y-10"
       data-catalog-content="ready"
       data-ad-eligible={
         data.product.name.trim() && data.product.description?.trim()
@@ -77,15 +77,18 @@ export function ProductPageContainer({
       }
     >
       <Breadcrumb>
-        <BreadcrumbList>
+        <BreadcrumbList className="min-w-0">
           <BreadcrumbItem>
             <BreadcrumbLink render={<Link href="/" />}>
               Trang chủ
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href={`/shops/${shopUserCode}`} />}>
+          <BreadcrumbItem className="max-w-full min-w-0">
+            <BreadcrumbLink
+              className="truncate"
+              render={<Link href={`/shops/${shopUserCode}`} />}
+            >
               {data.shop.name}
             </BreadcrumbLink>
           </BreadcrumbItem>
@@ -100,6 +103,7 @@ export function ProductPageContainer({
 
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] lg:items-start">
         <ProductGallery
+          key={data.product.id}
           imageUrl={data.product.image_url}
           images={data.product.images}
           name={data.product.name}
@@ -110,13 +114,14 @@ export function ProductPageContainer({
           product={data.product}
           canReview={data.canReview}
           hasReview={Boolean(data.viewerReview)}
+          viewerReview={data.viewerReview}
           initialDiscountCode={initialDiscountCode}
           initialShopCouponCode={initialShopCouponCode}
           initialVariantId={initialVariantId}
         />
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <section className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">Mô tả sản phẩm</CardTitle>
@@ -125,7 +130,7 @@ export function ProductPageContainer({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="leading-7 whitespace-pre-wrap text-muted-foreground">
+            <p className="min-w-0 leading-7 [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground">
               {data.product.description ||
                 "Cửa hàng chưa bổ sung mô tả chi tiết cho sản phẩm này."}
             </p>
@@ -173,17 +178,19 @@ export function ProductPageContainer({
           </h2>
         </div>
         {data.reviews.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid min-w-0 items-start gap-4 md:grid-cols-2">
             {data.reviews.map((review) => (
               <Card key={review.id} size="sm">
                 <CardHeader>
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <UserAvatar
                       name={review.customer.name}
                       src={review.customer.avatar_url}
                     />
-                    <div>
-                      <CardTitle>{review.customer.name}</CardTitle>
+                    <div className="min-w-0">
+                      <CardTitle className="[overflow-wrap:anywhere]">
+                        {review.customer.name}
+                      </CardTitle>
                       <CardDescription>
                         {formatDate(review.created_at)}
                       </CardDescription>
@@ -203,7 +210,9 @@ export function ProductPageContainer({
                   </Badge>
                 </CardHeader>
                 <CardContent>
-                  <p className="leading-6">{review.content}</p>
+                  <p className="leading-6 [overflow-wrap:anywhere] whitespace-pre-wrap">
+                    {review.content}
+                  </p>
                   {review.image_url ? (
                     <ImagePreview
                       alt={`Ảnh đánh giá của ${review.customer.name}`}
@@ -222,7 +231,7 @@ export function ProductPageContainer({
                           <MessageSquareTextIcon className="size-3.5" /> Phản
                           hồi từ cửa hàng
                         </p>
-                        <p className="text-sm leading-6 text-muted-foreground">
+                        <p className="text-sm leading-6 [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground">
                           {review.shop_reply}
                         </p>
                       </Surface>

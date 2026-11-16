@@ -129,7 +129,7 @@ test("media images only optimize public API assets and forward onLoad", () => {
   assert.equal(image.props.unoptimized, true)
 })
 
-test("product gallery prioritizes only the selected full-size image", async () => {
+test("product gallery keeps detail images reachable before the primary image succeeds", async () => {
   const galleryWidgets = moduleUrl(`
     let cursor=0
     const states=[]
@@ -142,6 +142,8 @@ test("product gallery prioritizes only the selected full-size image", async () =
     }
     export const MediaImage="media-image"
     export const Button="button",Card="card",CardContent="card-content"
+    export const Dialog="dialog",DialogContent="dialog-content",DialogDescription="dialog-description",DialogTitle="dialog-title",DialogTrigger="dialog-trigger"
+    export const ChevronLeftIcon="icon",ChevronRightIcon="icon",ZoomInIcon="icon"
   `)
   const galleryState = await import(galleryWidgets)
   const { ProductGallery } = await import(
@@ -151,6 +153,8 @@ test("product gallery prioritizes only the selected full-size image", async () =
       "@/components/media-image": galleryWidgets,
       "@/components/ui/button": galleryWidgets,
       "@/components/ui/card": galleryWidgets,
+      "@/components/ui/dialog": galleryWidgets,
+      "lucide-react": galleryWidgets,
     })
   )
   const props = {
@@ -158,34 +162,84 @@ test("product gallery prioritizes only the selected full-size image", async () =
     imageUrl: "primary.webp",
     images: [{ id: "second", image_url: "second.webp" }],
   }
-  galleryState.reset()
-  let images = nodes(ProductGallery(props)).filter(
-    ({ type }) => type === "media-image"
-  )
-
-  assert.equal(images.length, 1)
-  assert.equal(images[0].props.fetchPriority, "high")
-  assert.equal(images[0].props.loading, "eager")
-  assert.equal(images[0].props.retryable, true)
-  images[0].props.onLoad()
-
-  galleryState.reset()
-  images = nodes(ProductGallery(props)).filter(
-    ({ type }) => type === "media-image"
-  )
-  assert.equal(images.length, 3)
+  const render = (values = props) => {
+    galleryState.reset()
+    return ProductGallery(values)
+  }
+  let tree = render()
+  const mainImage = (tree) =>
+    nodes(tree).find(
+      ({ type, props }) =>
+        type === "media-image" && props.fetchPriority === "high"
+    )
+  const thumbnails = (tree) =>
+    nodes(tree).filter(
+      ({ type, props }) =>
+        type === "media-image" && props.fetchPriority === "low"
+    )
+  const button = (tree, label) =>
+    nodes(tree).find(
+      ({ type, props }) => type === "button" && props["aria-label"] === label
+    )
+  assert.equal(mainImage(tree).props.loading, "eager")
+  assert.equal(mainImage(tree).props.retryable, true)
+  assert.equal(mainImage(tree).props.imageClassName, "object-contain")
+  assert.equal(mainImage(tree).props.src, "primary.webp")
   assert.deepEqual(
-    images.slice(1).map(({ props }) => props.fetchPriority),
-    ["low", "low"]
+    thumbnails(tree).map(({ props }) => props.src),
+    ["primary.webp", "second.webp"]
   )
 
-  galleryState.reset()
-  images = nodes(
-    ProductGallery({
-      ...props,
-      imageUrl: "new-primary.webp",
-      images: [{ id: "new-second", image_url: "new-second.webp" }],
-    })
-  ).filter(({ type }) => type === "media-image")
-  assert.equal(images.length, 1)
+  // Selecting another image never waits for the cover's onLoad: a failed cover
+  // must not trap the user away from otherwise valid detail photos.
+  button(tree, "Xem ảnh 2 của Điện thoại").props.onClick()
+  tree = render()
+  assert.equal(mainImage(tree).props.src, "second.webp")
+  assert.equal(
+    button(tree, "Xem ảnh 2 của Điện thoại").props["aria-pressed"],
+    true
+  )
+  button(tree, "Ảnh sản phẩm tiếp theo").props.onClick()
+  tree = render()
+  assert.equal(
+    mainImage(tree).props.src,
+    "primary.webp",
+    "next wraps to the cover"
+  )
+  const dialog = nodes(tree).find(({ type }) => type === "dialog-content")
+  let prevented = false
+  dialog.props.onKeyDown({
+    key: "ArrowLeft",
+    preventDefault() {
+      prevented = true
+    },
+  })
+  tree = render()
+  assert.equal(prevented, true)
+  assert.equal(
+    mainImage(tree).props.src,
+    "second.webp",
+    "left arrow wraps to the last detail photo"
+  )
+  assert.ok(nodes(tree).find(({ type }) => type === "dialog-trigger"))
+
+  tree = render({
+    ...props,
+    imageUrl: "new-primary.webp",
+    images: [
+      { id: "duplicate", image_url: " new-primary.webp " },
+      { id: "empty", image_url: " " },
+      { id: "new-second", image_url: "new-second.webp" },
+    ],
+  })
+  assert.equal(mainImage(tree).props.src, "new-primary.webp")
+  assert.deepEqual(
+    thumbnails(tree).map(({ props }) => props.src),
+    ["new-primary.webp", "new-second.webp"]
+  )
+  assert.ok(
+    nodes(tree).find(({ props }) =>
+      props.className?.includes("overflow-x-auto")
+    )
+  )
 })

@@ -49,12 +49,14 @@ export function clearShopReaction(
 export function upsertReview(
   shopUserCode: string,
   productSlug: string,
-  payload: FormData
+  payload: FormData,
+  token?: string
 ): Promise<ApiMessageResponse> {
   return apiFetch({
     method: "PUT",
     path: catalogRoutes.review(shopUserCode, productSlug),
     body: payload,
+    token,
   })
 }
 

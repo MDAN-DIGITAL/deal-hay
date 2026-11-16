@@ -232,13 +232,16 @@ const uiUrl = moduleUrl(`
     CardDescription = "description", CardHeader = "header", CardTitle = "title",
     Form = "form", FormControl = "control", FormField = "field", FormItem = "item",
     FormLabel = "label", FormMessage = "message", Input = "input", Separator = "separator",
-    Surface = "surface", Textarea = "textarea", UserAvatar = "avatar", ImageUploadProgress = "progress"
+    Surface = "surface", Textarea = "textarea", UserAvatar = "avatar", ImageUploadProgress = "progress",
+    ImagePreview = "image-preview", ShopEngagement = "shop-engagement"
   export const buttonVariants = () => "button"
 `)
 const noopUrl = moduleUrl(`
   export function useForm() {}
+  export function useWatch() {}
   export function zodResolver() {}
   export function useImageUpload() {}
+  export const getAccessToken = () => null
   export function appendOptionalFile() {}
   export function applyServerErrors() {}
   export function runUploadAction() {}
@@ -262,7 +265,7 @@ const { ProductInteractions } = await import(
     "lucide-react": moduleUrl(`
       export const BadgeCheckIcon = "icon", CirclePlayIcon = "icon", HeartIcon = "icon",
         PackageCheckIcon = "icon", PaperclipIcon = "icon", ThumbsDownIcon = "icon",
-        ThumbsUpIcon = "icon", ShoppingBagIcon = "icon", TicketPercentIcon = "icon"
+        ThumbsUpIcon = "icon", ShoppingBagIcon = "icon", TicketPercentIcon = "icon", Trash2Icon = "icon"
     `),
     "@hookform/resolvers/zod": noopUrl,
     "react-hook-form": noopUrl,
@@ -272,6 +275,7 @@ const { ProductInteractions } = await import(
         "form-select",
         "form-submit-button",
         "selected-file-preview",
+        "image-preview",
         "ui/badge",
         "ui/button",
         "ui/card",
@@ -284,8 +288,10 @@ const { ProductInteractions } = await import(
         "image-upload-progress",
       ].map((path) => [`@/components/${path}`, uiUrl])
     ),
+    "@/modules/public/components/shop-engagement": uiUrl,
     "@/lib/form-utils": noopUrl,
     "@/lib/validation": noopUrl,
+    "@/lib/session": noopUrl,
     "@/hooks/use-image-upload": noopUrl,
     "@/lib/format": transpile("../src/lib/format.ts"),
     "@/modules/public/actions": noopUrl,

@@ -13,6 +13,7 @@ import {
 
 import { getHome } from "@/api/catalog/queries"
 import type { HomeResponse } from "@/api/catalog/types"
+import { DataPagination } from "@/components/layout/data-pagination"
 import { EmptyState } from "@/components/layout/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
@@ -57,16 +58,18 @@ const shoppingSteps = [
 
 export function HomePageContainer({
   category,
+  page,
   initialData,
   initialError,
 }: {
   category?: string
+  page?: string
   initialData?: HomeResponse
   initialError?: string
 }) {
   const { data: data, error } = useApiQuery(
-    JSON.stringify(["home", category]),
-    () => getHome(category),
+    JSON.stringify(["home", category, page]),
+    () => getHome(category, page),
     {
       initialData,
       initialError,
@@ -78,10 +81,13 @@ export function HomePageContainer({
   )
   if (!data) return <QueryPlaceholder error={error} />
   const activeCategory = data.filters.category
+  const firstPageHref = activeCategory
+    ? `/?${new URLSearchParams({ category: activeCategory })}#san-pham`
+    : "/#san-pham"
 
   return (
     <div
-      className="space-y-10"
+      className="min-w-0 space-y-10"
       data-catalog-content="ready"
       data-ad-eligible={
         data.products.total > 0 && data.products.data.length > 0
@@ -175,7 +181,7 @@ export function HomePageContainer({
         <Card size="sm">
           <CardContent className="flex-row flex-wrap">
             <Link
-              href="/"
+              href="/#san-pham"
               className={buttonVariants({
                 variant: !activeCategory ? "default" : "outline",
               })}
@@ -185,7 +191,7 @@ export function HomePageContainer({
             {data.categories.map((item) => (
               <Link
                 key={item}
-                href={`/?${new URLSearchParams({ category: item })}`}
+                href={`/?${new URLSearchParams({ category: item })}#san-pham`}
                 className={buttonVariants({
                   variant: activeCategory === item ? "default" : "outline",
                 })}
@@ -198,8 +204,8 @@ export function HomePageContainer({
       </section>
 
       <section className="space-y-5" aria-labelledby="shops-heading">
-        <div className="flex items-end justify-between gap-4">
-          <div>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
             <p className="mb-1 text-sm font-medium text-primary">
               Được cộng đồng quan tâm
             </p>
@@ -220,21 +226,21 @@ export function HomePageContainer({
             {data.featuredShops.map((shop) => (
               <Link
                 key={shop.code}
-                className="group"
+                className="group min-w-0"
                 href={`/shops/${shop.code}`}
               >
                 <Card className="h-full">
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
+                  <CardHeader className="grid-cols-[minmax(0,1fr)_auto]!">
+                    <div className="flex min-w-0 items-center gap-3">
                       <UserAvatar
-                        className="size-12 ring-2 ring-primary/10"
+                        className="size-12 shrink-0 ring-2 ring-primary/10"
                         name={shop.name}
                         size="lg"
                         src={shop.avatar_url}
                       />
-                      <div className="min-w-0">
-                        <CardTitle className="flex items-center gap-1.5 truncate">
-                          {shop.name}
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="flex min-w-0 items-center gap-1.5">
+                          <span className="truncate">{shop.name}</span>
                           <BadgeCheckIcon className="size-4 shrink-0 text-primary" />
                         </CardTitle>
                         <CardDescription>
@@ -248,9 +254,11 @@ export function HomePageContainer({
                   </CardHeader>
                   <CardContent>
                     <Separator />
-                    <p className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <p className="flex min-w-0 items-start gap-2 text-sm text-muted-foreground">
                       <MapPinIcon className="mt-0.5 size-4 shrink-0" />
-                      {shop.address || "Cửa hàng chưa cập nhật địa chỉ."}
+                      <span className="min-w-0 wrap-anywhere">
+                        {shop.address || "Cửa hàng chưa cập nhật địa chỉ."}
+                      </span>
                     </p>
                   </CardContent>
                 </Card>
@@ -282,29 +290,51 @@ export function HomePageContainer({
               Sản phẩm mới lên kệ
             </h2>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {data.products.total} sản phẩm phù hợp
+          <p aria-live="polite" className="text-sm text-muted-foreground">
+            {data.products.data.length > 0
+              ? `Hiển thị ${data.products.from ?? 1}–${data.products.to ?? data.products.data.length} trên ${data.products.total} sản phẩm`
+              : `${data.products.total} sản phẩm phù hợp`}
           </p>
         </div>
 
         {data.products.data.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
-            {data.products.data.map((product) => (
-              <ProductCard
-                key={product.id}
-                eyebrow={product.shop.name}
-                href={`/shops/${product.shop.code}/products/${product.slug}`}
-                product={product}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+              {data.products.data.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  eyebrow={product.shop.name}
+                  href={`/shops/${product.shop.code}/products/${product.slug}`}
+                  product={product}
+                />
+              ))}
+            </div>
+            <DataPagination
+              anchor="san-pham"
+              currentPage={data.products.current_page}
+              lastPage={data.products.last_page}
+            />
+          </>
         ) : (
           <EmptyState
-            title="Chưa tìm thấy sản phẩm"
-            description="Danh mục này chưa có sản phẩm công khai. Hãy thử chọn một danh mục khác."
+            title={
+              data.products.total > 0
+                ? "Trang này không có sản phẩm"
+                : "Chưa tìm thấy sản phẩm"
+            }
+            description={
+              data.products.total > 0
+                ? "Hãy quay lại trang đầu để xem các sản phẩm hiện có."
+                : "Danh mục này chưa có sản phẩm công khai. Hãy thử chọn một danh mục khác."
+            }
             action={
-              <Link href="/" className={buttonVariants()}>
-                Xem tất cả sản phẩm
+              <Link
+                href={data.products.total > 0 ? firstPageHref : "/#san-pham"}
+                className={buttonVariants()}
+              >
+                {data.products.total > 0
+                  ? "Về trang đầu"
+                  : "Xem tất cả sản phẩm"}
               </Link>
             }
           />

@@ -3,10 +3,7 @@ import "server-only"
 import { cache } from "react"
 import { ApiError, apiFetch, type ApiRequestOptions } from "@/api/client"
 import { catalogRoutes } from "@/api/catalog/routes"
-import type {
-  HomeResponse,
-  ProductResponse,
-} from "@/api/catalog/types"
+import type { HomeResponse, ProductResponse } from "@/api/catalog/types"
 
 export type PublicCatalogResult<T> =
   | { status: "ready"; data: T }
@@ -85,9 +82,9 @@ async function readPublicCatalog<T>(
 }
 
 // React cache deduplicates metadata/page reads only within the current request.
-export const getPublicHome = cache((category?: string) =>
+export const getPublicHome = cache((category?: string, page?: string) =>
   readPublicCatalog(
-    { path: catalogRoutes.home, searchParams: { category } },
+    { path: catalogRoutes.home, searchParams: { category, page } },
     isHome
   )
 )

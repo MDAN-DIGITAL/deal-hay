@@ -35,8 +35,12 @@ export function ProductCard({
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             src={product.image_url}
           />
-          <div className="absolute top-2 left-2 flex flex-wrap gap-1.5">
-            {product.label ? <Badge>{product.label}</Badge> : null}
+          <div className="absolute inset-x-2 top-2 flex flex-wrap gap-1.5">
+            {product.label ? (
+              <Badge className="max-w-full">
+                <span className="truncate">{product.label}</span>
+              </Badge>
+            ) : null}
             {product.stock === 0 ? (
               <Badge variant="destructive">Tạm hết hàng</Badge>
             ) : null}
@@ -48,7 +52,7 @@ export function ProductCard({
               {eyebrow}
             </p>
           ) : null}
-          <h3 className="line-clamp-2 min-h-10 leading-5 font-medium group-hover:text-primary">
+          <h3 className="line-clamp-2 min-h-10 leading-5 font-medium wrap-anywhere group-hover:text-primary">
             {product.name}
           </h3>
           <p className="truncate text-xs text-muted-foreground">
@@ -57,7 +61,7 @@ export function ProductCard({
           <div className="space-y-1 pt-1">
             <p
               aria-label="Giá bán"
-              className="text-base font-semibold text-primary sm:text-lg"
+              className="text-sm font-semibold wrap-anywhere text-primary sm:text-lg"
             >
               {formatCurrency(salePrice)}
             </p>
@@ -74,11 +78,13 @@ export function ProductCard({
         <CardFooter className="justify-between gap-2 border-t px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
           <span className="flex min-w-0 items-center gap-1.5">
             <PackageCheckIcon className="size-3.5 shrink-0" />
-            {showStock
-              ? `Còn ${product.stock} sản phẩm`
-              : product.stock > 0
-                ? "Còn hàng"
-                : "Hết hàng"}
+            <span className="min-w-0 leading-4 wrap-anywhere">
+              {showStock
+                ? `Còn ${product.stock} sản phẩm`
+                : product.stock > 0
+                  ? "Còn hàng"
+                  : "Hết hàng"}
+            </span>
           </span>
           <ArrowUpRightIcon className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </CardFooter>

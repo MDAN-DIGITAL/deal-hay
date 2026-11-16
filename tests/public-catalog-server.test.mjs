@@ -120,6 +120,30 @@ test("hidden or missing product resources retain a distinct not-found result", a
   })
 })
 
+test("server home snapshots retain the selected page together with the category filter", async (t) => {
+  const pageSix = {
+    ...home,
+    products: {
+      data: [{ id: "last-page-product" }],
+      total: 100,
+      current_page: 6,
+      last_page: 6,
+    },
+  }
+  let requestedUrl
+  t.mock.method(globalThis, "fetch", async (url) => {
+    requestedUrl = new URL(url)
+    return json(pageSix)
+  })
+
+  assert.deepEqual(await getPublicHome("Thời trang", "6"), {
+    status: "ready",
+    data: pageSix,
+  })
+  assert.equal(requestedUrl.searchParams.get("category"), "Thời trang")
+  assert.equal(requestedUrl.searchParams.get("page"), "6")
+})
+
 test("backend and network failures return a safe fallback without server diagnostics", async (t) => {
   t.mock.method(globalThis, "fetch", async () =>
     json({ message: "Internal database secret" }, 500)

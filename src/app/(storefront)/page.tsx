@@ -41,12 +41,21 @@ export const metadata: Metadata = {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string | string[] }>
+  searchParams: Promise<{
+    category?: string | string[]
+    page?: string | string[]
+  }>
 }) {
   const query = await searchParams
   const category =
     typeof query.category === "string" ? query.category : undefined
-  const result = await getPublicHome(category)
+  const page =
+    typeof query.page === "string" &&
+    /^[1-9]\d*$/.test(query.page) &&
+    Number.isSafeInteger(Number(query.page))
+      ? query.page
+      : undefined
+  const result = await getPublicHome(category, page)
   return (
     <>
       <script
@@ -57,6 +66,7 @@ export default async function Page({
       />
       <HomePageContainer
         category={category}
+        page={page}
         initialData={result.status === "ready" ? result.data : undefined}
         initialError={
           result.status === "ready" ? undefined : PUBLIC_CATALOG_ERROR

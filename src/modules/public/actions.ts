@@ -2,8 +2,10 @@ import { invalidateQueries } from "@/lib/query-cache"
 
 import { ApiError } from "@/api/client"
 import { apiFetch } from "@/api/client"
+import { getAccessToken } from "@/lib/session"
 import {
   deleteReview,
+  clearShopReaction,
   followShop,
   reactToShop,
   startChat,
@@ -104,9 +106,13 @@ export async function toggleFollowAction(
 
 export async function reactShopAction(
   shopUserCode: string,
-  reaction: "like" | "dislike"
+  reaction: "like" | "dislike" | null
 ): Promise<void> {
-  await reactToShop(shopUserCode, reaction)
+  if (reaction === null) {
+    await clearShopReaction(shopUserCode)
+  } else {
+    await reactToShop(shopUserCode, reaction)
+  }
   invalidateQueries()
 }
 
@@ -135,12 +141,17 @@ export async function startChatAction(
 export async function reviewProductAction(
   shopUserCode: string,
   productSlug: string,
-  formData: FormData
+  formData: FormData,
+  submittingToken?: string
 ): Promise<ActionState> {
+  if (submittingToken !== undefined && getAccessToken() !== submittingToken) {
+    return { success: false, message: "Phiên đăng nhập đã thay đổi." }
+  }
   const parsed = reviewProductUploadSchema.safeParse({
     reaction: formData.get("reaction"),
     content: formData.get("content"),
     image: formData.get("image") || undefined,
+    remove_image: formData.get("remove_image") === "1",
   })
 
   if (!parsed.success) {
@@ -155,11 +166,19 @@ export async function reviewProductAction(
     const payload = new FormData()
     payload.set("reaction", parsed.data.reaction)
     payload.set("content", parsed.data.content)
+    payload.set("remove_image", parsed.data.remove_image ? "1" : "0")
     if (parsed.data.image) {
       payload.set("image", parsed.data.image)
     }
-    const response = await upsertReview(shopUserCode, productSlug, payload)
-    invalidateQueries()
+    const response = await upsertReview(
+      shopUserCode,
+      productSlug,
+      payload,
+      submittingToken
+    )
+    if (submittingToken === undefined || getAccessToken() === submittingToken) {
+      invalidateQueries()
+    }
     return { success: true, message: response.message }
   } catch (error) {
     return normalizeError(error)

@@ -30,6 +30,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { UserAvatar } from "@/components/user-avatar"
 import { ShopCategoryFilter } from "@/modules/public/components/shop-category-filter"
 import { ShopOffers } from "@/modules/public/components/shop-offers"
+import { ShopEngagement } from "@/modules/public/components/shop-engagement"
 
 export function ShopPageContainer({
   shopUserCode,
@@ -66,7 +67,7 @@ export function ShopPageContainer({
 
   return (
     <div
-      className="space-y-10"
+      className="min-w-0 space-y-10"
       data-catalog-content="ready"
       data-ad-eligible={data.products.length > 0 ? "true" : undefined}
     >
@@ -87,19 +88,19 @@ export function ShopPageContainer({
       <Card>
         <CardContent className="gap-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
               <UserAvatar
-                className="size-16 sm:size-20"
+                className="size-16 shrink-0 sm:size-20"
                 name={data.shop.name}
                 size="lg"
                 src={data.shop.avatar_url}
               />
-              <div className="pb-1">
+              <div className="min-w-0 flex-1 pb-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="font-heading text-2xl font-semibold sm:text-3xl">
+                  <h1 className="min-w-0 font-heading text-2xl font-semibold wrap-anywhere sm:text-3xl">
                     {data.shop.name}
                   </h1>
-                  <BadgeCheckIcon className="size-5 text-primary" />
+                  <BadgeCheckIcon className="size-5 shrink-0 text-primary" />
                   <Badge variant="outline">
                     <span
                       className={
@@ -113,7 +114,9 @@ export function ShopPageContainer({
                 </div>
                 <p className="mt-1.5 flex items-start gap-1.5 text-sm text-muted-foreground">
                   <MapPinIcon className="mt-0.5 size-4 shrink-0" />{" "}
-                  {data.shop.address || "Cửa hàng chưa cập nhật địa chỉ."}
+                  <span className="min-w-0 wrap-anywhere">
+                    {data.shop.address || "Cửa hàng chưa cập nhật địa chỉ."}
+                  </span>
                 </p>
               </div>
             </div>
@@ -134,20 +137,31 @@ export function ShopPageContainer({
 
           <div className="flex flex-wrap gap-2">
             <a
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={buttonVariants({
+                variant: "outline",
+                size: "sm",
+                className: "max-w-full min-w-0",
+              })}
               href={`mailto:${data.shop.email}`}
+              title={data.shop.email}
             >
               <MailIcon className="size-4" />
-              {data.shop.email}
+              <span className="min-w-0 truncate">{data.shop.email}</span>
             </a>
             <a
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={buttonVariants({
+                variant: "outline",
+                size: "sm",
+                className: "max-w-full min-w-0",
+              })}
               href={`tel:${data.shop.phone_number}`}
             >
               <PhoneIcon className="size-4" />
-              {data.shop.phone_number}
+              <span className="min-w-0 truncate">{data.shop.phone_number}</span>
             </a>
           </div>
+
+          <ShopEngagement shop={data.shop} />
         </CardContent>
       </Card>
 

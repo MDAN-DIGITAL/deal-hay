@@ -6,8 +6,14 @@ import type {
   ShopResponse,
 } from "@/api/catalog/types"
 
-export function getHome(category?: string): Promise<HomeResponse> {
-  return apiFetch({ path: catalogRoutes.home, searchParams: { category } })
+export function getHome(
+  category?: string,
+  page?: string
+): Promise<HomeResponse> {
+  return apiFetch({
+    path: catalogRoutes.home,
+    searchParams: { category, page },
+  })
 }
 
 export function getShop(

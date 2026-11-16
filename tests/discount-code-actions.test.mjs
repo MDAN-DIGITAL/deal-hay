@@ -28,7 +28,8 @@ const apiUrl = moduleUrl(`
   export const state = { response: undefined, error: undefined, calls: [], revalidated: [] }
   export async function apiFetch(options) { state.calls.push(options); if (state.error) throw state.error; return state.response }
   export function invalidateQueries(path) { state.revalidated.push(path) }
-  export const deleteReview = () => {}; export const followShop = () => {}; export const reactToShop = () => {};
+  export const getAccessToken = () => null
+  export const deleteReview = () => {}; export const followShop = () => {}; export const reactToShop = () => {}; export const clearShopReaction = () => {};
   export const startChat = () => {}; export const unfollowShop = () => {}; export const upsertReview = () => {};
 `)
 const validationUrl = transpileModule("../src/lib/validation.ts", {
@@ -48,6 +49,7 @@ const queriesUrl = transpileModule("../src/api/discount-codes/queries.ts", {
 const actions = await import(
   transpileModule("../src/modules/public/actions.ts", {
     "@/lib/query-cache": apiUrl,
+    "@/lib/session": apiUrl,
     "@/api/client": apiUrl,
     "@/api/catalog/mutations": apiUrl,
     "@/modules/public/schemas/reviews": reviewUrl,
