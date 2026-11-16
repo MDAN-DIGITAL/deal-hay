@@ -47,10 +47,9 @@ const invalidPasswords = [
   "abc12",
   "abcdef",
   "123456",
-  "Abc123",
-  "abc123!",
-  "abc 123",
-  "ábc123",
+  "abc123\0",
+  "a1😀😀",
+  `${"á".repeat(36)}1`,
 ]
 
 function signUpValues(password = validPassword) {
@@ -79,17 +78,25 @@ function updatePasswordValues(password = validPassword) {
   }
 }
 
-test("new passwords accept six lowercase alphanumeric characters with both letters and digits", () => {
-  assert.equal(authSchemas.signUpSchema.safeParse(signUpValues()).success, true)
-  assert.equal(
-    authSchemas.resetPasswordSchema.safeParse(resetPasswordValues()).success,
-    true
-  )
-  assert.equal(
-    profileSchemas.updatePasswordSchema.safeParse(updatePasswordValues())
-      .success,
-    true
-  )
+test("new passwords require a letter and a number while allowing uppercase, symbols and spaces", () => {
+  for (const password of [
+    "abc123",
+    "ABC123",
+    "Abc!23",
+    "  Abc123!  ",
+    "áéí123",
+    "abc１２３",
+  ]) {
+    for (const [schema, values] of [
+      [authSchemas.signUpSchema, signUpValues],
+      [authSchemas.resetPasswordSchema, resetPasswordValues],
+      [profileSchemas.updatePasswordSchema, updatePasswordValues],
+    ]) {
+      const result = schema.safeParse(values(password))
+      assert.equal(result.success, true, `rejected ${JSON.stringify(password)}`)
+      assert.equal(result.data.password, password)
+    }
+  }
 })
 
 test("registration, reset and profile changes reject every unsupported password shape", () => {
@@ -124,6 +131,8 @@ test("new passwords respect bcrypt's 72-byte boundary without restricting legacy
   ]) {
     assert.equal(schema.safeParse(values(limit)).success, true)
     assert.equal(schema.safeParse(values(`${limit}1`)).success, false)
+    assert.equal(schema.safeParse(values(`${"á".repeat(35)}a1`)).success, true)
+    assert.equal(schema.safeParse(values(`${"á".repeat(36)}1`)).success, false)
   }
   assert.equal(
     authSchemas.signInSchema.safeParse({

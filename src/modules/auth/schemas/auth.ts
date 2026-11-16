@@ -1,18 +1,8 @@
 import { z } from "zod"
 
-import {
-  lowercaseAlphanumericPasswordRegex,
-  requiredText,
-} from "@/lib/validation"
+import { newPasswordSchema, requiredText } from "@/lib/validation"
 
-const passwordSchema = z
-  .string()
-  .min(6, "Mật khẩu phải có ít nhất 6 ký tự.")
-  .max(72, "Mật khẩu không được vượt quá 72 ký tự.")
-  .regex(
-    lowercaseAlphanumericPasswordRegex,
-    "Mật khẩu chỉ được gồm chữ thường và số, đồng thời phải có cả hai."
-  )
+const passwordSchema = newPasswordSchema()
 
 const passwordConfirmationSchema = (message: string) =>
   z

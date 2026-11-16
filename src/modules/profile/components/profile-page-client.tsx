@@ -290,14 +290,12 @@ function PasswordForm() {
                   autoComplete="new-password"
                   maxLength={72}
                   minLength={6}
-                  pattern="[a-z0-9]+"
                   spellCheck={false}
                   {...field}
                 />
               </FormControl>
               <FormDescription>
-                Ít nhất 6 ký tự, chỉ gồm chữ thường và số, đồng thời phải có cả
-                hai.
+                Ít nhất 6 ký tự, có ít nhất một chữ cái và một chữ số.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -315,7 +313,6 @@ function PasswordForm() {
                   autoComplete="new-password"
                   maxLength={72}
                   minLength={6}
-                  pattern="[a-z0-9]+"
                   spellCheck={false}
                   {...field}
                 />

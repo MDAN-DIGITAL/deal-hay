@@ -3,7 +3,7 @@ import { z } from "zod"
 import {
   imageFileSchema,
   imageUrlSchema,
-  lowercaseAlphanumericPasswordRegex,
+  newPasswordSchema,
   phoneNumberRegex,
   requiredText,
 } from "@/lib/validation"
@@ -66,14 +66,7 @@ export const updatePasswordSchema = z
       .string()
       .min(1, "Vui lòng nhập mật khẩu hiện tại.")
       .max(255, "Mật khẩu hiện tại không được vượt quá 255 ký tự."),
-    password: z
-      .string()
-      .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự.")
-      .max(72, "Mật khẩu mới không được vượt quá 72 ký tự.")
-      .regex(
-        lowercaseAlphanumericPasswordRegex,
-        "Mật khẩu chỉ được gồm chữ thường và số, đồng thời phải có cả hai."
-      ),
+    password: newPasswordSchema("Mật khẩu mới"),
     password_confirmation: z
       .string()
       .min(1, "Vui lòng xác nhận mật khẩu mới.")

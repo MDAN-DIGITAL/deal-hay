@@ -1,8 +1,25 @@
 import { z } from "zod"
 
 export const phoneNumberRegex = /^(\+84|0)[3-9]\d{8}$/
-export const lowercaseAlphanumericPasswordRegex =
-  /^(?=.*[a-z])(?=.*\d)[a-z\d]+$/
+export function newPasswordSchema(label = "Mật khẩu") {
+  return z
+    .string()
+    .refine(
+      (value) => [...value].length >= 6,
+      `${label} phải có ít nhất 6 ký tự.`
+    )
+    .max(72, `${label} không được vượt quá 72 ký tự.`)
+    .regex(/\p{L}/u, `${label} phải có ít nhất một chữ cái.`)
+    .regex(/\p{N}/u, `${label} phải có ít nhất một chữ số.`)
+    .refine(
+      (value) => new TextEncoder().encode(value).length <= 72,
+      `${label} quá dài. Vui lòng dùng ít ký tự hơn.`
+    )
+    .refine(
+      (value) => !value.includes("\0"),
+      `${label} chứa ký tự không hợp lệ.`
+    )
+}
 
 export const IMAGE_OUTPUT_MAX_BYTES = 20 * 1024
 export const CHAT_FILE_UPLOAD_MAX_BYTES = 3 * 1024 * 1024
