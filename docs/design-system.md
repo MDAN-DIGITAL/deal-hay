@@ -43,6 +43,15 @@ Khi bổ sung hoặc cập nhật shadcn, xem lại diff trước khi giữ thay
 
 ## Kiểm tra tính thống nhất
 
+Email giao dịch dùng bản chuyển sang HTML email của `Brand`, `Card`, `Button`, `Surface`, `Badge` và `InputOTP` trong `src/components/ui/email-theme.css`. File này dùng cùng token trong `globals.css`; màu và bo góc được xuất sang theme Laravel, không cần tải Tailwind hoặc JavaScript trong email. Khi cập nhật giao diện email, chạy trong repo API đặt cạnh frontend:
+
+```sh
+php scripts/sync-mail-theme.php
+php scripts/sync-mail-theme.php --check
+```
+
+Theme CSS sinh ra được commit cùng template API. Header, footer, khung nội dung, nút và panel dùng chung qua Blade mail components; mỗi template chỉ chứa nội dung riêng của email.
+
 ESLint cấm `button`, `select`, `textarea`, input hiển thị và import trực tiếp Base UI ở ngoài `components/ui`; đồng thời chặn `Input` với type ngày/giờ native để dùng `DatePicker`. Input file native là ngoại lệ để tích hợp trình duyệt; nó chỉ phục vụ chọn tệp và được ẩn sau nút chung.
 
 ```sh

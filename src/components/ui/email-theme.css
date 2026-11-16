@@ -1,0 +1,229 @@
+/* Email adapters for Brand, Card, Button, Surface, Badge and InputOTP.
+ * Colors and radii resolve from globals.css via the API's sync-mail-theme.php.
+ * Keep this stylesheet independent of browser-only Tailwind/React behavior.
+ */
+body,
+body *:not(html):not(style):not(br):not(tr) {
+  box-sizing: border-box;
+  font-family: Inter, Arial, sans-serif;
+}
+body {
+  margin: 0;
+  padding: 0;
+  width: 100% !important;
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-text-size-adjust: 100%;
+}
+table {
+  border-spacing: 0;
+}
+a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+a img {
+  border: 0;
+}
+img {
+  max-width: 100%;
+}
+p,
+ul,
+ol {
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 26px;
+}
+h1 {
+  margin: 0 0 20px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.5px;
+}
+h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
+}
+.wrapper {
+  width: 100%;
+  background-color: var(--background);
+}
+.email-shell {
+  padding: 32px 24px;
+}
+.content,
+.inner-body,
+.footer {
+  width: 600px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+/* Brand */
+.header {
+  padding: 0 0 24px;
+  text-align: center;
+}
+.header a {
+  color: var(--foreground);
+  text-decoration: none;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.brand-accent {
+  color: var(--primary);
+}
+.header p {
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+}
+/* Card / CardContent */
+.inner-body {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  border-collapse: separate;
+}
+.content-cell {
+  padding: 28px;
+  overflow-wrap: anywhere;
+}
+/* Badge */
+.badge {
+  display: inline-block;
+  margin: 0 0 16px;
+  padding: 4px 10px;
+  border-radius: var(--radius-4xl);
+  background-color: var(--accent);
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+}
+.badge-success {
+  background-color: var(--muted);
+  color: var(--success);
+}
+.badge-destructive {
+  background-color: var(--muted);
+  color: var(--destructive);
+}
+/* Surface / InputOTP */
+.panel {
+  width: 100%;
+  margin: 20px 0;
+  border-collapse: separate;
+}
+.panel-content {
+  padding: 20px;
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+}
+.panel-item {
+  padding: 0;
+}
+.panel-item p:last-child {
+  margin-bottom: 0;
+}
+.verification-label {
+  margin: 0 0 8px;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 20px;
+}
+.verification-code {
+  margin: 0;
+  text-align: center;
+  color: var(--foreground);
+  font-family: Consolas, monospace;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 44px;
+  letter-spacing: 6px;
+}
+.verification-expiry {
+  margin: 8px 0 0;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 20px;
+}
+.account-detail {
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.detail-label {
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+/* Button default: action colors, rounded-lg, h-10, px-4. Border padding works in email clients. */
+.action {
+  width: 100%;
+  margin: 24px auto;
+  text-align: center;
+}
+.button {
+  display: inline-block;
+  border-radius: var(--radius-lg);
+  background-color: var(--action);
+  color: var(--action-foreground);
+  border-style: solid;
+  border-color: var(--action);
+  border-width: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-decoration: none;
+  text-align: center;
+}
+.subcopy {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.subcopy p,
+.hint {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 22px;
+}
+.hint {
+  margin-bottom: 0;
+}
+.break-all,
+.subcopy a {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+.footer {
+  text-align: center;
+}
+.footer .content-cell {
+  padding: 20px 12px 0;
+}
+.footer p {
+  margin: 0 0 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+.footer a {
+  color: var(--muted-foreground);
+}
