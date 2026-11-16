@@ -802,6 +802,7 @@ export function ProductCheckout({
                             variant="outline"
                             size="icon"
                             aria-label="Giảm số lượng"
+                            tooltip="Giảm số lượng"
                             disabled={quantity <= 1}
                             onClick={() =>
                               field.onChange(Math.max(1, quantity - 1))
@@ -827,6 +828,7 @@ export function ProductCheckout({
                             variant="outline"
                             size="icon"
                             aria-label="Tăng số lượng"
+                            tooltip="Tăng số lượng"
                             disabled={quantity >= maxQuantity}
                             onClick={() =>
                               field.onChange(

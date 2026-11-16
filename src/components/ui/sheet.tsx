@@ -65,6 +65,7 @@ function SheetContent({
             render={
               <Button
                 variant="ghost"
+                tooltip="Đóng bảng điều hướng"
                 className="absolute top-4 right-4"
                 size="icon-sm"
               />

@@ -310,7 +310,6 @@ export function HomePageContainer({
               ))}
             </div>
             <DataPagination
-              anchor="san-pham"
               currentPage={data.products.current_page}
               lastPage={data.products.last_page}
             />

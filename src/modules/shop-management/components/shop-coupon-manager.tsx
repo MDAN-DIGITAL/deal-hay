@@ -495,6 +495,7 @@ export function ShopCouponManager({
                   variant="ghost"
                   size="icon"
                   aria-label={`Sao chép mã ${coupon.name}`}
+                  tooltip={`Sao chép mã ${coupon.name}`}
                   onClick={async () => {
                     try {
                       await navigator.clipboard.writeText(coupon.code)

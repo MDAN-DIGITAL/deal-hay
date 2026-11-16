@@ -172,6 +172,7 @@ export function ChatConversationList({
               variant="ghost"
               size="icon-sm"
               aria-label="Xóa tìm kiếm"
+              tooltip="Xóa tìm kiếm"
               className="mr-1 text-lg text-muted-foreground"
               onClick={() => setQuery("")}
             >

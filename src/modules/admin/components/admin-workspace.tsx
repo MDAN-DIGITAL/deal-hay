@@ -150,6 +150,7 @@ export function AdminWorkspace({ children }: { children: ReactNode }) {
                     size="sm"
                     nativeButton={false}
                     aria-label={`${item.label}${item.count > 0 ? `, ${item.count} chưa đọc` : ""} (mở tab mới)`}
+                    tooltip={`${item.label} (mở tab mới)`}
                     render={
                       <Link
                         href={item.href}

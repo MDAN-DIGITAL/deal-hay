@@ -53,6 +53,7 @@ export function RealtimeToast({
       <Button
         type="button"
         aria-label="Đóng thông báo"
+        tooltip="Đóng thông báo"
         className="m-1 text-muted-foreground"
         size="icon-sm"
         variant="ghost"

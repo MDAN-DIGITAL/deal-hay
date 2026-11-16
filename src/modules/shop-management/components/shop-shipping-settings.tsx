@@ -254,6 +254,7 @@ export function ShopShippingSettings() {
                       />
                       <Button
                         aria-label={`Xóa mức phí riêng ${index + 1}`}
+                        tooltip={`Xóa mức phí riêng ${index + 1}`}
                         className="sm:mt-7"
                         size="icon"
                         type="button"

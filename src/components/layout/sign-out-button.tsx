@@ -13,6 +13,8 @@ export function SignOutButton({ className }: { className?: string }) {
   return (
     <Button
       className={cn(className)}
+      aria-label={isPending ? "Đang đăng xuất..." : "Đăng xuất"}
+      tooltip="Đăng xuất"
       disabled={isPending}
       type="button"
       variant="outline"

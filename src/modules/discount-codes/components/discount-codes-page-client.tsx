@@ -129,6 +129,7 @@ export function DiscountCodesPageClient({
                   </code>
                   <Button
                     aria-label={`Sao chép mã ${code.code}`}
+                    tooltip={`Sao chép mã ${code.code}`}
                     variant="ghost"
                     size="icon-sm"
                     onClick={async () => {

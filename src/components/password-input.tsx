@@ -24,6 +24,7 @@ export function PasswordInput({
       />
       <Button
         aria-label={visible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+        tooltip={visible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
         aria-pressed={visible}
         className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
         disabled={disabled}

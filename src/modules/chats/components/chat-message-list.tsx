@@ -498,6 +498,7 @@ export function ChatMessageList({
                       </MessageBubble>
                       <Button
                         aria-label={`Trả lời tin nhắn của ${message.sender.name}`}
+                        tooltip="Trả lời"
                         className="shrink-0 rounded-full text-muted-foreground opacity-60 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/message:opacity-100 [@media(hover:hover)]:group-hover/message:opacity-100"
                         size="icon-sm"
                         title="Trả lời"

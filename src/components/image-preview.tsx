@@ -52,7 +52,11 @@ export function ImagePreview({
       >
         <div className="flex min-w-0 items-center justify-between gap-3">
           <DialogTitle className="min-w-0 truncate">{alt}</DialogTitle>
-          <DialogClose render={<Button size="icon-sm" variant="ghost" />}>
+          <DialogClose
+            render={
+              <Button size="icon-sm" variant="ghost" tooltip="Đóng ảnh" />
+            }
+          >
             <XIcon />
             <span className="sr-only">Đóng ảnh</span>
           </DialogClose>

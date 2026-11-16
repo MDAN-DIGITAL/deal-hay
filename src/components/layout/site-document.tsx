@@ -1,8 +1,10 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import { Geist_Mono, Inter } from "next/font/google"
 
 import "@/app/globals.css"
 import { SiteShell } from "@/components/layout/site-shell"
+import { NavigationScroll } from "@/components/layout/navigation-scroll"
 import { SessionProvider } from "@/components/session-provider"
 import { RealtimeRoot } from "@/components/realtime-root"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -83,6 +85,9 @@ export function SiteDocument({
           <TooltipProvider>
             <SessionProvider>
               <RealtimeRoot>
+                <Suspense fallback={null}>
+                  <NavigationScroll />
+                </Suspense>
                 <SiteShell advertising={advertising}>{children}</SiteShell>
                 <Toaster position="top-right" richColors />
               </RealtimeRoot>

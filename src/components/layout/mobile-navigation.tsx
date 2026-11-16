@@ -76,7 +76,14 @@ export function MobileNavigation({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
-        render={<Button aria-label="Mở menu" size="icon" variant="ghost" />}
+        render={
+          <Button
+            aria-label="Mở menu"
+            tooltip="Mở menu"
+            size="icon"
+            variant="ghost"
+          />
+        }
       >
         <MenuIcon />
       </SheetTrigger>

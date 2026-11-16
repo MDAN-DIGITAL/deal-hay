@@ -55,7 +55,6 @@ export function AdminNavigation() {
                   render={
                     <Link
                       href={section.href}
-                      scroll={false}
                       onNavigate={() => setOpenMobile(false)}
                     />
                   }

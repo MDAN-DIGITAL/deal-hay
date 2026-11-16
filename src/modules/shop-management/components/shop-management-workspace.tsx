@@ -106,7 +106,6 @@ function ManagementNavigation({
                     render={
                       <Link
                         href={managementHref(section.value)}
-                        scroll={false}
                         onNavigate={() => setOpenMobile(false)}
                       />
                     }
@@ -260,6 +259,7 @@ export function ShopManagementWorkspace({
               size="sm"
               nativeButton={false}
               aria-label={`Tin nhắn${unreadCounts.messages > 0 ? `, ${unreadCounts.messages} chưa đọc` : ""} (mở tab mới)`}
+              tooltip="Tin nhắn (mở tab mới)"
               render={
                 <Link
                   href="/chats"
@@ -281,6 +281,7 @@ export function ShopManagementWorkspace({
               size="sm"
               nativeButton={false}
               aria-label={`Thông báo${unreadCounts.notifications > 0 ? `, ${unreadCounts.notifications} chưa đọc` : ""} (mở tab mới)`}
+              tooltip="Thông báo (mở tab mới)"
               render={
                 <Link
                   href="/notifications"

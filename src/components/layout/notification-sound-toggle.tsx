@@ -29,6 +29,7 @@ export function NotificationSoundToggle() {
         render={
           <Button
             aria-label="Cài đặt âm thanh và thông báo"
+            tooltip="Cài đặt âm thanh và thông báo"
             size="icon"
             title="Cài đặt âm thanh và thông báo"
             variant="ghost"

@@ -2,6 +2,12 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
 const buttonVariants = cva(
   "group/button inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-150 outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
@@ -46,14 +52,27 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  tooltip,
+  title,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
-  return (
+}: ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & { tooltip?: string }) {
+  const button = (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      title={tooltip ? undefined : title}
       {...props}
     />
+  )
+
+  if (!tooltip) return button
+
+  return (
+    <Tooltip>
+      <TooltipTrigger disabled={Boolean(props.disabled)} render={button} />
+      <TooltipContent>{tooltip}</TooltipContent>
+    </Tooltip>
   )
 }
 

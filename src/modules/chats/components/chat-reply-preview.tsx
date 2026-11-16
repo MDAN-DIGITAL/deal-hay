@@ -92,6 +92,7 @@ export function ChatReplyPreview({
       {onCancel ? (
         <Button
           aria-label="Hủy trả lời"
+          tooltip="Hủy trả lời"
           className="-mt-1 -mr-1 shrink-0"
           size="icon-sm"
           type="button"

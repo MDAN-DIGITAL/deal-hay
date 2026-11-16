@@ -73,6 +73,7 @@ export function ChatEmojiPicker({
         render={
           <InputGroupButton
             aria-label="Chọn emoji"
+            tooltip="Chọn emoji"
             disabled={disabled}
             size="icon-sm"
             type="button"
@@ -95,6 +96,7 @@ export function ChatEmojiPicker({
               variant="ghost"
               size="icon"
               aria-label={label}
+              tooltip={label}
               className="aspect-square h-auto w-full min-w-0 p-0 text-2xl"
               disabled={disabled}
               title={label}

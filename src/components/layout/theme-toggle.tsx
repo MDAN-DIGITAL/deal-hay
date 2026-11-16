@@ -18,7 +18,12 @@ export function ThemeToggle() {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button aria-label="Đổi giao diện" size="icon" variant="ghost" />
+          <Button
+            aria-label="Đổi giao diện"
+            tooltip="Đổi giao diện"
+            size="icon"
+            variant="ghost"
+          />
         }
       >
         <SunMoonIcon />

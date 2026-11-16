@@ -873,16 +873,23 @@ function ListPagination({
   totalPages: number
   onPageChange: (page: number) => void
 }) {
+  const changePage = (page: number) => {
+    if (page === currentPage) return
+    onPageChange(page)
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+  }
+
   return (
     <Pagination aria-label={label}>
       <PaginationContent className="flex-wrap">
         <PaginationItem>
           <Button
             aria-label="Trang trước"
+            tooltip="Trang trước"
             disabled={currentPage === 1}
             size="icon-sm"
             variant="outline"
-            onClick={() => onPageChange(currentPage - 1)}
+            onClick={() => changePage(currentPage - 1)}
           >
             <ChevronLeftIcon />
           </Button>
@@ -895,7 +902,7 @@ function ListPagination({
                 aria-label={`Trang ${page}`}
                 size="icon-sm"
                 variant={page === currentPage ? "default" : "ghost"}
-                onClick={() => onPageChange(page)}
+                onClick={() => changePage(page)}
               >
                 {page}
               </Button>
@@ -907,10 +914,11 @@ function ListPagination({
         <PaginationItem>
           <Button
             aria-label="Trang sau"
+            tooltip="Trang sau"
             disabled={currentPage === totalPages}
             size="icon-sm"
             variant="outline"
-            onClick={() => onPageChange(currentPage + 1)}
+            onClick={() => changePage(currentPage + 1)}
           >
             <ChevronRightIcon />
           </Button>
@@ -1279,8 +1287,7 @@ export function ShopManagementClient({
     reviewStatus === "unanswered"
       ? productReviews.filter((review) => !review.shop_reply)
       : productReviews
-  const setActiveTab = (tab: ManagementTab) =>
-    router.push(managementHref(tab), { scroll: false })
+  const setActiveTab = (tab: ManagementTab) => router.push(managementHref(tab))
   const openTask = (tab: "orders" | "inventory" | "reviews") => {
     if (tab === "orders") {
       setOrderSearch("")
@@ -1385,6 +1392,7 @@ export function ShopManagementClient({
                       <ButtonGroup>
                         <Button
                           aria-label={`Đưa ${category.name} lên trên`}
+                          tooltip={`Đưa ${category.name} lên trên`}
                           disabled={pending || index === 0}
                           size="icon-sm"
                           variant="outline"
@@ -1394,6 +1402,7 @@ export function ShopManagementClient({
                         </Button>
                         <Button
                           aria-label={`Đưa ${category.name} xuống dưới`}
+                          tooltip={`Đưa ${category.name} xuống dưới`}
                           disabled={
                             pending || index === orderedCategories.length - 1
                           }

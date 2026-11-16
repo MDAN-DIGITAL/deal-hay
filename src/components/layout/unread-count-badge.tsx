@@ -5,6 +5,11 @@ import Link from "next/link"
 import { useRealtime } from "@/components/realtime-provider"
 import { Badge } from "@/components/ui/badge"
 import { type Button, buttonVariants } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import type { UnreadCounts } from "@/types/auth"
 import { ChatPageLink } from "@/components/chat-page-link"
@@ -59,7 +64,7 @@ export function UnreadNavigationLink({
   const NavigationLink =
     href === "/chats" || href.startsWith("/chats/") ? ChatPageLink : Link
 
-  return (
+  const link = (
     <NavigationLink
       href={href}
       aria-label={count > 0 ? `${label}, ${count} chưa đọc` : label}
@@ -72,5 +77,16 @@ export function UnreadNavigationLink({
       {children ?? label}
       <UnreadCountBadge className={badgeClassName} count={count} />
     </NavigationLink>
+  )
+
+  if (!size?.startsWith("icon")) return link
+
+  return (
+    <Tooltip>
+      <TooltipTrigger render={link} />
+      <TooltipContent>
+        {count > 0 ? `${label}, ${count} chưa đọc` : label}
+      </TooltipContent>
+    </Tooltip>
   )
 }

@@ -65,6 +65,7 @@ export function ProductGallery({
       <div className="flex shrink-0 items-center gap-1">
         <Button
           aria-label="Ảnh sản phẩm trước"
+          tooltip="Ảnh sản phẩm trước"
           size="icon-sm"
           type="button"
           variant="outline"
@@ -74,6 +75,7 @@ export function ProductGallery({
         </Button>
         <Button
           aria-label="Ảnh sản phẩm tiếp theo"
+          tooltip="Ảnh sản phẩm tiếp theo"
           size="icon-sm"
           type="button"
           variant="outline"

@@ -132,6 +132,7 @@ function FloatingChatWidget({
               }
               className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 size-14 rounded-full shadow-xl ring-4 ring-background sm:right-6 sm:bottom-6 sm:size-16 [&_svg]:size-7"
               title="Tin nhắn & hỗ trợ Deal Hay"
+              tooltip="Tin nhắn & hỗ trợ Deal Hay"
             />
           }
         >
@@ -172,6 +173,7 @@ function FloatingChatWidget({
               render={
                 <Button
                   aria-label="Thu nhỏ chat"
+                  tooltip="Thu nhỏ chat"
                   size="icon-lg"
                   variant="ghost"
                   title="Thu nhỏ chat"

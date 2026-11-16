@@ -641,6 +641,7 @@ export function CreateProductForm({
                     />
                     <Button
                       aria-label={`Xoá thuộc tính ${optionIndex + 1}`}
+                      tooltip={`Xoá thuộc tính ${optionIndex + 1}`}
                       className="md:mt-6"
                       size="icon"
                       type="button"

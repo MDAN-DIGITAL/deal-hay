@@ -493,6 +493,7 @@ export function ChatComposer({
                     >
                       <InputGroupButton
                         aria-label="Thêm ảnh, tệp hoặc tag admin"
+                        tooltip="Thêm vào tin nhắn"
                         title="Thêm vào tin nhắn"
                         className="size-10 rounded-xl text-muted-foreground sm:hidden"
                         size="icon-sm"
@@ -505,6 +506,7 @@ export function ChatComposer({
                       </InputGroupButton>
                       <InputGroupButton
                         aria-label="Đính kèm tệp"
+                        tooltip="Đính kèm tệp"
                         className="hidden size-10 rounded-xl text-muted-foreground hover:text-foreground sm:flex"
                         size="icon-sm"
                         title="Đính kèm tệp"
@@ -514,6 +516,7 @@ export function ChatComposer({
                       </InputGroupButton>
                       <InputGroupButton
                         aria-label="Tag admin"
+                        tooltip="Tag admin"
                         title="Tag admin"
                         className={
                           showAdminPicker || mentionAdminIds.length
@@ -563,6 +566,7 @@ export function ChatComposer({
                     >
                       <InputGroupButton
                         aria-label="Gửi tin nhắn"
+                        tooltip="Gửi tin nhắn"
                         className="size-10 rounded-xl"
                         disabled={!canSend}
                         size="icon-sm"

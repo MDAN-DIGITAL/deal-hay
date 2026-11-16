@@ -679,6 +679,7 @@ export function ChatsPageClient({
                             render={
                               <Button
                                 aria-label="Tùy chọn cuộc trò chuyện"
+                                tooltip="Tùy chọn cuộc trò chuyện"
                                 title="Tùy chọn cuộc trò chuyện"
                                 size="icon-lg"
                                 variant="ghost"
