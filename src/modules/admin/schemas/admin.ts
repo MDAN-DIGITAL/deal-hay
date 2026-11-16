@@ -11,6 +11,7 @@ const optionalAdminNoteSchema = z.union([
 ])
 
 export const categorySchema = z.object({
+  is_active: z.boolean().optional(),
   name: requiredText("Vui lòng nhập tên danh mục.").max(
     120,
     "Tên danh mục không được vượt quá 120 ký tự."

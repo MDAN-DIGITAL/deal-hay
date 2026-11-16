@@ -7,13 +7,19 @@ import { AdminUsersClient } from "@/modules/admin/components/admin-users-client"
 export function AdminUsersPageContainer({
   page,
   currentUserId,
+  search,
+  role,
+  status,
 }: {
   page?: string
   currentUserId: string
+  search?: string
+  role?: string
+  status?: string
 }) {
   const { data: data, error } = useApiQuery(
-    JSON.stringify(["admin-users", page]),
-    () => getAdminUsers(page)
+    JSON.stringify(["admin-users", page, search, role, status]),
+    () => getAdminUsers(page, search, role, status)
   )
   if (!data) return <QueryPlaceholder error={error} />
   return <AdminUsersClient currentUserId={currentUserId} users={data.users} />

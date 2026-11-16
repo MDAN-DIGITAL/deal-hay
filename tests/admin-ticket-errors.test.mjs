@@ -18,13 +18,21 @@ const runtime = moduleUrl(`
   export const reviewTicketAction = async () => state.result
   export const reviewTicketSchema = {}
   export const Surface="surface",FormSelect="select",FormSubmitButton="submit",DataPagination="pagination",EmptyState="empty",PageHeader="heading",Badge="badge"
-  export const Card="card",CardContent="content",CardHeader="header",CardTitle="title"
+  export const Card="card",CardContent="content",CardHeader="header",CardTitle="title",CardDescription="description"
   export const Form="form-provider",FormControl="control",FormField="field",FormItem="item",FormLabel="label",FormMessage="message"
   export const Textarea="textarea",UserAvatar="avatar",AdminNavigation="navigation"
+  export default 'link'
+  export const useRouter=()=>({}), useSearchParams=()=>new URLSearchParams()
+  export const EyeIcon='eye', Button='button', getAdminTicket=()=>{}, AdminChatButton='chat', AdminFilterBar='filters'
+  export const QueryPlaceholder='placeholder', useApiQuery=()=>({}),formatDate=()=>'',adminSourceHref=()=>null
+  export const ticketSourceOptions=[],ticketStatusOptions=[],ticketTypeOptions=[]
+  export const Sheet='sheet',SheetContent='sheet-content',SheetDescription='sheet-description',SheetHeader='sheet-header',SheetTitle='sheet-title'
+  export const Table='table',TableBody='tbody',TableCell='td',TableHead='th',TableHeader='thead',TableRow='tr'
 `)
 const jsx = moduleUrl(`
   export const jsx=(type,props,key)=>({type,props,key})
   export const jsxs=jsx
+  export const Fragment='fragment'
 `)
 const formUtils = moduleUrl(
   ts.transpileModule(
@@ -63,7 +71,7 @@ const source = ts
           : runtime
     return `from ${quote}${dependency}${quote}`
   })
-const { AdminTicketsClient } = await import(moduleUrl(source))
+const { TicketForm } = await import(moduleUrl(source))
 const { state } = await import(runtime)
 
 function nodes(node) {
@@ -79,17 +87,10 @@ function nodes(node) {
 
 async function submit(result) {
   state.result = result
-  const tree = AdminTicketsClient({
-    tickets: {
-      data: [{ id: "ticket-1", status: "pending", admin_note: null }],
-      current_page: 1,
-      last_page: 1,
-    },
+  const tree = TicketForm({
+    ticket: { id: "ticket-1", status: "pending", admin_note: null },
   })
-  const ticket = nodes(tree).find((node) => node.type?.name === "TicketForm")
-  const form = nodes(ticket.type(ticket.props)).find(
-    (node) => node.type === "form"
-  )
+  const form = nodes(tree).find((node) => node.type === "form")
   form.props.onSubmit()
   await state.pending
 }

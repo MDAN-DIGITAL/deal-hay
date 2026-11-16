@@ -15,8 +15,10 @@ export function SiteShell({
   const shopManagement =
     pathname === "/shop-manage" || pathname.startsWith("/shop-manage/")
   const chat = pathname === "/chats" || pathname.startsWith("/chats/")
+  const admin = pathname === "/admin" || pathname.startsWith("/admin/")
 
-  if (shopManagement) return <div className="min-h-svh">{children}</div>
+  if (shopManagement || admin)
+    return <div className="min-h-svh">{children}</div>
 
   return (
     <div className="flex min-h-svh flex-col">

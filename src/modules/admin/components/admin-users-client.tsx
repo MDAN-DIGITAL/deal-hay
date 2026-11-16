@@ -1,20 +1,11 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import {
-  LockIcon,
-  LockOpenIcon,
-  MessageCircleIcon,
-  UsersIcon,
-} from "lucide-react"
-import { toast } from "sonner"
-
+import { useState } from "react"
+import { EyeIcon } from "lucide-react"
 import { DataPagination } from "@/components/layout/data-pagination"
 import { EmptyState } from "@/components/layout/empty-state"
-import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { ChatPageLink } from "@/components/chat-page-link"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -22,6 +13,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { Surface } from "@/components/ui/surface"
 import {
   Table,
   TableBody,
@@ -31,21 +30,18 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { UserAvatar } from "@/components/user-avatar"
+import { formatDate } from "@/lib/format"
 import {
-  startAdminChatAction,
-  toggleUserLockAction,
-} from "@/modules/admin/actions"
-import { AdminNavigation } from "@/modules/admin/components/admin-navigation"
+  AdminAccountLockButton,
+  AdminChatButton,
+} from "@/modules/admin/components/admin-account-actions"
+import { AdminFilterBar } from "@/modules/admin/components/admin-filter-bar"
+import {
+  accountStatusOptions,
+  roleLabels,
+} from "@/modules/admin/lib/admin-navigation"
 import type { User } from "@/types/auth"
 import type { PaginatedResponse } from "@/types/common"
-import { getAccessToken } from "@/lib/session"
-import { reserveChatPage } from "@/modules/chats/lib/chat-navigation"
-
-const roleLabels: Record<string, string> = {
-  administrator: "Quản trị viên",
-  shop_owner: "Chủ cửa hàng",
-  customer: "Khách hàng",
-}
 
 export function AdminUsersClient({
   users,
@@ -54,46 +50,54 @@ export function AdminUsersClient({
   users: PaginatedResponse<User>
   currentUserId: string
 }) {
-  const [pending, startTransition] = useTransition()
-  const [chatLink, setChatLink] = useState<{
-    userId: string
-    ownerId: string
-    href: string
-  } | null>(null)
-
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selected = users.data.find((user) => user.id === selectedId)
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Quản lý người dùng"
-        description="Kiểm soát trạng thái tài khoản và quyền truy cập trên toàn hệ thống."
+    <div className="space-y-6">
+      <AdminFilterBar
+        searchPlaceholder="Tìm tên, email, số điện thoại hoặc mã người dùng"
+        fields={[
+          {
+            key: "role",
+            label: "Vai trò",
+            options: [
+              { value: "all", label: "Tất cả vai trò" },
+              ...Object.entries(roleLabels).map(([value, label]) => ({
+                value,
+                label,
+              })),
+            ],
+          },
+          {
+            key: "status",
+            label: "Trạng thái tài khoản",
+            options: accountStatusOptions,
+          },
+        ]}
       />
-      <AdminNavigation />
-
-      {users.data.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UsersIcon className="size-5 text-primary" /> Danh sách tài khoản
-            </CardTitle>
-            <CardDescription>
-              {users.total} người dùng trong hệ thống
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
+      <Card>
+        <CardHeader>
+          <CardTitle>Danh sách tài khoản</CardTitle>
+          <CardDescription>
+            {users.total} tài khoản phù hợp · Trang {users.current_page ?? 1}/
+            {users.last_page ?? 1}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {users.data.length ? (
+            <Table className="min-w-200">
               <TableHeader>
                 <TableRow>
                   <TableHead>Người dùng</TableHead>
-                  <TableHead className="hidden md:table-cell">
-                    Vai trò
-                  </TableHead>
+                  <TableHead>Vai trò</TableHead>
                   <TableHead>Trạng thái</TableHead>
+                  <TableHead>Hoạt động</TableHead>
                   <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.data.map((user) => {
-                  const isActive = Number(user.is_active) === 1
+                  const active = Number(user.is_active) === 1
                   return (
                     <TableRow key={user.id}>
                       <TableCell>
@@ -103,126 +107,54 @@ export function AdminUsersClient({
                             src={user.avatar_url}
                           />
                           <div className="min-w-0">
-                            <p className="truncate font-medium">
+                            <p className="max-w-56 truncate font-medium">
                               {user.full_name}
                             </p>
-                            <p className="max-w-52 truncate text-xs text-muted-foreground">
-                              {user.email} · {user.user_code}
+                            <p className="max-w-56 truncate text-xs text-muted-foreground">
+                              {user.email}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {user.user_code}
                             </p>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         <Badge variant="outline">
                           {roleLabels[user.role] ?? user.role}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={isActive ? "success" : "destructive"}>
-                          {isActive ? "Hoạt động" : "Đã khoá"}
+                        <Badge variant={active ? "success" : "destructive"}>
+                          {active ? "Hoạt động" : "Đã khóa"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {user.id !== currentUserId ? (
-                            chatLink?.userId === user.id &&
-                            chatLink.ownerId === currentUserId ? (
-                              <ChatPageLink
-                                href={chatLink.href}
-                                className={buttonVariants({
-                                  size: "sm",
-                                  variant: "outline",
-                                })}
-                              >
-                                <MessageCircleIcon /> Mở cuộc trò chuyện
-                              </ChatPageLink>
-                            ) : (
-                              <Button
-                                aria-label={`Nhắn tin với ${user.full_name}`}
-                                disabled={pending}
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  const account = getAccessToken()
-                                  const reserved = reserveChatPage()
-                                  setChatLink(null)
-                                  startTransition(async () => {
-                                    try {
-                                      const state = await startAdminChatAction(
-                                        user.id
-                                      )
-                                      if (getAccessToken() !== account) {
-                                        reserved?.close()
-                                        return
-                                      }
-                                      if (
-                                        state.success &&
-                                        state.conversationSlug
-                                      ) {
-                                        const href = `/chats/${encodeURIComponent(state.conversationSlug)}`
-                                        if (reserved) reserved.navigate(href)
-                                        else
-                                          setChatLink({
-                                            userId: user.id,
-                                            ownerId: currentUserId,
-                                            href,
-                                          })
-                                      } else {
-                                        reserved?.close()
-                                        toast.error(state.message)
-                                      }
-                                    } catch {
-                                      reserved?.close()
-                                      toast.error(
-                                        "Không thể mở cuộc trò chuyện. Vui lòng thử lại."
-                                      )
-                                    }
-                                  })
-                                }}
-                              >
-                                <MessageCircleIcon />
-                                <span className="hidden lg:inline">
-                                  Nhắn tin
-                                </span>
-                              </Button>
-                            )
-                          ) : null}
-                          {user.role !== "administrator" ? (
-                            <Button
-                              aria-label={
-                                isActive
-                                  ? `Khoá ${user.full_name}`
-                                  : `Mở khoá ${user.full_name}`
-                              }
-                              disabled={pending}
-                              size="sm"
-                              variant={isActive ? "destructive" : "outline"}
-                              onClick={() =>
-                                startTransition(async () => {
-                                  try {
-                                    await toggleUserLockAction(
-                                      user.id,
-                                      isActive ? "lock" : "unlock",
-                                      isActive
-                                        ? "Khoá bởi quản trị viên"
-                                        : undefined
-                                    )
-                                    toast.success(
-                                      "Đã cập nhật trạng thái tài khoản."
-                                    )
-                                  } catch {
-                                    toast.error(
-                                      "Không thể cập nhật trạng thái tài khoản."
-                                    )
-                                  }
-                                })
-                              }
-                            >
-                              {isActive ? <LockIcon /> : <LockOpenIcon />}
-                              <span className="hidden lg:inline">
-                                {isActive ? "Khoá" : "Mở khoá"}
-                              </span>
-                            </Button>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {user.online_status?.label ?? "Chưa hoạt động"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            aria-label={`Xem chi tiết ${user.full_name}`}
+                            onClick={() => setSelectedId(user.id)}
+                          >
+                            <EyeIcon />
+                            Chi tiết
+                          </Button>
+                          <AdminChatButton
+                            userId={user.id}
+                            name={user.full_name}
+                          />
+                          {user.id !== currentUserId &&
+                          user.role !== "administrator" ? (
+                            <AdminAccountLockButton
+                              id={user.id}
+                              name={user.full_name}
+                              isActive={active}
+                              lockReason={user.lock_reason}
+                            />
                           ) : (
                             <span className="text-xs text-muted-foreground">
                               Được bảo vệ
@@ -235,18 +167,98 @@ export function AdminUsersClient({
                 })}
               </TableBody>
             </Table>
-            <DataPagination
-              currentPage={users.current_page}
-              lastPage={users.last_page}
+          ) : (
+            <EmptyState
+              title="Không tìm thấy tài khoản"
+              description="Thử thay đổi từ khóa hoặc bộ lọc để xem thêm người dùng."
             />
-          </CardContent>
-        </Card>
-      ) : (
-        <EmptyState
-          title="Chưa có dữ liệu người dùng"
-          description="Người dùng mới sẽ xuất hiện tại đây."
-        />
-      )}
+          )}
+          <DataPagination
+            currentPage={users.current_page}
+            lastPage={users.last_page}
+          />
+        </CardContent>
+      </Card>
+      <Sheet
+        open={Boolean(selected)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedId(null)
+        }}
+      >
+        <SheetContent className="w-full overflow-y-auto data-[side=right]:w-full sm:data-[side=right]:max-w-xl">
+          <SheetHeader className="border-b pr-12">
+            <SheetTitle>Chi tiết người dùng</SheetTitle>
+            <SheetDescription>
+              Thông tin tài khoản và trạng thái truy cập.
+            </SheetDescription>
+          </SheetHeader>
+          {selected ? (
+            <div className="space-y-5 px-4 pb-6">
+              <div className="flex items-center gap-3">
+                <UserAvatar
+                  name={selected.full_name}
+                  src={selected.avatar_url}
+                  size="lg"
+                />
+                <div>
+                  <h2 className="font-semibold">{selected.full_name}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {roleLabels[selected.role] ?? selected.role}
+                  </p>
+                </div>
+              </div>
+              <Surface render={<dl />} className="grid gap-4">
+                {[
+                  ["Mã người dùng", selected.user_code],
+                  ["Email", selected.email],
+                  ["Số điện thoại", selected.phone_number],
+                  [
+                    "Địa chỉ",
+                    [selected.address_detail, selected.ward, selected.province]
+                      .filter(Boolean)
+                      .join(", "),
+                  ],
+                  ["Ngày tạo", formatDate(selected.created_at)],
+                  ["Hoạt động", selected.online_status?.label],
+                  [
+                    "Trạng thái",
+                    Number(selected.is_active) === 1
+                      ? "Đang hoạt động"
+                      : "Đã khóa",
+                  ],
+                  ["Lý do khóa", selected.lock_reason],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-xs text-muted-foreground">{label}</dt>
+                    <dd className="mt-1 text-sm wrap-anywhere">
+                      {value || "Chưa cập nhật"}
+                    </dd>
+                  </div>
+                ))}
+              </Surface>
+              <div className="flex flex-wrap gap-2">
+                <AdminChatButton
+                  userId={selected.id}
+                  name={selected.full_name}
+                />
+                {selected.id !== currentUserId &&
+                selected.role !== "administrator" ? (
+                  <AdminAccountLockButton
+                    id={selected.id}
+                    name={selected.full_name}
+                    isActive={Number(selected.is_active) === 1}
+                    lockReason={selected.lock_reason}
+                  />
+                ) : (
+                  <Badge variant="secondary">
+                    Tài khoản quản trị được bảo vệ
+                  </Badge>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

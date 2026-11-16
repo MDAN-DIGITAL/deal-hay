@@ -7,8 +7,26 @@ import type {
   AdminUsersResponse,
 } from "@/types/admin"
 
-export function getAdminUsers(page?: string): Promise<AdminUsersResponse> {
-  return apiFetch({ path: adminRoutes.users, searchParams: { page } })
+export function getAdminUsers(
+  page?: string,
+  search?: string,
+  role?: string,
+  status?: string
+): Promise<AdminUsersResponse> {
+  return apiFetch({
+    path: adminRoutes.users,
+    searchParams: { page, search, role, status },
+  })
+}
+
+export function getAdminShop(shopId: string): Promise<AdminShopsResponse> {
+  return apiFetch({ path: adminRoutes.shop(encodeURIComponent(shopId)) })
+}
+
+export function getAdminTicket(
+  ticketId: string
+): Promise<AdminTicketsResponse> {
+  return apiFetch({ path: adminRoutes.ticket(encodeURIComponent(ticketId)) })
 }
 
 export function getAdminShops(

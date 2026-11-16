@@ -70,8 +70,8 @@ export function MobileNavigation({
   const active = (href: string) =>
     href === "/"
       ? pathname === "/"
-      : href.startsWith("/admin/")
-        ? pathname.startsWith("/admin/")
+      : href === "/admin" || href.startsWith("/admin/")
+        ? pathname === "/admin" || pathname.startsWith("/admin/")
         : pathname === href || pathname.startsWith(`${href}/`)
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -203,11 +203,11 @@ export function MobileNavigation({
               </Link>
               <Link
                 onNavigate={() => setOpen(false)}
-                href="/admin/users"
-                aria-current={active("/admin/users") ? "page" : undefined}
+                href="/admin"
+                aria-current={active("/admin") ? "page" : undefined}
                 className={buttonVariants({
                   className: "justify-start",
-                  variant: active("/admin/users") ? "secondary" : "ghost",
+                  variant: active("/admin") ? "secondary" : "ghost",
                 })}
               >
                 <LayoutDashboardIcon /> Trung tâm quản trị

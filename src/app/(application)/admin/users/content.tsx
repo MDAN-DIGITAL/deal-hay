@@ -12,7 +12,13 @@ export function AuthenticatedAdminUsersPage() {
   return (
     <AuthGuard admin>
       {(user) => (
-        <AdminUsersPageContainer currentUserId={user.id} page={page} />
+        <AdminUsersPageContainer
+          currentUserId={user.id}
+          page={page}
+          search={singleRouteQueryValue(searchParams, "search")}
+          role={singleRouteQueryValue(searchParams, "role")}
+          status={singleRouteQueryValue(searchParams, "status")}
+        />
       )}
     </AuthGuard>
   )

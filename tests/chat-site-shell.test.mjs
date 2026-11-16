@@ -36,6 +36,19 @@ test("shop management owns its full-width workspace without storefront navigatio
     assert.equal(shell.props.children, "workspace")
   }
 })
+test("administration owns its workspace for the overview and every management route", () => {
+  for (const path of [
+    "/admin",
+    "/admin/users",
+    "/admin/shops",
+    "/admin/categories",
+    "/admin/tickets",
+  ]) {
+    globalThis.__shellPath = path
+    const shell = SiteShell({ children: "admin-workspace", advertising: "ad" })
+    assert.equal(shell.props.children, "admin-workspace")
+  }
+})
 test("chat routes dedicate the screen to messages while other pages keep navigation and advertising", () => {
   for (const path of ["/chats", "/chats/saved-admin-room"]) {
     globalThis.__shellPath = path

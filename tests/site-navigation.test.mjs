@@ -84,14 +84,14 @@ test("desktop and mobile navigation preserve role-specific links while marking t
     const mobileHrefs = mobile.map(({ props }) => props?.href).filter(Boolean)
     for (const hrefs of [headerHrefs, mobileHrefs]) {
       assert.equal(hrefs.includes("/diagnostics"), role === "administrator")
-      assert.equal(hrefs.includes("/admin/users"), role === "administrator")
+      assert.equal(hrefs.includes("/admin"), role === "administrator")
       assert.equal(hrefs.includes("/shop-manage"), role === "shop_owner")
       assert.equal(hrefs.includes("/discount-codes"), !!role)
     }
     if (role === "administrator") {
       for (const tree of [header, mobile])
         assert.equal(
-          tree.find(({ props }) => props?.href === "/admin/users").props[
+          tree.find(({ props }) => props?.href === "/admin").props[
             "aria-current"
           ],
           "page"

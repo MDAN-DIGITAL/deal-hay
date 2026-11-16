@@ -85,14 +85,14 @@ export function SiteHeader() {
       ? [{ href: "/shop-manage", label: "Kênh người bán", icon: StoreIcon }]
       : []),
     ...(user?.role === "administrator"
-      ? [{ href: "/admin/users", label: "Quản trị", icon: ShieldCheckIcon }]
+      ? [{ href: "/admin", label: "Quản trị", icon: ShieldCheckIcon }]
       : []),
   ]
   const active = (href: string) =>
     href === "/"
       ? pathname === "/"
-      : href.startsWith("/admin/")
-        ? pathname.startsWith("/admin/")
+      : href === "/admin" || href.startsWith("/admin/")
+        ? pathname === "/admin" || pathname.startsWith("/admin/")
         : pathname === href || pathname.startsWith(`${href}/`)
 
   return (
