@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import { Geist_Mono, Inter } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 
 import "@/app/globals.css"
 import { SiteShell } from "@/components/layout/site-shell"
@@ -90,7 +89,6 @@ export function SiteDocument({
             </SessionProvider>
           </TooltipProvider>
         </ThemeProvider>
-        <Analytics />
       </body>
     </html>
   )
