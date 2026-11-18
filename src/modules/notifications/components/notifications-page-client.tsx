@@ -1,5 +1,6 @@
 "use client"
 
+import { ArrowUpIcon, MessageSquareIcon, SendIcon } from "lucide-react"
 import { Surface } from "@/components/ui/surface"
 
 import Link from "next/link"
@@ -77,6 +78,7 @@ function NotificationAppealForm({
               <FormLabel>Khiếu nại thông báo này</FormLabel>
               <FormControl>
                 <Textarea
+                  startIcon={<MessageSquareIcon />}
                   placeholder="Mô tả lý do cần admin hỗ trợ..."
                   {...field}
                 />
@@ -86,6 +88,7 @@ function NotificationAppealForm({
           )}
         />
         <FormSubmitButton
+          startIcon={<SendIcon />}
           idleText="Gửi khiếu nại"
           pending={isPending}
           pendingText="Đang gửi..."
@@ -104,7 +107,9 @@ export function NotificationsPageClient({
   currentUserId?: string
 }) {
   const origin =
-    typeof window === "undefined" ? "https://dealhay.vn" : window.location.origin
+    typeof window === "undefined"
+      ? "https://dealhay.vn"
+      : window.location.origin
   const [notificationPage, setNotificationPage] = useState(page)
   const [newNotificationCount, setNewNotificationCount] = useState(0)
   const [now, setNow] = useState(() => Date.now())
@@ -290,6 +295,7 @@ export function NotificationsPageClient({
             href="/notifications"
             className={buttonVariants({ size: "sm", variant: "outline" })}
           >
+            <ArrowUpIcon aria-hidden="true" />
             Xem mới nhất
           </Link>
         </Surface>

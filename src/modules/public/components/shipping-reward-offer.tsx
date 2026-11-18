@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react"
 import Link from "next/link"
-import { PlayIcon, RefreshCwIcon, TicketPercentIcon } from "lucide-react"
+import { XIcon, PlayIcon, RefreshCwIcon, TicketPercentIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Surface } from "@/components/ui/surface"
@@ -263,6 +263,7 @@ export function ShippingRewardOffer({
           </Button>
           {watching && !redeeming ? (
             <Button
+              startIcon={<XIcon />}
               type="button"
               variant="ghost"
               className="w-full"

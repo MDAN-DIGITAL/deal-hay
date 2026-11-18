@@ -1,6 +1,12 @@
 "use client"
 
-import { Volume2Icon, VolumeXIcon } from "lucide-react"
+import {
+  PlayIcon,
+  BellOffIcon,
+  BellIcon,
+  Volume2Icon,
+  VolumeXIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { useRealtime } from "@/components/realtime-provider"
@@ -52,6 +58,9 @@ export function NotificationSoundToggle() {
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium">Âm thanh trên web</span>
             <Button
+              startIcon={
+                notificationSoundEnabled ? <VolumeXIcon /> : <Volume2Icon />
+              }
               type="button"
               size="sm"
               variant="outline"
@@ -69,6 +78,7 @@ export function NotificationSoundToggle() {
               : "Bạn đã tắt tiếng tin nhắn và thông báo trong web."}
           </p>
           <Button
+            startIcon={<PlayIcon />}
             type="button"
             size="sm"
             variant="secondary"
@@ -100,6 +110,7 @@ export function NotificationSoundToggle() {
                       : "Bấm Bật và chọn Cho phép để nhận khi dùng ứng dụng khác."}
           </p>
           <Button
+            startIcon={background.enabled ? <BellOffIcon /> : <BellIcon />}
             type="button"
             size="sm"
             variant={background.enabled ? "outline" : "default"}

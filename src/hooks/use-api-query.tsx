@@ -1,5 +1,6 @@
 "use client"
 
+import { RotateCwIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { API_UNAVAILABLE_MESSAGE, ApiError } from "@/api/client"
@@ -112,11 +113,7 @@ export function useApiQuery<T>(
           if (isCurrent()) setState({ key, data, pending: false })
         },
         (error: Error) => {
-          if (
-            isCurrent() &&
-            !retried &&
-            isTransientQueryError(error)
-          ) {
+          if (isCurrent() && !retried && isTransientQueryError(error)) {
             retried = true
             retryTimer = setTimeout(request, TRANSIENT_RETRY_DELAY_MS)
             return
@@ -155,7 +152,9 @@ export function QueryPlaceholder({ error }: { error?: Error }) {
   return (
     <div role="alert" className="space-y-4 rounded-xl border p-6 text-center">
       <p>{message}</p>
-      <Button onClick={invalidateQueries}>Thử tải lại</Button>
+      <Button startIcon={<RotateCwIcon />} onClick={invalidateQueries}>
+        Thử tải lại
+      </Button>
     </div>
   )
 }

@@ -5,6 +5,13 @@ import { Surface } from "@/components/ui/surface"
 import { useId, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
+  TagIcon,
+  HashIcon,
+  BanknoteIcon,
+  ListChecksIcon,
+  ListXIcon,
+  SaveIcon,
+  XIcon,
   CopyIcon,
   PencilIcon,
   PlusIcon,
@@ -32,10 +39,7 @@ import {
   saveShopCouponAction,
   removeShopCouponAction,
 } from "@/modules/shop-management/coupon-actions"
-import {
-  shopCouponSchema,
-  type ShopCouponValues,
-} from "@/modules/shop-management/schemas/shop-coupon"
+import { shopCouponSchema } from "@/modules/shop-management/schemas/shop-coupon"
 import { formatCurrency, formatDate } from "@/lib/format"
 import { parseLocalDateTime, toLocalDateTimeValue } from "@/lib/date-time"
 import type { ShopCoupon, ShopProduct } from "@/types/shop"
@@ -79,6 +83,7 @@ export function ShopCouponManager({
 
   function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (pending) return
     const data = new FormData(event.currentTarget)
     const nullableNumber = (key: string) =>
       data.get(key) ? Number(data.get(key)) : null
@@ -88,12 +93,11 @@ export function ShopCouponManager({
         ? (parseLocalDateTime(localValue)?.toISOString() ?? localValue)
         : null
     }
-    const values: ShopCouponValues = {
+    const values = {
       name: String(data.get("name") ?? ""),
-      discount_type:
-        data.get("discount_type") === "percent" ? "percent" : "fixed",
-      discount_value: Number(data.get("discount_value")),
-      minimum_order_amount: Number(data.get("minimum_order_amount") || 0),
+      discount_type: data.get("discount_type"),
+      discount_value: nullableNumber("discount_value"),
+      minimum_order_amount: nullableNumber("minimum_order_amount"),
       maximum_discount_amount: nullableNumber("maximum_discount_amount"),
       usage_limit: nullableNumber("usage_limit"),
       starts_at: isoDate("starts_at"),
@@ -163,6 +167,17 @@ export function ShopCouponManager({
     <div className="space-y-2">
       <Label htmlFor={`${prefix}-${name}`}>{label}</Label>
       <Input
+        startIcon={
+          type === "text" ? (
+            <TagIcon />
+          ) : name === "usage_limit" ? (
+            <HashIcon />
+          ) : name === "discount_value" ? (
+            <TicketPercentIcon />
+          ) : (
+            <BanknoteIcon />
+          )
+        }
         id={`${prefix}-${name}`}
         name={name}
         type={type}
@@ -241,6 +256,7 @@ export function ShopCouponManager({
           <CardContent>
             <form
               key={editing?.id ?? "new"}
+              noValidate
               onSubmit={save}
               className="space-y-6"
             >
@@ -262,6 +278,7 @@ export function ShopCouponManager({
                       Hình thức giảm
                     </Label>
                     <AppSelect
+                      startIcon={<TicketPercentIcon />}
                       id={`${prefix}-discount-type`}
                       name="discount_type"
                       defaultValue={editing?.discount_type ?? "fixed"}
@@ -322,6 +339,7 @@ export function ShopCouponManager({
                   <div className="relative">
                     <SearchIcon className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
                     <Input
+                      startIcon={<SearchIcon />}
                       className="pl-9"
                       placeholder="Tìm tên hoặc SKU sản phẩm"
                       aria-label="Tìm sản phẩm áp dụng ưu đãi"
@@ -331,6 +349,7 @@ export function ShopCouponManager({
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs">
                     <Button
+                      startIcon={<ListChecksIcon />}
                       type="button"
                       variant="link"
                       size="sm"
@@ -348,6 +367,7 @@ export function ShopCouponManager({
                       Chọn tất cả kết quả
                     </Button>
                     <Button
+                      startIcon={<ListXIcon />}
                       type="button"
                       variant="link"
                       size="sm"
@@ -411,7 +431,10 @@ export function ShopCouponManager({
                   Bật ưu đãi để khách hàng có thể sử dụng
                 </Label>
                 <div className="flex gap-3">
-                  <Button type="submit">
+                  <Button
+                    startIcon={editing ? <SaveIcon /> : <PlusIcon />}
+                    type="submit"
+                  >
                     {pending
                       ? "Đang lưu..."
                       : editing
@@ -419,6 +442,7 @@ export function ShopCouponManager({
                         : "Tạo ưu đãi và mã tự động"}
                   </Button>
                   <Button
+                    startIcon={<XIcon />}
                     type="button"
                     variant="outline"
                     onClick={() => setEditing(undefined)}
@@ -522,6 +546,7 @@ export function ShopCouponManager({
                   </p>
                   <div className="flex gap-2">
                     <Button
+                      startIcon={<Trash2Icon />}
                       type="button"
                       size="sm"
                       variant="destructive"
@@ -531,6 +556,7 @@ export function ShopCouponManager({
                       {pending ? "Đang xóa..." : "Xác nhận xóa"}
                     </Button>
                     <Button
+                      startIcon={<XIcon />}
                       type="button"
                       size="sm"
                       variant="outline"

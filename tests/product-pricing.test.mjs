@@ -263,6 +263,7 @@ const { ProductInteractions } = await import(
     "react/jsx-runtime": import.meta.resolve("react/jsx-runtime"),
     "next/link": moduleUrl('export default "a"'),
     "lucide-react": moduleUrl(`
+      export const ImageIcon = "icon", SendIcon = "icon", StarIcon = "icon", MessageSquareIcon = "icon", Undo2Icon = "icon"
       export const BadgeCheckIcon = "icon", CirclePlayIcon = "icon", HeartIcon = "icon",
         PackageCheckIcon = "icon", PaperclipIcon = "icon", ThumbsDownIcon = "icon",
         ThumbsUpIcon = "icon", ShoppingBagIcon = "icon", TicketPercentIcon = "icon", Trash2Icon = "icon"

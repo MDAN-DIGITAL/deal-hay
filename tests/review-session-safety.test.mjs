@@ -38,6 +38,7 @@ const runtime = moduleUrl(`
  export const defaultProductVariant=()=>undefined, selectProductVariant=()=>undefined,variantHasOption=()=>false
  export const productCheckoutHref=()=>"/checkout",productOfferHref=()=>"/offer"
  export const productPricing=()=>({salePrice:10000,originalPrice:null}),formatCurrency=String
+ export const ImageIcon="icon", SendIcon="icon", StarIcon="icon", MessageSquareIcon="icon", Undo2Icon="icon"
  export const BadgeCheckIcon="icon",CirclePlayIcon="icon",PackageCheckIcon="icon",Trash2Icon="icon",ShoppingBagIcon="icon",TicketPercentIcon="icon"
  export const FormSelect="select",FormSubmitButton="submit",ImagePreview="image-preview",SelectedFilePreview="selected-file",Badge="badge",Button="button",Card="card",CardContent="content",CardDescription="description",CardHeader="header",CardTitle="title",Form="form-provider",FormControl="control",FormField="field",FormItem="item",FormLabel="label",FormMessage="message",Input="input",Separator="separator",Surface="surface",Textarea="textarea",UserAvatar="avatar",ImageUploadProgress="progress",ShopEngagement="engagement"
 `)

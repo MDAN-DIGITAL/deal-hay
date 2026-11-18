@@ -2,17 +2,37 @@ import * as React from "react"
 import { Input as InputPrimitive } from "@base-ui/react/input"
 import { cn } from "cn"
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
-  return (
+function Input({
+  className,
+  startIcon,
+  type,
+  ...props
+}: React.ComponentProps<"input"> & { startIcon?: React.ReactNode }) {
+  const input = (
     <InputPrimitive
       type={type}
       data-slot="input"
       className={cn(
         "h-10 w-full min-w-0 rounded-lg border border-input bg-card px-3 py-2 text-base shadow-xs transition-[border-color,box-shadow] duration-150 outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground/85 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 md:text-sm",
+        startIcon && "pl-9",
         className
       )}
       {...props}
     />
+  )
+
+  if (!startIcon) return input
+
+  return (
+    <div className="relative w-full min-w-0">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-3 z-10 flex items-center text-muted-foreground [&>svg]:size-4"
+      >
+        {startIcon}
+      </span>
+      {input}
+    </div>
   )
 }
 

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import {
+  XIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
   CirclePlayIcon,
@@ -287,6 +288,7 @@ function ProductOfferDetails({
                   </p>
                 ) : null}
                 <Button
+                  startIcon={<XIcon />}
                   type="button"
                   size="sm"
                   variant="ghost"

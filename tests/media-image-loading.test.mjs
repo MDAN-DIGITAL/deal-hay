@@ -39,6 +39,7 @@ const state = moduleUrl(`
 `)
 const widgets = moduleUrl(`
   export default "next-image"
+  export const RotateCwIcon="icon"
   export const ImageIcon="image-icon"
   export const env={API_URL:"https://api.example.test/api"}
   export const apiAssetUrl=(value)=>value||undefined

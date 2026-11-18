@@ -1,8 +1,10 @@
 "use client"
 
+import { BanknoteIcon, VideoIcon } from "lucide-react"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { FormSubmitButton } from "@/components/form-submit-button"
 import {
   Dialog,
   DialogContent,
@@ -57,7 +59,14 @@ export function ProductPricingForm({ product }: { product: ShopProduct }) {
       }}
     >
       <DialogTrigger
-        render={<Button className="w-full" size="sm" variant="outline" />}
+        render={
+          <Button
+            className="w-full"
+            size="sm"
+            variant="outline"
+            startIcon={<BanknoteIcon />}
+          />
+        }
       >
         Giá và ưu đãi
       </DialogTrigger>
@@ -72,9 +81,12 @@ export function ProductPricingForm({ product }: { product: ShopProduct }) {
         <form
           key={`${product.id}:${product.price}:${product.old_price}:${product.video_url}`}
           className="space-y-4"
+          noValidate
           onSubmit={(event) => {
             event.preventDefault()
+            if (pending) return
             const data = new FormData(event.currentTarget)
+            setErrors({})
             startTransition(async () => {
               const state = await updateProductPricingAction(product.id, data)
               if (!state.success) {
@@ -93,6 +105,9 @@ export function ProductPricingForm({ product }: { product: ShopProduct }) {
                 {field.label}
               </Label>
               <Input
+                startIcon={
+                  field.type === "url" ? <VideoIcon /> : <BanknoteIcon />
+                }
                 id={`${product.id}-${field.name}`}
                 name={field.name}
                 type={field.type}
@@ -100,13 +115,23 @@ export function ProductPricingForm({ product }: { product: ShopProduct }) {
                 min={field.min}
                 max={field.max}
                 required={field.required}
+                disabled={pending}
                 aria-invalid={Boolean(errors[field.name])}
+                aria-describedby={
+                  errors[field.name]
+                    ? `${product.id}-${field.name}-error`
+                    : undefined
+                }
               />
-              {errors[field.name]?.map((error) => (
-                <p className="text-sm text-destructive" key={error}>
-                  {error}
+              {errors[field.name]?.[0] && (
+                <p
+                  className="text-sm text-destructive"
+                  id={`${product.id}-${field.name}-error`}
+                  role="alert"
+                >
+                  {errors[field.name][0]}
                 </p>
-              ))}
+              )}
             </div>
           ))}
           <p className="text-xs text-muted-foreground">
@@ -114,9 +139,12 @@ export function ProductPricingForm({ product }: { product: ShopProduct }) {
             lệ. Giá gốc chỉ để so sánh và phải cao hơn giá bán. Video giới thiệu
             sản phẩm là tùy chọn.
           </p>
-          <Button className="w-full" type="submit" disabled={pending}>
-            {pending ? "Đang lưu..." : "Lưu giá và ưu đãi"}
-          </Button>
+          <FormSubmitButton
+            className="w-full"
+            idleText="Lưu giá và ưu đãi"
+            pending={pending}
+            pendingText="Đang lưu..."
+          />
         </form>
       </DialogContent>
     </Dialog>

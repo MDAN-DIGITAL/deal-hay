@@ -1,5 +1,6 @@
 "use client"
 
+import { MailIcon, ShieldCheckIcon, LogInIcon } from "lucide-react"
 import Link from "next/link"
 import { useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -108,6 +109,7 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<MailIcon />}
                       autoComplete="email"
                       inputMode="email"
                       placeholder="you@example.com"
@@ -183,6 +185,7 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
                       <FormLabel>Mã xác minh quản trị viên</FormLabel>
                       <FormControl>
                         <Input
+                          startIcon={<ShieldCheckIcon />}
                           autoComplete="one-time-code"
                           disabled={isPending}
                           inputMode="numeric"
@@ -196,6 +199,7 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
                   )}
                 />
                 <Button
+                  startIcon={<MailIcon />}
                   className="h-auto px-0"
                   disabled={isPending}
                   onClick={resendVerificationCode}
@@ -207,6 +211,9 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
               </div>
             ) : null}
             <FormSubmitButton
+              startIcon={
+                requiresAdminVerification ? <ShieldCheckIcon /> : <LogInIcon />
+              }
               className="w-full"
               idleText={
                 requiresAdminVerification

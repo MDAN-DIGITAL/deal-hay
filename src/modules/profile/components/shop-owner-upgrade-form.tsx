@@ -1,5 +1,14 @@
 "use client"
 
+import {
+  StoreIcon,
+  MailIcon,
+  UserRoundIcon,
+  PhoneIcon,
+  MapPinIcon,
+  MessageSquareIcon,
+  SendIcon,
+} from "lucide-react"
 import { useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -70,7 +79,7 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
             <FormItem>
               <FormLabel>Tên shop</FormLabel>
               <FormControl>
-                <Input type="text" {...field} />
+                <Input startIcon={<StoreIcon />} type="text" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -83,7 +92,12 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
             <FormItem>
               <FormLabel>Email shop</FormLabel>
               <FormControl>
-                <Input inputMode="email" type="text" {...field} />
+                <Input
+                  startIcon={<MailIcon />}
+                  inputMode="email"
+                  type="text"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -97,7 +111,7 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
               <FormItem>
                 <FormLabel>Họ tên</FormLabel>
                 <FormControl>
-                  <Input type="text" {...field} />
+                  <Input startIcon={<UserRoundIcon />} type="text" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -110,7 +124,12 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
               <FormItem>
                 <FormLabel>Email cá nhân</FormLabel>
                 <FormControl>
-                  <Input inputMode="email" type="text" {...field} />
+                  <Input
+                    startIcon={<MailIcon />}
+                    inputMode="email"
+                    type="text"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -123,7 +142,12 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
               <FormItem>
                 <FormLabel>SĐT cá nhân</FormLabel>
                 <FormControl>
-                  <Input inputMode="tel" type="text" {...field} />
+                  <Input
+                    startIcon={<PhoneIcon />}
+                    inputMode="tel"
+                    type="text"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -136,7 +160,12 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
               <FormItem>
                 <FormLabel>SĐT shop</FormLabel>
                 <FormControl>
-                  <Input inputMode="tel" type="text" {...field} />
+                  <Input
+                    startIcon={<PhoneIcon />}
+                    inputMode="tel"
+                    type="text"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -151,7 +180,7 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
             <FormItem>
               <FormLabel>Địa chỉ chi tiết</FormLabel>
               <FormControl>
-                <Input type="text" {...field} />
+                <Input startIcon={<MapPinIcon />} type="text" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -164,13 +193,18 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
             <FormItem>
               <FormLabel>Lời nhắn</FormLabel>
               <FormControl>
-                <Textarea {...field} value={field.value ?? ""} />
+                <Textarea
+                  startIcon={<MessageSquareIcon />}
+                  {...field}
+                  value={field.value ?? ""}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <FormSubmitButton
+          startIcon={<SendIcon />}
           idleText="Gửi yêu cầu"
           pending={isPending}
           pendingText="Đang gửi..."

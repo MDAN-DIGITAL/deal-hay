@@ -125,7 +125,7 @@ const { ShippingRewardOffer } = await import(
     "react/jsx-runtime": import.meta.resolve("react/jsx-runtime"),
     "next/link": moduleUrl('export default "a"'),
     "lucide-react": moduleUrl(
-      'export const PlayIcon = "play", RefreshCwIcon = "refresh", TicketPercentIcon = "ticket"'
+      'export const XIcon = "icon", PlayIcon = "play", RefreshCwIcon = "refresh", TicketPercentIcon = "ticket"'
     ),
     "@/components/ui/button": moduleUrl('export const Button = "button"'),
     "@/components/ui/surface": moduleUrl('export const Surface = "surface"'),

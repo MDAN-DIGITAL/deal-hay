@@ -22,6 +22,7 @@ import {
   adjustInventorySchema,
   createCouponSchema,
   createProductStagedUploadSchema,
+  productPricingSchema,
   replyReviewSchema,
   type AdjustInventoryValues,
   type CreateCouponValues,
@@ -39,17 +40,27 @@ export async function updateProductPricingAction(
   productId: string,
   formData: FormData
 ): Promise<ActionState> {
+  const oldPrice = formData.get("old_price")
+  const videoUrl = formData.get("video_url")
+  const parsed = productPricingSchema.safeParse({
+    price: Number(formData.get("price")),
+    old_price: oldPrice ? Number(oldPrice) : null,
+    video_url:
+      typeof videoUrl === "string" ? videoUrl.trim() || null : videoUrl,
+  })
+  if (!parsed.success) {
+    return {
+      success: false,
+      message: "Vui lòng kiểm tra lại thông tin giá và video.",
+      errors: parsed.error.flatten().fieldErrors,
+    }
+  }
+
   try {
     const response = await apiFetch<{ message: string }>({
       method: "PATCH",
       path: `/private/shop/products/${encodeURIComponent(productId)}/pricing`,
-      body: {
-        price: Number(formData.get("price")),
-        old_price: formData.get("old_price")
-          ? Number(formData.get("old_price"))
-          : null,
-        video_url: formData.get("video_url") || null,
-      },
+      body: parsed.data,
     })
     invalidateQueries()
     return { success: true, message: response.message }

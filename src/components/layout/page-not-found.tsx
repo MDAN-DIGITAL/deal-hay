@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { SearchXIcon } from "lucide-react"
+import { HouseIcon, SearchXIcon } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
 import {
@@ -26,6 +26,7 @@ export default function NotFound() {
       </EmptyHeader>
       <EmptyContent>
         <Link href="/" className={buttonVariants()}>
+          <HouseIcon aria-hidden="true" />
           Quay lại trang chủ
         </Link>
       </EmptyContent>

@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react"
 import Link from "next/link"
 import {
+  RefreshCwIcon,
   ArrowRightIcon,
   ChevronDownIcon,
   TicketPercentIcon,
@@ -191,6 +192,7 @@ export function ShopOffers({ shopCode }: { shopCode: string }) {
         <div className="flex items-center gap-3 text-sm">
           <p role="alert">{result.error}</p>
           <Button
+            startIcon={<RefreshCwIcon />}
             type="button"
             variant="outline"
             size="sm"
@@ -265,6 +267,7 @@ export function ShopOfferSelector({
             {error}
           </p>
           <Button
+            startIcon={<RefreshCwIcon />}
             type="button"
             variant="outline"
             size="sm"

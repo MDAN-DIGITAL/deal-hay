@@ -485,57 +485,53 @@ export function ChatComposer({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="sr-only">Nội dung tin nhắn</FormLabel>
-                <FormControl>
-                  <InputGroup variant="composer">
-                    <InputGroupAddon
-                      align="inline-start"
-                      className="gap-0 self-end py-0.5 pl-0.5 has-[>button]:ml-0 [&_button]:size-10 [&_button]:rounded-xl"
+                <InputGroup variant="composer">
+                  <InputGroupAddon
+                    align="inline-start"
+                    className="gap-0 self-end py-0.5 pl-0.5 has-[>button]:ml-0 [&_button]:size-10 [&_button]:rounded-xl"
+                  >
+                    <InputGroupButton
+                      aria-label="Thêm ảnh, tệp hoặc tag admin"
+                      tooltip="Thêm vào tin nhắn"
+                      title="Thêm vào tin nhắn"
+                      className="size-10 rounded-xl text-muted-foreground sm:hidden"
+                      size="icon-sm"
+                      aria-expanded={showMoreActions}
+                      onClick={() => setShowMoreActions((current) => !current)}
                     >
-                      <InputGroupButton
-                        aria-label="Thêm ảnh, tệp hoặc tag admin"
-                        tooltip="Thêm vào tin nhắn"
-                        title="Thêm vào tin nhắn"
-                        className="size-10 rounded-xl text-muted-foreground sm:hidden"
-                        size="icon-sm"
-                        aria-expanded={showMoreActions}
-                        onClick={() =>
-                          setShowMoreActions((current) => !current)
-                        }
-                      >
-                        <PlusIcon />
-                      </InputGroupButton>
-                      <InputGroupButton
-                        aria-label="Đính kèm tệp"
-                        tooltip="Đính kèm tệp"
-                        className="hidden size-10 rounded-xl text-muted-foreground hover:text-foreground sm:flex"
-                        size="icon-sm"
-                        title="Đính kèm tệp"
-                        onClick={chooseFiles}
-                      >
-                        <PaperclipIcon />
-                      </InputGroupButton>
-                      <InputGroupButton
-                        aria-label="Tag admin"
-                        tooltip="Tag admin"
-                        title="Tag admin"
-                        className={
-                          showAdminPicker || mentionAdminIds.length
-                            ? "hidden size-10 rounded-xl bg-primary/10 text-primary sm:flex"
-                            : "hidden size-10 rounded-xl text-muted-foreground hover:text-foreground sm:flex"
-                        }
-                        size="icon-sm"
-                        aria-expanded={showAdminPicker}
-                        onClick={() =>
-                          setShowAdminPicker((current) => !current)
-                        }
-                      >
-                        <AtSignIcon />
-                      </InputGroupButton>
-                      <ChatEmojiPicker
-                        focusTarget={textareaRef}
-                        onSelect={insertEmoji}
-                      />
-                    </InputGroupAddon>
+                      <PlusIcon />
+                    </InputGroupButton>
+                    <InputGroupButton
+                      aria-label="Đính kèm tệp"
+                      tooltip="Đính kèm tệp"
+                      className="hidden size-10 rounded-xl text-muted-foreground hover:text-foreground sm:flex"
+                      size="icon-sm"
+                      title="Đính kèm tệp"
+                      onClick={chooseFiles}
+                    >
+                      <PaperclipIcon />
+                    </InputGroupButton>
+                    <InputGroupButton
+                      aria-label="Tag admin"
+                      tooltip="Tag admin"
+                      title="Tag admin"
+                      className={
+                        showAdminPicker || mentionAdminIds.length
+                          ? "hidden size-10 rounded-xl bg-primary/10 text-primary sm:flex"
+                          : "hidden size-10 rounded-xl text-muted-foreground hover:text-foreground sm:flex"
+                      }
+                      size="icon-sm"
+                      aria-expanded={showAdminPicker}
+                      onClick={() => setShowAdminPicker((current) => !current)}
+                    >
+                      <AtSignIcon />
+                    </InputGroupButton>
+                    <ChatEmojiPicker
+                      focusTarget={textareaRef}
+                      onSelect={insertEmoji}
+                    />
+                  </InputGroupAddon>
+                  <FormControl>
                     <InputGroupTextarea
                       aria-label="Nội dung tin nhắn"
                       className="max-h-32 min-h-11 min-w-0 px-2 py-2.5 text-base leading-6 md:text-base"
@@ -560,25 +556,25 @@ export function ChatComposer({
                         }
                       }}
                     />
-                    <InputGroupAddon
-                      align="inline-end"
-                      className="self-end py-0.5 pr-0.5 has-[>button]:mr-0"
+                  </FormControl>
+                  <InputGroupAddon
+                    align="inline-end"
+                    className="self-end py-0.5 pr-0.5 has-[>button]:mr-0"
+                  >
+                    <InputGroupButton
+                      aria-label="Gửi tin nhắn"
+                      tooltip="Gửi tin nhắn"
+                      className="size-10 rounded-xl"
+                      disabled={!canSend}
+                      size="icon-sm"
+                      title="Gửi tin nhắn"
+                      type="submit"
+                      variant="default"
                     >
-                      <InputGroupButton
-                        aria-label="Gửi tin nhắn"
-                        tooltip="Gửi tin nhắn"
-                        className="size-10 rounded-xl"
-                        disabled={!canSend}
-                        size="icon-sm"
-                        title="Gửi tin nhắn"
-                        type="submit"
-                        variant="default"
-                      >
-                        <SendIcon />
-                      </InputGroupButton>
-                    </InputGroupAddon>
-                  </InputGroup>
-                </FormControl>
+                      <SendIcon />
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
                 <FormMessage />
               </FormItem>
             )}
@@ -603,9 +599,10 @@ export function ChatComposer({
                     type="file"
                     multiple
                     value={undefined}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       addFiles(Array.from(event.target.files ?? []))
-                    }
+                      event.target.value = ""
+                    }}
                   />
                 </FormControl>
                 <FormMessage />

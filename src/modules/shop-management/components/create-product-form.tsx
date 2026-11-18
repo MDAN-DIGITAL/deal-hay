@@ -5,6 +5,19 @@ import { Surface } from "@/components/ui/surface"
 import { useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
+  PackageIcon,
+  TagsIcon,
+  BanknoteIcon,
+  VideoIcon,
+  TagIcon,
+  ImageIcon,
+  ImagesIcon,
+  FileTextIcon,
+  BoxesIcon,
+  ListTreeIcon,
+  ListIcon,
+  StarIcon,
+  PackagePlusIcon,
   ImagePlusIcon,
   PlusIcon,
   RefreshCwIcon,
@@ -51,6 +64,7 @@ import {
 } from "@/modules/shop-management/lib/product-variants"
 import {
   createProductSchema,
+  productGallerySchema,
   type CreateProductValues,
 } from "@/modules/shop-management/schemas/shop-management"
 
@@ -267,6 +281,7 @@ export function CreateProductForm({
                   <FormLabel>Tên sản phẩm</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<PackageIcon />}
                       maxLength={255}
                       placeholder="Ví dụ: Điện thoại Galaxy S24 256GB"
                       type="text"
@@ -284,8 +299,9 @@ export function CreateProductForm({
                 <FormItem>
                   <FormLabel>Danh mục</FormLabel>
                   <FormSelect
+                    startIcon={<TagsIcon />}
                     disabled={categories.length === 0}
-                    inputRef={field.ref}
+                    ref={field.ref}
                     name={field.name}
                     options={categories.map((category) => ({
                       label: category.name,
@@ -308,6 +324,7 @@ export function CreateProductForm({
                   <FormLabel>Giá bán sản phẩm</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<BanknoteIcon />}
                       min={1000}
                       inputMode="numeric"
                       type="number"
@@ -334,6 +351,7 @@ export function CreateProductForm({
                   <FormLabel>Giá gốc (tùy chọn)</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<BanknoteIcon />}
                       {...field}
                       min={1000}
                       type="number"
@@ -359,6 +377,7 @@ export function CreateProductForm({
                   <FormLabel>URL video sản phẩm (HTTPS)</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<VideoIcon />}
                       {...field}
                       type="url"
                       placeholder="https://.../san-pham.mp4"
@@ -376,6 +395,7 @@ export function CreateProductForm({
                   <FormLabel>Nhãn nổi bật</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<TagIcon />}
                       maxLength={80}
                       placeholder="Ví dụ: Hàng mới, Bán chạy"
                       type="text"
@@ -417,6 +437,7 @@ export function CreateProductForm({
                   ) : (
                     <FormControl>
                       <Input
+                        startIcon={<ImageIcon />}
                         accept={IMAGE_UPLOAD_ACCEPT}
                         name={field.name}
                         ref={field.ref}
@@ -435,7 +456,10 @@ export function CreateProductForm({
             <FormField
               control={form.control}
               name="gallery_images"
-              render={({ field: { onChange, value, ...field } }) => (
+              render={({
+                field: { onChange, value, ...field },
+                fieldState,
+              }) => (
                 <FormItem>
                   <FormLabel>Thư viện ảnh</FormLabel>
                   {value.length > 0 ? (
@@ -446,19 +470,21 @@ export function CreateProductForm({
                           compact
                           className="max-w-none"
                           file={file}
-                          onRemove={() =>
+                          onRemove={() => {
+                            form.clearErrors("gallery_images")
                             onChange(
                               value.filter(
                                 (_, fileIndex) => fileIndex !== index
                               )
                             )
-                          }
+                          }}
                         />
                       ))}
                     </div>
                   ) : null}
                   <FormControl>
                     <Input
+                      startIcon={<ImagesIcon />}
                       multiple
                       accept={IMAGE_UPLOAD_ACCEPT}
                       name={field.name}
@@ -467,8 +493,20 @@ export function CreateProductForm({
                       onBlur={field.onBlur}
                       onChange={(event) => {
                         const selected = Array.from(event.target.files ?? [])
-                        onChange([...value, ...selected].slice(0, 50))
                         event.target.value = ""
+                        const result = productGallerySchema.safeParse([
+                          ...value,
+                          ...selected,
+                        ])
+                        if (!result.success) {
+                          form.setError("gallery_images", {
+                            type: "manual",
+                            message: result.error.issues[0]?.message,
+                          })
+                          return
+                        }
+                        form.clearErrors("gallery_images")
+                        onChange(result.data)
                       }}
                     />
                   </FormControl>
@@ -476,7 +514,9 @@ export function CreateProductForm({
                     Đã chọn {value.length}/50 ảnh bổ sung. Ảnh tự động nén còn
                     tối đa 20 KB. Ảnh được nén trên thiết bị trước khi tải lên.
                   </FormDescription>
-                  <FormMessage />
+                  <FormMessage>
+                    {fieldErrorMessage(fieldState.error)}
+                  </FormMessage>
                 </FormItem>
               )}
             />
@@ -502,6 +542,7 @@ export function CreateProductForm({
                 <FormLabel>Nội dung mô tả</FormLabel>
                 <FormControl>
                   <Textarea
+                    startIcon={<FileTextIcon />}
                     className="min-h-32"
                     placeholder="Mô tả chi tiết để khách hàng hiểu rõ sản phẩm..."
                     {...field}
@@ -562,6 +603,7 @@ export function CreateProductForm({
                   <FormLabel>Tồn kho ban đầu</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<BoxesIcon />}
                       min={0}
                       inputMode="numeric"
                       type="number"
@@ -612,6 +654,7 @@ export function CreateProductForm({
                           <FormLabel>Tên thuộc tính</FormLabel>
                           <FormControl>
                             <Input
+                              startIcon={<ListTreeIcon />}
                               maxLength={80}
                               placeholder="Màu sắc"
                               type="text"
@@ -630,6 +673,7 @@ export function CreateProductForm({
                           <FormLabel>Các giá trị</FormLabel>
                           <FormControl>
                             <Input
+                              startIcon={<ListIcon />}
                               placeholder="Đen, Trắng, Xanh"
                               type="text"
                               {...field}
@@ -713,6 +757,7 @@ export function CreateProductForm({
                             <Badge>Mặc định</Badge>
                           ) : (
                             <Button
+                              startIcon={<StarIcon />}
                               size="sm"
                               type="button"
                               variant="outline"
@@ -736,6 +781,7 @@ export function CreateProductForm({
                                 <FormLabel>Giá riêng</FormLabel>
                                 <FormControl>
                                   <Input
+                                    startIcon={<BanknoteIcon />}
                                     min={1000}
                                     inputMode="numeric"
                                     placeholder="Dùng giá chung"
@@ -761,6 +807,7 @@ export function CreateProductForm({
                                 <FormLabel>Tồn kho</FormLabel>
                                 <FormControl>
                                   <Input
+                                    startIcon={<BoxesIcon />}
                                     min={0}
                                     inputMode="numeric"
                                     type="number"
@@ -835,6 +882,7 @@ export function CreateProductForm({
 
         <ImageUploadProgress progress={isPending ? uploadProgress : null} />
         <FormSubmitButton
+          startIcon={<PackagePlusIcon />}
           className="w-full sm:w-auto"
           disabled={categories.length === 0}
           idleText="Đăng sản phẩm"

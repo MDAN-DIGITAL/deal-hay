@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
+  TagIcon,
+  SaveIcon,
+  XIcon,
   EyeIcon,
   EyeOffIcon,
   PencilIcon,
@@ -124,6 +127,7 @@ function CategoryEditor({
               <FormLabel>Tên danh mục</FormLabel>
               <FormControl>
                 <Input
+                  startIcon={<TagIcon />}
                   {...field}
                   maxLength={120}
                   placeholder="Ví dụ: Điện thoại và phụ kiện"
@@ -158,6 +162,7 @@ function CategoryEditor({
           )}
         />
         <FormSubmitButton
+          startIcon={category ? <SaveIcon /> : <PlusIcon />}
           pending={pending}
           idleText={category ? "Lưu thay đổi" : "Thêm danh mục"}
           pendingText="Đang lưu..."
@@ -370,6 +375,7 @@ export function AdminCategoriesClient({
           ) : null}
           <DialogFooter>
             <Button
+              startIcon={<XIcon />}
               variant="outline"
               disabled={pending}
               onClick={() => setDeleting(null)}
@@ -377,6 +383,7 @@ export function AdminCategoriesClient({
               Hủy
             </Button>
             <Button
+              startIcon={<Trash2Icon />}
               variant="destructive"
               disabled={pending || Boolean(deleting?.products_count)}
               onClick={() => {

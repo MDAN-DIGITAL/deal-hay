@@ -4,7 +4,15 @@ import { Surface } from "@/components/ui/surface"
 
 import { useEffect, useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { PlusIcon, Trash2Icon, TruckIcon } from "lucide-react"
+import {
+  RotateCwIcon,
+  BanknoteIcon,
+  MapPinIcon,
+  SaveIcon,
+  PlusIcon,
+  Trash2Icon,
+  TruckIcon,
+} from "lucide-react"
 import { useFieldArray, useForm } from "react-hook-form"
 import { toast } from "sonner"
 
@@ -49,6 +57,7 @@ export function ShopShippingSettings() {
     defaultValues: { enabled: false, base_fee: Number.NaN, ward_rates: [] },
   })
   const { reset } = form
+  const { isDirty, isSubmitted } = form.formState
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "ward_rates",
@@ -114,6 +123,7 @@ export function ShopShippingSettings() {
           <div className="flex flex-wrap items-center gap-3" role="alert">
             <p className="text-sm text-destructive">{loadError}</p>
             <Button
+              startIcon={<RotateCwIcon />}
               disabled={isPending}
               type="button"
               variant="outline"
@@ -161,6 +171,7 @@ export function ShopShippingSettings() {
                       <FormLabel>Phí mặc định (đồng)</FormLabel>
                       <FormControl>
                         <Input
+                          startIcon={<BanknoteIcon />}
                           {...field}
                           inputMode="numeric"
                           max={999999999}
@@ -201,8 +212,9 @@ export function ShopShippingSettings() {
                           <FormItem>
                             <FormLabel>Phường / xã</FormLabel>
                             <FormSelect
+                              startIcon={<MapPinIcon />}
                               disabled={isPending}
-                              inputRef={field.ref}
+                              ref={field.ref}
                               name={field.name}
                               options={wards.map((ward) => ({
                                 label: ward.name,
@@ -211,9 +223,10 @@ export function ShopShippingSettings() {
                               placeholder="Chọn phường / xã Hà Nội"
                               value={field.value ? String(field.value) : ""}
                               onBlur={field.onBlur}
-                              onValueChange={(value) =>
+                              onValueChange={(value) => {
                                 field.onChange(Number(value))
-                              }
+                                if (isSubmitted) void form.trigger("ward_rates")
+                              }}
                             />
                             <FormMessage />
                           </FormItem>
@@ -227,6 +240,7 @@ export function ShopShippingSettings() {
                             <FormLabel>Phí vận chuyển (đồng)</FormLabel>
                             <FormControl>
                               <Input
+                                startIcon={<BanknoteIcon />}
                                 {...field}
                                 inputMode="numeric"
                                 max={999999999}
@@ -277,7 +291,8 @@ export function ShopShippingSettings() {
                   </Button>
                 </div>
                 <FormSubmitButton
-                  disabled={!form.formState.isDirty}
+                  startIcon={<SaveIcon />}
+                  disabled={!isDirty}
                   idleText="Lưu phí vận chuyển"
                   pending={isPending}
                   pendingText="Đang lưu..."

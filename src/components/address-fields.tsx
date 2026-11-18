@@ -1,5 +1,6 @@
 "use client"
 
+import { MapIcon, RotateCwIcon, MapPinIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
   useWatch,
@@ -44,6 +45,7 @@ export function AddressFields<T extends FieldValues>({
   wardName: FieldPath<T>
   valueMode?: "name" | "code"
 }) {
+  const { isSubmitted } = form.formState
   const provinceValue = String(
     useWatch({ control: form.control, name: provinceName }) ?? ""
   )
@@ -123,15 +125,16 @@ export function AddressFields<T extends FieldValues>({
           <FormItem>
             <FormLabel>Tỉnh / thành</FormLabel>
             <FormSelect
+              startIcon={<MapIcon />}
               disabled={provinces.loading || Boolean(provinces.error)}
-              inputRef={field.ref}
+              ref={field.ref}
               name={field.name}
               onBlur={field.onBlur}
               onValueChange={(value) => {
                 field.onChange(value)
                 form.setValue(wardName, "" as FieldPathValue<T, FieldPath<T>>, {
                   shouldDirty: true,
-                  shouldValidate: true,
+                  shouldValidate: isSubmitted,
                 })
               }}
               options={withExistingValue(
@@ -149,6 +152,7 @@ export function AddressFields<T extends FieldValues>({
               <div role="alert" className="text-sm text-destructive">
                 {provinces.error}{" "}
                 <Button
+                  startIcon={<RotateCwIcon />}
                   type="button"
                   variant="link"
                   onClick={() => setProvinceRetry((value) => value + 1)}
@@ -168,8 +172,9 @@ export function AddressFields<T extends FieldValues>({
           <FormItem>
             <FormLabel>Phường / xã / đặc khu</FormLabel>
             <FormSelect
+              startIcon={<MapPinIcon />}
               disabled={!wardsReady || Boolean(wards.error)}
-              inputRef={field.ref}
+              ref={field.ref}
               name={field.name}
               onBlur={field.onBlur}
               onValueChange={field.onChange}
@@ -190,6 +195,7 @@ export function AddressFields<T extends FieldValues>({
               <div role="alert" className="text-sm text-destructive">
                 {wards.error}{" "}
                 <Button
+                  startIcon={<RotateCwIcon />}
                   type="button"
                   variant="link"
                   onClick={() => setWardRetry((value) => value + 1)}

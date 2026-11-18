@@ -1,5 +1,6 @@
 "use client"
 
+import { KeyRoundIcon, LogInIcon, MailIcon } from "lucide-react"
 import Link from "next/link"
 import { useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -106,6 +107,7 @@ export function ResetPasswordForm({
           <Button
             nativeButton={false}
             render={<Link href={completed ? "/sign-in" : "/forgot-password"} />}
+            startIcon={completed ? <LogInIcon /> : <MailIcon />}
           >
             {completed ? "Đến trang đăng nhập" : "Yêu cầu liên kết mới"}
           </Button>
@@ -144,6 +146,7 @@ export function ResetPasswordForm({
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<MailIcon />}
                       autoComplete="email"
                       inputMode="email"
                       type="text"
@@ -157,6 +160,7 @@ export function ResetPasswordForm({
             <FormField
               control={form.control}
               name="password"
+              rules={{ deps: "password_confirmation" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Mật khẩu mới</FormLabel>
@@ -198,6 +202,7 @@ export function ResetPasswordForm({
               )}
             />
             <FormSubmitButton
+              startIcon={<KeyRoundIcon />}
               idleText="Đặt lại mật khẩu"
               pending={isPending}
               pendingText="Đang cập nhật..."

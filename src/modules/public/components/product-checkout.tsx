@@ -5,6 +5,13 @@ import Link from "next/link"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useWatch } from "react-hook-form"
 import {
+  PhoneIcon,
+  UserRoundIcon,
+  MessageSquareIcon,
+  RefreshCwIcon,
+  XIcon,
+  CheckIcon,
+  ListChecksIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
   CheckCircle2Icon,
@@ -880,6 +887,13 @@ export function ProductCheckout({
                           <FormLabel>{label}</FormLabel>
                           <FormControl>
                             <Input
+                              startIcon={
+                                name === "customer_phone" ? (
+                                  <PhoneIcon />
+                                ) : (
+                                  <UserRoundIcon />
+                                )
+                              }
                               {...field}
                               type={name === "customer_phone" ? "tel" : "text"}
                               autoComplete={
@@ -908,6 +922,7 @@ export function ProductCheckout({
                       <FormLabel>Số nhà, tên đường</FormLabel>
                       <FormControl>
                         <Input
+                          startIcon={<MapPinIcon />}
                           {...field}
                           autoComplete="street-address"
                           placeholder="Ví dụ: Số 12, ngõ 34, đường Nguyễn Trãi"
@@ -930,6 +945,7 @@ export function ProductCheckout({
                       </FormLabel>
                       <FormControl>
                         <Textarea
+                          startIcon={<MessageSquareIcon />}
                           {...field}
                           rows={3}
                           placeholder="Lưu ý về sản phẩm hoặc thời gian nhận hàng..."
@@ -965,6 +981,7 @@ export function ProductCheckout({
                     </p>
                     {currentShippingQuote?.error ? (
                       <Button
+                        startIcon={<RefreshCwIcon />}
                         type="button"
                         variant="outline"
                         size="sm"
@@ -1048,6 +1065,7 @@ export function ProductCheckout({
                       {linkedShopOffer.status === "error" ||
                       linkedShopOffer.status === "unavailable" ? (
                         <Button
+                          startIcon={<XIcon />}
                           type="button"
                           className="mt-2"
                           size="sm"
@@ -1096,6 +1114,7 @@ export function ProductCheckout({
                   </legend>
                   <div className="flex gap-2">
                     <Input
+                      startIcon={<TicketPercentIcon />}
                       aria-label="Mã giảm giá của sản phẩm"
                       autoCapitalize="characters"
                       autoComplete="off"
@@ -1111,6 +1130,7 @@ export function ProductCheckout({
                       }}
                     />
                     <Button
+                      startIcon={<CheckIcon />}
                       type="button"
                       variant="outline"
                       disabled={!enteredCode.trim()}
@@ -1123,6 +1143,7 @@ export function ProductCheckout({
                     <>
                       <div className="flex flex-wrap gap-2">
                         <Button
+                          startIcon={<ListChecksIcon />}
                           size="sm"
                           variant="outline"
                           type="button"
@@ -1139,6 +1160,7 @@ export function ProductCheckout({
                             : "Chọn tất cả"}
                         </Button>
                         <Button
+                          startIcon={<XIcon />}
                           size="sm"
                           variant="ghost"
                           type="button"
@@ -1196,6 +1218,7 @@ export function ProductCheckout({
                   <div className="space-y-2 text-xs text-destructive">
                     <p>{codesError}</p>
                     <Button
+                      startIcon={<RefreshCwIcon />}
                       size="sm"
                       variant="outline"
                       type="button"
@@ -1223,6 +1246,7 @@ export function ProductCheckout({
                       Có mã đã chọn chưa được xác nhận hoặc không còn hiệu lực.
                     </p>
                     <Button
+                      startIcon={<XIcon />}
                       size="sm"
                       variant="outline"
                       type="button"
@@ -1288,6 +1312,7 @@ export function ProductCheckout({
                   >
                     <p>{shippingCodeError}</p>
                     <Button
+                      startIcon={<RefreshCwIcon />}
                       type="button"
                       variant="outline"
                       size="sm"

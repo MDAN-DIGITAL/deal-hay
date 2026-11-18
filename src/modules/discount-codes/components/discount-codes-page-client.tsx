@@ -5,7 +5,14 @@ import { Surface } from "@/components/ui/surface"
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { CopyIcon, RefreshCwIcon, TicketPercentIcon } from "lucide-react"
+import {
+  ShoppingBagIcon,
+  BanIcon,
+  BookmarkIcon,
+  CopyIcon,
+  RefreshCwIcon,
+  TicketPercentIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 import { MediaImage } from "@/components/media-image"
 import { EmptyState } from "@/components/layout/empty-state"
@@ -79,6 +86,7 @@ export function DiscountCodesPageClient({
           description="Các mã giảm giá của bạn sẽ xuất hiện tại đây để lưu và dùng cho lần mua tiếp theo."
           action={
             <Link href="/" className={buttonVariants()}>
+              <ShoppingBagIcon aria-hidden="true" />
               Khám phá sản phẩm
             </Link>
           }
@@ -159,20 +167,25 @@ export function DiscountCodesPageClient({
                     href={discountCodeProductHref(code)}
                     className={buttonVariants()}
                   >
+                    <TicketPercentIcon aria-hidden="true" />
                     Dùng ngay
                   </Link>
                 ) : discountCodeCanBeSaved(code) ? (
                   <Button
+                    startIcon={<TicketPercentIcon />}
                     disabled={pending}
                     onClick={() => saveCode(code, true)}
                   >
                     Dùng ngay
                   </Button>
                 ) : (
-                  <Button disabled>Không thể sử dụng</Button>
+                  <Button startIcon={<BanIcon />} disabled>
+                    Không thể sử dụng
+                  </Button>
                 )}
                 {discountCodeCanBeSaved(code) ? (
                   <Button
+                    startIcon={<BookmarkIcon />}
                     variant="outline"
                     disabled={pending}
                     onClick={() => saveCode(code)}

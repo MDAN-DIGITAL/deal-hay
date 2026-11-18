@@ -1,5 +1,6 @@
 "use client"
 
+import { StoreIcon } from "lucide-react"
 import { useApiQuery, QueryPlaceholder } from "@/hooks/use-api-query"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -40,6 +41,7 @@ export function SellPageContainer({ user }: { user: User }) {
               href="/shop-manage"
               className={buttonVariants({ variant: "outline" })}
             >
+              <StoreIcon aria-hidden="true" />
               Quản lý cửa hàng
             </Link>
           }

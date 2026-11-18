@@ -1,5 +1,6 @@
 "use client"
 
+import { MailIcon, UserPlusIcon } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { useTransition } from "react"
@@ -73,6 +74,7 @@ export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<MailIcon />}
                       autoComplete="email"
                       inputMode="email"
                       type="text"
@@ -86,6 +88,7 @@ export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
             <FormField
               control={form.control}
               name="password"
+              rules={{ deps: "password_confirmation" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Mật khẩu</FormLabel>
@@ -168,6 +171,7 @@ export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
               )}
             />
             <FormSubmitButton
+              startIcon={<UserPlusIcon />}
               className="w-full"
               idleText="Đăng ký"
               pending={isPending}

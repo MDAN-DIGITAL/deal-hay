@@ -13,6 +13,7 @@ const react = moduleUrl(`
   export const useMemo=(create)=>create()
 `)
 const widgets = moduleUrl(`
+  export const MailIcon="icon", MessagesSquareIcon="icon", XIcon="icon"
   export const MessageCircleIcon='message-icon',SearchIcon='search-icon',ShieldCheckIcon='support-icon'
   export const EmptyState='empty-state',Badge='badge',Button='button',UserAvatar='avatar',ScrollArea='scroll-area'
   export const InputGroup='input-group',InputGroupAddon='input-addon',InputGroupInput='search'

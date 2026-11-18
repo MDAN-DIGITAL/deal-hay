@@ -2,7 +2,14 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
-import { MessageCircleIcon, SearchIcon, ShieldCheckIcon } from "lucide-react"
+import {
+  XIcon,
+  MessagesSquareIcon,
+  MailIcon,
+  MessageCircleIcon,
+  SearchIcon,
+  ShieldCheckIcon,
+} from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -176,7 +183,7 @@ export function ChatConversationList({
               className="mr-1 text-lg text-muted-foreground"
               onClick={() => setQuery("")}
             >
-              ×
+              <XIcon aria-hidden="true" />
             </Button>
           ) : null}
         </InputGroup>
@@ -185,6 +192,7 @@ export function ChatConversationList({
           aria-label="Lọc cuộc trò chuyện"
         >
           <Button
+            startIcon={<MessagesSquareIcon />}
             type="button"
             variant="filter"
             size="sm"
@@ -195,6 +203,7 @@ export function ChatConversationList({
             Tất cả
           </Button>
           <Button
+            startIcon={<MailIcon />}
             type="button"
             variant="filter"
             size="sm"

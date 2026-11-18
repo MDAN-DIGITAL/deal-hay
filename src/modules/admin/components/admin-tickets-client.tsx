@@ -4,7 +4,13 @@ import { useTransition } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { EyeIcon } from "lucide-react"
+import {
+  UserRoundIcon,
+  ExternalLinkIcon,
+  ClipboardCheckIcon,
+  MessageSquareIcon,
+  EyeIcon,
+} from "lucide-react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { getAdminTicket } from "@/api/admin/queries"
@@ -136,6 +142,7 @@ function TicketContext({ ticket }: { ticket: Ticket }) {
               name={ticket.user.full_name}
             />
             <Button
+              startIcon={<UserRoundIcon aria-hidden="true" />}
               variant="outline"
               size="sm"
               nativeButton={false}
@@ -151,6 +158,7 @@ function TicketContext({ ticket }: { ticket: Ticket }) {
         ) : null}
         {sourceHref ? (
           <Button
+            startIcon={<ExternalLinkIcon aria-hidden="true" />}
             variant="outline"
             size="sm"
             nativeButton={false}
@@ -247,11 +255,13 @@ export function TicketForm({ ticket }: { ticket: Ticket }) {
                 <FormField
                   control={form.control}
                   name="status"
+                  rules={{ deps: "admin_note" }}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Quyết định</FormLabel>
                       <FormSelect
-                        inputRef={field.ref}
+                        startIcon={<ClipboardCheckIcon />}
+                        ref={field.ref}
                         name={field.name}
                         options={[
                           { label: "Duyệt", value: "approved" },
@@ -273,6 +283,7 @@ export function TicketForm({ ticket }: { ticket: Ticket }) {
                       <FormLabel>Ghi chú quản trị viên</FormLabel>
                       <FormControl>
                         <Textarea
+                          startIcon={<MessageSquareIcon />}
                           {...field}
                           maxLength={1000}
                           disabled={isPending}
@@ -285,6 +296,7 @@ export function TicketForm({ ticket }: { ticket: Ticket }) {
                   )}
                 />
                 <FormSubmitButton
+                  startIcon={<ClipboardCheckIcon />}
                   idleText="Cập nhật yêu cầu"
                   pending={isPending}
                   pendingText="Đang lưu..."

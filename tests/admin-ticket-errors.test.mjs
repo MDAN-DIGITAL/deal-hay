@@ -23,6 +23,7 @@ const runtime = moduleUrl(`
   export const Textarea="textarea",UserAvatar="avatar",AdminNavigation="navigation"
   export default 'link'
   export const useRouter=()=>({}), useSearchParams=()=>new URLSearchParams()
+  export const ClipboardCheckIcon="icon", MessageSquareIcon="icon", UserRoundIcon="icon", ExternalLinkIcon="icon"
   export const EyeIcon='eye', Button='button', getAdminTicket=()=>{}, AdminChatButton='chat', AdminFilterBar='filters'
   export const QueryPlaceholder='placeholder', useApiQuery=()=>({}),formatDate=()=>'',adminSourceHref=()=>null
   export const ticketSourceOptions=[],ticketStatusOptions=[],ticketTypeOptions=[]

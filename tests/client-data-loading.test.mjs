@@ -25,6 +25,7 @@ const imports = {
   "@/api/client": api,
   "@/components/layout/page-loading": url(`export default "loading"`),
   "@/components/layout/page-not-found": url(`export default "not-found"`),
+  "lucide-react": import.meta.resolve("lucide-react"),
   "@/components/ui/button": url(`export const Button="button"`),
   "@/lib/query-cache": url(
     `export const DATA_CHANGED="data"; export function invalidateQueries() { window.dispatchEvent(new Event("data")) }`

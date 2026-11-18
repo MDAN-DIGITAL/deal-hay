@@ -69,7 +69,7 @@ export function AdminFilterBar({
               onChange={(event) => setSearch(event.target.value)}
             />
           </InputGroup>
-          <Button type="submit" variant="outline">
+          <Button startIcon={<SearchIcon />} type="submit" variant="outline">
             Tìm kiếm
           </Button>
         </form>

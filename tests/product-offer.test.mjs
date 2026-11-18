@@ -61,7 +61,7 @@ const { ProductOfferPageContainer } = await import(
       react: hookUrl,
       "next/link": moduleUrl('export default "a"'),
       "lucide-react": moduleUrl(
-        'export const ArrowLeftIcon = "icon", ArrowRightIcon = "icon", CirclePlayIcon = "icon", ShoppingBagIcon = "icon", TicketPercentIcon = "icon"'
+        'export const XIcon = "icon", ArrowLeftIcon = "icon", ArrowRightIcon = "icon", CirclePlayIcon = "icon", ShoppingBagIcon = "icon", TicketPercentIcon = "icon"'
       ),
       cn: moduleUrl(
         'export const cn = (...values) => values.filter(Boolean).join(" ")'

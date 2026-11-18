@@ -1,6 +1,6 @@
 "use client"
 
-import type { ComponentProps, FocusEventHandler, Ref } from "react"
+import type { ComponentProps, FocusEventHandler, ReactNode } from "react"
 
 import {
   Select,
@@ -20,14 +20,19 @@ export type AppSelectOption = {
 
 type AppSelectProps = Pick<
   ComponentProps<typeof SelectTrigger>,
-  "id" | "aria-label" | "aria-labelledby" | "aria-describedby" | "aria-invalid"
+  | "id"
+  | "ref"
+  | "aria-label"
+  | "aria-labelledby"
+  | "aria-describedby"
+  | "aria-invalid"
 > & {
   options: readonly AppSelectOption[]
   value?: string | null
   defaultValue?: string | null
   onValueChange?: (value: string) => void
   onBlur?: FocusEventHandler<HTMLElement>
-  inputRef?: Ref<HTMLInputElement>
+  startIcon?: ReactNode
   name?: string
   placeholder?: string
   disabled?: boolean
@@ -42,7 +47,7 @@ export function AppSelect({
   defaultValue,
   onValueChange,
   onBlur,
-  inputRef,
+  startIcon,
   name,
   placeholder = "Chọn một tùy chọn",
   disabled,
@@ -55,7 +60,6 @@ export function AppSelect({
     <Select
       disabled={disabled}
       required={required}
-      inputRef={inputRef}
       items={options}
       name={name}
       value={value === undefined ? undefined : value || null}
@@ -68,7 +72,15 @@ export function AppSelect({
         onBlur={onBlur}
         {...triggerProps}
       >
-        <SelectValue placeholder={placeholder} />
+        {startIcon && (
+          <span
+            aria-hidden="true"
+            className="inline-flex text-muted-foreground"
+          >
+            {startIcon}
+          </span>
+        )}
+        <SelectValue className="min-w-0" placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>

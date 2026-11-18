@@ -44,6 +44,32 @@ const productStockSchema = z
   .int("Tồn kho phải là số nguyên.")
   .min(0, "Tồn kho không được âm.")
   .max(999999, "Tồn kho quá lớn.")
+const priceSchema = (label: string) =>
+  z
+    .number({ error: `${label} phải là số nguyên.` })
+    .int(`${label} phải là số nguyên.`)
+    .min(1000, `${label} tối thiểu là 1.000đ.`)
+    .max(999999999, `${label} tối đa là 999.999.999đ.`)
+const productVideoUrlSchema = z
+  .url({
+    protocol: /^https$/,
+    message: "Vui lòng nhập URL video HTTPS hợp lệ.",
+  })
+  .max(2048, "URL video không được vượt quá 2.048 ký tự.")
+export const productPricingSchema = z
+  .object({
+    price: priceSchema("Giá bán"),
+    old_price: priceSchema("Giá gốc").nullable(),
+    video_url: productVideoUrlSchema.nullable(),
+  })
+  .refine(({ price, old_price }) => old_price === null || old_price > price, {
+    path: ["old_price"],
+    message: "Giá gốc phải lớn hơn giá bán.",
+  })
+
+export const productGallerySchema = z
+  .array(imageFileSchema("Ảnh bổ sung không hợp lệ."))
+  .max(50, "Mỗi sản phẩm được tải tối đa 50 ảnh bổ sung.")
 const productOptionsSchema = z.array(
   z.object({ name: z.string(), values: z.string() })
 )
@@ -71,21 +97,13 @@ const productFields = {
     120,
     "Danh mục không được vượt quá 120 ký tự."
   ),
-  price: z
-    .number({ error: "Giá bán phải là số nguyên." })
-    .int("Giá bán phải là số nguyên.")
-    .min(1000, "Giá bán tối thiểu là 1.000đ.")
-    .max(999999999, "Giá bán quá lớn."),
+  price: priceSchema("Giá bán"),
   label: optionalLabelSchema,
-  old_price: optionalVariantPriceSchema.optional(),
-  video_url: z
-    .union([z.url({ protocol: /^https$/ }), z.literal("")])
-    .optional(),
+  old_price: z.union([priceSchema("Giá gốc"), z.literal("")]).optional(),
+  video_url: z.union([productVideoUrlSchema, z.literal("")]).optional(),
   description: optionalDescriptionSchema,
   image: imageFileSchema("Vui lòng tải ảnh đại diện sản phẩm."),
-  gallery_images: z
-    .array(imageFileSchema("Ảnh bổ sung không hợp lệ."))
-    .max(50, "Mỗi sản phẩm được tải tối đa 50 ảnh bổ sung."),
+  gallery_images: productGallerySchema,
 }
 
 const createProductBaseSchema = z.discriminatedUnion("has_variants", [

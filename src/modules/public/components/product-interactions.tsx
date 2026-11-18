@@ -4,6 +4,11 @@ import Link from "next/link"
 import { useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
+  StarIcon,
+  MessageSquareIcon,
+  Undo2Icon,
+  ImageIcon,
+  SendIcon,
   BadgeCheckIcon,
   CirclePlayIcon,
   PackageCheckIcon,
@@ -142,8 +147,9 @@ function ReviewProductForm({
             <FormItem>
               <FormLabel>Mức độ hài lòng</FormLabel>
               <FormSelect
+                startIcon={<StarIcon />}
                 disabled={isPending}
-                inputRef={field.ref}
+                ref={field.ref}
                 name={field.name}
                 options={[
                   { label: "Hài lòng với sản phẩm", value: "like" },
@@ -165,6 +171,7 @@ function ReviewProductForm({
               <FormLabel>Nội dung đánh giá</FormLabel>
               <FormControl>
                 <Textarea
+                  startIcon={<MessageSquareIcon />}
                   disabled={isPending}
                   placeholder="Chia sẻ trải nghiệm thực tế của bạn..."
                   rows={4}
@@ -213,6 +220,7 @@ function ReviewProductForm({
                         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                           Ảnh hiện tại sẽ được xóa khi lưu.
                           <Button
+                            startIcon={<Undo2Icon />}
                             disabled={isPending}
                             size="sm"
                             type="button"
@@ -224,6 +232,7 @@ function ReviewProductForm({
                         </div>
                       ) : null}
                       <Input
+                        startIcon={<ImageIcon />}
                         accept={IMAGE_UPLOAD_ACCEPT}
                         disabled={isPending}
                         name={field.name}
@@ -246,6 +255,7 @@ function ReviewProductForm({
         />
         <ImageUploadProgress progress={isPending ? uploadProgress : null} />
         <FormSubmitButton
+          startIcon={<SendIcon />}
           className="w-full"
           idleText={review ? "Cập nhật đánh giá" : "Gửi đánh giá"}
           pending={isPending}

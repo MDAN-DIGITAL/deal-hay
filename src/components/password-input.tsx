@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, type ComponentProps } from "react"
-import { EyeIcon, EyeOffIcon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, LockKeyholeIcon } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,7 @@ export function PasswordInput({
     <div className="relative">
       <Input
         {...props}
+        startIcon={<LockKeyholeIcon />}
         className={cn("pr-11", className)}
         disabled={disabled}
         type={visible ? "text" : "password"}

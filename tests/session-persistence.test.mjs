@@ -29,12 +29,12 @@ test("tab synchronization sends a signal without accessing browser storage", () 
   globalThis.window = window
   const originalChannel = globalThis.BroadcastChannel
   const sent = []
-  let connection
+  const connections = []
   let events = 0
   window.addEventListener(SESSION_CHANGED, () => events++)
   globalThis.BroadcastChannel = class {
     constructor() {
-      connection = this
+      connections.push(this)
     }
     postMessage(value) {
       sent.push(value)
@@ -44,6 +44,7 @@ test("tab synchronization sends a signal without accessing browser storage", () 
     }
   }
   const stop = watchBrowserSession()
+  const [connection] = connections
   try {
     announceSession("new-session")
     assert.equal(getSessionId(), "new-session")

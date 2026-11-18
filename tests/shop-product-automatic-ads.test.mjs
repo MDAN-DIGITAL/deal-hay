@@ -38,7 +38,7 @@ const schemaUrl = transpileModule(
     "@/modules/shop-management/lib/product-variants": variantsUrl,
   }
 )
-const { createProductSchema } = await import(schemaUrl)
+const { createProductSchema, productGallerySchema } = await import(schemaUrl)
 const apiUrl = moduleUrl(`
   export class ApiError extends Error {}
   export const state = { calls: [], revalidated: [] }
@@ -114,6 +114,48 @@ function productFormData(overrides = {}) {
 test.beforeEach(() => {
   state.calls.length = 0
   state.revalidated.length = 0
+})
+
+test("editing prices rejects inconsistent amounts and non-HTTPS video URLs before calling the API", async () => {
+  const invalid = await actions.updateProductPricingAction(
+    "product",
+    productFormData({
+      price: 80000,
+      old_price: 80000,
+      video_url: "http://example.com/video",
+    })
+  )
+  assert.equal(invalid.success, false)
+  assert.ok(invalid.errors.old_price)
+  assert.ok(invalid.errors.video_url)
+  assert.deepEqual(state.calls, [])
+
+  const valid = await actions.updateProductPricingAction(
+    "product",
+    productFormData({ old_price: "", video_url: "" })
+  )
+  assert.equal(valid.success, true)
+  assert.deepEqual(state.calls[0].body, {
+    price: 80000,
+    old_price: null,
+    video_url: null,
+  })
+})
+
+test("the product gallery validates the complete selection and flags unsupported files", () => {
+  const image = productDraft().image
+  assert.equal(
+    productGallerySchema.safeParse(Array(50).fill(image)).success,
+    true
+  )
+  assert.equal(
+    productGallerySchema.safeParse(Array(51).fill(image)).success,
+    false
+  )
+  const unsupported = new File(["text"], "notes.txt", { type: "text/plain" })
+  const invalid = productGallerySchema.safeParse([image, unsupported])
+  assert.equal(invalid.success, false)
+  assert.deepEqual(invalid.error.issues[0].path, [1])
 })
 
 test("shops can configure a discount without adding an advertising video", () => {

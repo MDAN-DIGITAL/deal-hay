@@ -4,7 +4,13 @@ import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ExternalLinkIcon, EyeIcon, Trash2Icon } from "lucide-react"
+import {
+  MessageSquareIcon,
+  XIcon,
+  ExternalLinkIcon,
+  EyeIcon,
+  Trash2Icon,
+} from "lucide-react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { getAdminShop } from "@/api/admin/queries"
@@ -148,6 +154,7 @@ function ShopProductDeleteForm({
                   <FormLabel>Lý do xóa sản phẩm</FormLabel>
                   <FormControl>
                     <Textarea
+                      startIcon={<MessageSquareIcon />}
                       {...field}
                       maxLength={1000}
                       disabled={pending}
@@ -160,6 +167,7 @@ function ShopProductDeleteForm({
             />
             <DialogFooter>
               <Button
+                startIcon={<XIcon />}
                 type="button"
                 variant="outline"
                 disabled={pending}
@@ -168,6 +176,7 @@ function ShopProductDeleteForm({
                 Hủy
               </Button>
               <FormSubmitButton
+                startIcon={<Trash2Icon />}
                 idleText="Xóa sản phẩm"
                 pendingText="Đang xóa..."
                 pending={pending}
@@ -236,8 +245,6 @@ function ShopDetails({ shopId }: { shopId: string }) {
               href={`/shops/${encodeURIComponent(shop.user_code)}`}
               target="_blank"
               rel="noopener noreferrer"
-
-
             />
           }
         >

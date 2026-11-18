@@ -6,6 +6,25 @@ import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
+  BoxesIcon,
+  HashIcon,
+  FileTextIcon,
+  PackageCheckIcon,
+  MessageSquareIcon,
+  SendIcon,
+  ImageIcon,
+  StoreIcon,
+  MailIcon,
+  ShieldCheckIcon,
+  PhoneIcon,
+  MapPinIcon,
+  EyeOffIcon,
+  EyeIcon,
+  ArrowRightIcon,
+  RotateCcwIcon,
+  SaveIcon,
+  PackagePlusIcon,
+  FilterXIcon,
   ArrowDownIcon,
   ArrowUpIcon,
   ChevronLeftIcon,
@@ -232,8 +251,9 @@ function ProductInventoryForm({ product }: { product: ShopProduct }) {
               <FormItem>
                 <FormLabel>Biến thể sản phẩm</FormLabel>
                 <FormSelect
+                  startIcon={<BoxesIcon />}
                   disabled={availableVariants.length === 0}
-                  inputRef={field.ref}
+                  ref={field.ref}
                   name={field.name}
                   options={availableVariants.map((variant) => {
                     const optionLabel = Object.values(variant.option_values)
@@ -264,6 +284,7 @@ function ProductInventoryForm({ product }: { product: ShopProduct }) {
                 <FormLabel>Số lượng +/-</FormLabel>
                 <FormControl>
                   <Input
+                    startIcon={<HashIcon />}
                     inputMode="numeric"
                     type="number"
                     {...field}
@@ -289,6 +310,7 @@ function ProductInventoryForm({ product }: { product: ShopProduct }) {
                 <FormLabel>Ghi chú</FormLabel>
                 <FormControl>
                   <Input
+                    startIcon={<FileTextIcon />}
                     placeholder="Ghi chú điều chỉnh"
                     type="text"
                     {...field}
@@ -307,6 +329,7 @@ function ProductInventoryForm({ product }: { product: ShopProduct }) {
             : {product.stock}
           </p>
           <FormSubmitButton
+            startIcon={<PackageCheckIcon />}
             disabled={product.has_variants && availableVariants.length === 0}
             idleText="Cập nhật tồn kho"
             pending={isPending}
@@ -407,13 +430,18 @@ function ReviewReplyForm({ review }: { review: ShopProductReview }) {
                 <FormItem>
                   <FormLabel>Phản hồi từ shop</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Nhập phản hồi..." {...field} />
+                    <Textarea
+                      startIcon={<MessageSquareIcon />}
+                      placeholder="Nhập phản hồi..."
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <FormSubmitButton
+              startIcon={<SendIcon />}
               idleText={
                 review.shop_reply ? "Cập nhật phản hồi" : "Gửi phản hồi"
               }
@@ -483,6 +511,7 @@ function ShopAvatarForm({ user }: { user: User }) {
                       />
                     ) : (
                       <Input
+                        startIcon={<ImageIcon />}
                         accept={IMAGE_UPLOAD_ACCEPT}
                         name={field.name}
                         ref={field.ref}
@@ -501,6 +530,7 @@ function ShopAvatarForm({ user }: { user: User }) {
           />
           <ImageUploadProgress progress={isPending ? uploadProgress : null} />
           <FormSubmitButton
+            startIcon={<ImageIcon />}
             idleText="Cập nhật ảnh shop"
             pending={isPending}
             pendingText="Đang tải lên..."
@@ -577,7 +607,7 @@ function ShopProfileForm({ user }: { user: User }) {
               <FormItem>
                 <FormLabel>Tên shop</FormLabel>
                 <FormControl>
-                  <Input type="text" {...field} />
+                  <Input startIcon={<StoreIcon />} type="text" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -591,6 +621,7 @@ function ShopProfileForm({ user }: { user: User }) {
                 <FormLabel>Email shop</FormLabel>
                 <FormControl>
                   <Input
+                    startIcon={<MailIcon />}
                     autoComplete="email"
                     inputMode="email"
                     type="text"
@@ -617,6 +648,7 @@ function ShopProfileForm({ user }: { user: User }) {
                   <FormLabel>Mã xác thực đổi email shop</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<ShieldCheckIcon />}
                       autoComplete="one-time-code"
                       inputMode="numeric"
                       maxLength={6}
@@ -633,6 +665,7 @@ function ShopProfileForm({ user }: { user: User }) {
                   </FormDescription>
                   <FormMessage />
                   <Button
+                    startIcon={<MailIcon />}
                     disabled={isPending}
                     onClick={resendVerificationCode}
                     size="sm"
@@ -652,7 +685,12 @@ function ShopProfileForm({ user }: { user: User }) {
               <FormItem>
                 <FormLabel>Số điện thoại shop</FormLabel>
                 <FormControl>
-                  <Input inputMode="tel" type="text" {...field} />
+                  <Input
+                    startIcon={<PhoneIcon />}
+                    inputMode="tel"
+                    type="text"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -670,7 +708,7 @@ function ShopProfileForm({ user }: { user: User }) {
               <FormItem className="md:col-span-2">
                 <FormLabel>Địa chỉ chi tiết</FormLabel>
                 <FormControl>
-                  <Input type="text" {...field} />
+                  <Input startIcon={<MapPinIcon />} type="text" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -792,6 +830,7 @@ function ProductListItem({ product }: { product: ShopProduct }) {
       <ProductPricingForm product={product} />
       <div className="grid grid-cols-2 gap-2 border-t pt-3">
         <Button
+          startIcon={product.is_active ? <EyeOffIcon /> : <EyeIcon />}
           className="w-full"
           disabled={isPending}
           size="sm"
@@ -1111,6 +1150,7 @@ function OrderCard({ order }: { order: ShopOrder }) {
           </p>
           {nextStatus ? (
             <Button
+              startIcon={<ArrowRightIcon />}
               disabled={isPending}
               onClick={() => updateStatus(nextStatus)}
             >
@@ -1424,6 +1464,7 @@ export function ShopManagementClient({
               </CardContent>
               <CardFooter className="justify-end gap-2 border-t pt-4">
                 <Button
+                  startIcon={<RotateCcwIcon />}
                   disabled={pending || !categoryOrderHasChanged}
                   variant="outline"
                   onClick={() =>
@@ -1435,6 +1476,7 @@ export function ShopManagementClient({
                   Đặt lại
                 </Button>
                 <Button
+                  startIcon={<SaveIcon />}
                   disabled={
                     pending ||
                     !categoryOrderHasChanged ||
@@ -1542,6 +1584,13 @@ export function ShopManagementClient({
                   </EmptyHeader>
                   <EmptyContent>
                     <Button
+                      startIcon={
+                        products.length === 0 ? (
+                          <PackagePlusIcon />
+                        ) : (
+                          <FilterXIcon />
+                        )
+                      }
                       variant="outline"
                       onClick={() => {
                         if (products.length === 0) setCreateProductOpen(true)
@@ -1795,6 +1844,7 @@ export function ShopManagementClient({
                   {orders.length > 0 ? (
                     <EmptyContent>
                       <Button
+                        startIcon={<FilterXIcon />}
                         variant="outline"
                         onClick={() => {
                           setOrderSearch("")

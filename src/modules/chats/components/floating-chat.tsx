@@ -20,6 +20,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import {
+  LogInIcon,
   Maximize2Icon,
   MessageCircleIcon,
   MinusIcon,
@@ -216,6 +217,7 @@ function FloatingChatWidget({
                   rel="noopener noreferrer"
                   onClick={() => setExpanded(false)}
                 >
+                  <LogInIcon aria-hidden="true" />
                   Đăng nhập để trò chuyện
                 </Link>
               </div>

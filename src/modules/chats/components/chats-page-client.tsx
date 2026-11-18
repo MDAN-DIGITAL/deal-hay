@@ -721,6 +721,7 @@ export function ChatsPageClient({
                       >
                         <RealtimeStatusBadge status={status} />
                         <Button
+                          startIcon={<RefreshCwIcon />}
                           type="button"
                           variant="link"
                           size="sm"

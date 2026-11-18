@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { TriangleAlertIcon } from "lucide-react"
+import { RotateCwIcon, TriangleAlertIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -35,7 +35,9 @@ export default function Error({
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button onClick={reset}>Thử tải lại</Button>
+        <Button startIcon={<RotateCwIcon />} onClick={reset}>
+          Thử tải lại
+        </Button>
       </EmptyContent>
     </Empty>
   )

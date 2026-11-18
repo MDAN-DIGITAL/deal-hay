@@ -7,12 +7,14 @@ import { useFormField } from "@/components/ui/form"
 
 export type FormSelectOption = AppSelectOption
 
-type FormSelectProps = {
+type FormSelectProps = Pick<
+  React.ComponentProps<typeof AppSelect>,
+  "ref" | "startIcon"
+> & {
   options: FormSelectOption[]
   value: string
   onValueChange: (value: string) => void
   onBlur?: React.FocusEventHandler<HTMLElement>
-  inputRef?: React.Ref<HTMLInputElement>
   name?: string
   placeholder?: string
   disabled?: boolean
@@ -23,7 +25,8 @@ export function FormSelect({
   value,
   onValueChange,
   onBlur,
-  inputRef,
+  ref,
+  startIcon,
   name,
   placeholder = "Chọn một tùy chọn",
   disabled,
@@ -33,7 +36,8 @@ export function FormSelect({
   return (
     <AppSelect
       disabled={disabled}
-      inputRef={inputRef}
+      ref={ref}
+      startIcon={startIcon}
       options={options}
       name={name}
       value={value}

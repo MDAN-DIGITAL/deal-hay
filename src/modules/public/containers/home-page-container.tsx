@@ -3,6 +3,7 @@
 import { useApiQuery, QueryPlaceholder } from "@/hooks/use-api-query"
 import Link from "next/link"
 import {
+  ArrowLeftIcon,
   ArrowRightIcon,
   BadgeCheckIcon,
   MapPinIcon,
@@ -331,6 +332,7 @@ export function HomePageContainer({
                 href={data.products.total > 0 ? firstPageHref : "/#san-pham"}
                 className={buttonVariants()}
               >
+                <ArrowLeftIcon aria-hidden="true" />
                 {data.products.total > 0
                   ? "Về trang đầu"
                   : "Xem tất cả sản phẩm"}

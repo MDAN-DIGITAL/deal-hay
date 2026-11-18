@@ -7,7 +7,16 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
-import { KeyRoundIcon, StoreIcon, UserRoundIcon } from "lucide-react"
+import {
+  MailIcon,
+  ShieldCheckIcon,
+  PhoneIcon,
+  MapPinIcon,
+  ImageIcon,
+  KeyRoundIcon,
+  StoreIcon,
+  UserRoundIcon,
+} from "lucide-react"
 
 import { FormSubmitButton } from "@/components/form-submit-button"
 import { AddressFields } from "@/components/address-fields"
@@ -120,7 +129,7 @@ function ProfileInfoForm({ user }: { user: User }) {
               <FormItem>
                 <FormLabel>Họ tên</FormLabel>
                 <FormControl>
-                  <Input type="text" {...field} />
+                  <Input startIcon={<UserRoundIcon />} type="text" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -134,6 +143,7 @@ function ProfileInfoForm({ user }: { user: User }) {
                 <FormLabel>Email</FormLabel>
                 <FormControl>
                   <Input
+                    startIcon={<MailIcon />}
                     autoComplete="email"
                     inputMode="email"
                     type="text"
@@ -160,6 +170,7 @@ function ProfileInfoForm({ user }: { user: User }) {
                   <FormLabel>Mã xác thực đổi email</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<ShieldCheckIcon />}
                       autoComplete="one-time-code"
                       inputMode="numeric"
                       maxLength={6}
@@ -175,6 +186,7 @@ function ProfileInfoForm({ user }: { user: User }) {
                   </FormDescription>
                   <FormMessage />
                   <Button
+                    startIcon={<MailIcon />}
                     disabled={isPending}
                     onClick={resendVerificationCode}
                     size="sm"
@@ -195,6 +207,7 @@ function ProfileInfoForm({ user }: { user: User }) {
                 <FormLabel>Số điện thoại</FormLabel>
                 <FormControl>
                   <Input
+                    startIcon={<PhoneIcon />}
                     inputMode="tel"
                     type="text"
                     {...field}
@@ -213,7 +226,12 @@ function ProfileInfoForm({ user }: { user: User }) {
               <FormItem className="md:col-span-2">
                 <FormLabel>Địa chỉ chi tiết</FormLabel>
                 <FormControl>
-                  <Input type="text" {...field} value={field.value ?? ""} />
+                  <Input
+                    startIcon={<MapPinIcon />}
+                    type="text"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -264,6 +282,7 @@ function PasswordForm() {
         <FormField
           control={form.control}
           name="current_password"
+          rules={{ deps: "password" }}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Mật khẩu hiện tại</FormLabel>
@@ -281,6 +300,7 @@ function PasswordForm() {
         <FormField
           control={form.control}
           name="password"
+          rules={{ deps: "password_confirmation" }}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Mật khẩu mới</FormLabel>
@@ -322,6 +342,7 @@ function PasswordForm() {
           )}
         />
         <FormSubmitButton
+          startIcon={<KeyRoundIcon />}
           idleText="Cập nhật mật khẩu"
           pending={isPending}
           pendingText="Đang cập nhật..."
@@ -381,6 +402,7 @@ function AvatarForm() {
                     />
                   ) : (
                     <Input
+                      startIcon={<ImageIcon />}
                       accept={IMAGE_UPLOAD_ACCEPT}
                       name={field.name}
                       ref={field.ref}
@@ -399,6 +421,7 @@ function AvatarForm() {
         />
         <ImageUploadProgress progress={isPending ? uploadProgress : null} />
         <FormSubmitButton
+          startIcon={<ImageIcon />}
           idleText="Cập nhật avatar"
           pending={isPending}
           pendingText="Đang tải lên..."

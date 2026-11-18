@@ -1,7 +1,7 @@
 "use client"
 
 import { useId, useState, type ComponentProps } from "react"
-import { CalendarIcon } from "lucide-react"
+import { CalendarDaysIcon, CalendarIcon, CheckIcon, XIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -228,6 +228,7 @@ export function DatePicker({
               size="sm"
               variant="ghost"
               disabled={disabled}
+              startIcon={<CalendarDaysIcon />}
               onClick={() => selectDay(new Date())}
             >
               Hôm nay
@@ -237,6 +238,7 @@ export function DatePicker({
               size="sm"
               variant="ghost"
               disabled={disabled || !selected}
+              startIcon={<XIcon />}
               onClick={() => changeValue("")}
             >
               Xóa
@@ -245,6 +247,7 @@ export function DatePicker({
               type="button"
               size="sm"
               className="ml-auto"
+              startIcon={<CheckIcon />}
               onClick={() => setOpen(false)}
             >
               Xong

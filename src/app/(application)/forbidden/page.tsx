@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ShieldXIcon } from "lucide-react"
+import { HouseIcon, ShieldXIcon } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
 import {
@@ -28,6 +28,7 @@ export default function ForbiddenPage() {
       </EmptyHeader>
       <EmptyContent>
         <Link href="/" className={buttonVariants()}>
+          <HouseIcon aria-hidden="true" />
           Về trang chủ
         </Link>
       </EmptyContent>

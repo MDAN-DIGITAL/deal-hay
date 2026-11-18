@@ -1,5 +1,6 @@
 "use client"
 
+import { MailIcon, SendIcon } from "lucide-react"
 import Link from "next/link"
 import { useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -74,6 +75,7 @@ export function ForgotPasswordForm() {
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
+                      startIcon={<MailIcon />}
                       autoComplete="email"
                       inputMode="email"
                       type="text"
@@ -85,6 +87,7 @@ export function ForgotPasswordForm() {
               )}
             />
             <FormSubmitButton
+              startIcon={<SendIcon />}
               className="w-full"
               idleText="Gửi yêu cầu"
               pending={isPending}

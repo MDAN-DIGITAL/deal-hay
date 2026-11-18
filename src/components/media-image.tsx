@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { ImageIcon } from "lucide-react"
+import { RotateCwIcon, ImageIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -91,6 +91,7 @@ export function MediaImage({
           <span className="text-xs">{fallbackLabel}</span>
           {retryable && normalizedSrc ? (
             <Button
+              startIcon={<RotateCwIcon />}
               size="sm"
               type="button"
               variant="outline"

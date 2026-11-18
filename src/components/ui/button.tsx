@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
@@ -52,18 +53,35 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  startIcon,
+  children,
   tooltip,
   title,
   ...props
 }: ButtonPrimitive.Props &
-  VariantProps<typeof buttonVariants> & { tooltip?: string }) {
+  VariantProps<typeof buttonVariants> & {
+    startIcon?: ReactNode
+    tooltip?: string
+  }) {
+  const content = startIcon ? (
+    <>
+      <span aria-hidden="true" className="inline-flex">
+        {startIcon}
+      </span>
+      {children}
+    </>
+  ) : (
+    children
+  )
   const button = (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       title={tooltip ? undefined : title}
       {...props}
-    />
+    >
+      {content}
+    </ButtonPrimitive>
   )
 
   if (!tooltip) return button

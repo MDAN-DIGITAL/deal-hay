@@ -1,8 +1,11 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { useFormStatus } from "react-dom"
+import { SaveIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 
 type FormSubmitButtonProps = {
   idleText: string
@@ -12,6 +15,7 @@ type FormSubmitButtonProps = {
   className?: string
   pending?: boolean
   disabled?: boolean
+  startIcon?: ReactNode
 }
 
 export function FormSubmitButton({
@@ -21,6 +25,7 @@ export function FormSubmitButton({
   className,
   pending,
   disabled,
+  startIcon = <SaveIcon />,
 }: FormSubmitButtonProps) {
   const { pending: nativePending } = useFormStatus()
   const isPending = pending ?? nativePending
@@ -31,6 +36,14 @@ export function FormSubmitButton({
       variant={variant}
       disabled={disabled || isPending}
       className={className}
+      aria-busy={isPending}
+      startIcon={
+        isPending ? (
+          <Spinner role={undefined} aria-label={undefined} />
+        ) : (
+          startIcon
+        )
+      }
     >
       {isPending ? (pendingText ?? "Đang xử lý...") : idleText}
     </Button>

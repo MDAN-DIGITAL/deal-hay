@@ -33,7 +33,7 @@ const widgets = moduleUrl(`
   export const usePathname=()=>globalThis.__floatingChat.pathname
   export const useRealtime=()=>({unreadCounts:{messages:globalThis.__floatingChat.unread}})
   export const Button='button',buttonVariants=()=>''
-  export const Maximize2Icon='maximize',MessageCircleIcon='message',MinusIcon='minimize',ShieldCheckIcon='shield'
+  export const LogInIcon='login',Maximize2Icon='maximize',MessageCircleIcon='message',MinusIcon='minimize',ShieldCheckIcon='shield'
   export const Dialog='dialog-root',DialogTrigger='dialog-trigger',DialogPortal='dialog-portal',DialogPopup='dialog-popup',DialogTitle='dialog-title',DialogDescription='dialog-description',DialogClose='dialog-close'
   export const ChatPageLink='chat-link'
 `)

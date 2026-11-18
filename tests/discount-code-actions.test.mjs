@@ -41,7 +41,7 @@ const reviewUrl = transpileModule("../src/modules/public/schemas/reviews.ts", {
 })
 const checkoutUrl = transpileModule(
   "../src/modules/public/schemas/checkout.ts",
-  { zod: import.meta.resolve("zod") }
+  { zod: import.meta.resolve("zod"), "@/lib/validation": validationUrl }
 )
 const queriesUrl = transpileModule("../src/api/discount-codes/queries.ts", {
   "@/api/client": apiUrl,
@@ -200,7 +200,7 @@ test("checkout forwards only the validated shipping code with the order idempote
       quoted_shipping_fee: 15000,
       quantity: 1,
       note: "",
-      shipping_discount_code: "  ship-real-code  ",
+      shipping_discount_code: `  ${"ab".repeat(16)}  `,
       shipping_discount_amount: 99999,
       shipping_total: 0,
       shipping_reward_view_id: "client-view",
@@ -216,17 +216,18 @@ test("checkout forwards only the validated shipping code with the order idempote
     state.calls[0].headers["Idempotency-Key"],
     "shipping-code-request"
   )
-  assert.equal(state.calls[0].body.shipping_discount_code, "SHIP-REAL-CODE")
+  assert.equal(state.calls[0].body.shipping_discount_code, "AB".repeat(16))
   assert.equal(state.calls[0].body.quoted_shipping_fee, 15000)
   assert.equal("shipping_discount_amount" in state.calls[0].body, false)
   assert.equal("shipping_total" in state.calls[0].body, false)
   assert.equal("shipping_reward_view_id" in state.calls[0].body, false)
 })
 
-test("checkout rejects blank, oversized and non-string shipping codes before requesting an order", async () => {
+test("checkout rejects shipping codes with an invalid length or type before requesting an order", async () => {
   for (const shipping_discount_code of [
     "",
     "   ",
+    "S".repeat(31),
     "S".repeat(33),
     "ß".repeat(17),
     null,

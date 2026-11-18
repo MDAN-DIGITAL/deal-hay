@@ -12,6 +12,7 @@ const moduleUrl = (source) =>
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
 const stubs = moduleUrl(`
   export default "stub"
+  export const RefreshCwIcon="icon"
   export const ArrowRightIcon="arrow",ChevronDownIcon="chevron",TicketPercentIcon="ticket"
   export const Button="button",Surface="surface",Label="label"
   export const RadioGroup="radio-group",RadioGroupItem="radio-item"

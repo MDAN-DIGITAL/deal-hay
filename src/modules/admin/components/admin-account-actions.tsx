@@ -1,7 +1,14 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { LockIcon, LockOpenIcon, MessageCircleIcon } from "lucide-react"
+import {
+  MessageSquareIcon,
+  XIcon,
+  UnlockIcon,
+  LockIcon,
+  LockOpenIcon,
+  MessageCircleIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 import { ApiError } from "@/api/client"
 import { ChatPageLink } from "@/components/chat-page-link"
@@ -184,6 +191,7 @@ export function AdminAccountLockButton({
             <div className="space-y-2">
               <Label htmlFor={`lock-reason-${id}`}>Lý do khóa</Label>
               <Textarea
+                startIcon={<MessageSquareIcon />}
                 id={`lock-reason-${id}`}
                 required
                 maxLength={500}
@@ -205,6 +213,7 @@ export function AdminAccountLockButton({
           ) : null}
           <DialogFooter>
             <Button
+              startIcon={<XIcon />}
               type="button"
               variant="outline"
               disabled={pending}
@@ -213,6 +222,7 @@ export function AdminAccountLockButton({
               Hủy
             </Button>
             <Button
+              startIcon={isActive ? <LockIcon /> : <UnlockIcon />}
               type="submit"
               variant={isActive ? "destructive" : "default"}
               disabled={pending || (isActive && !reason.trim())}
