@@ -1,6 +1,6 @@
 # Socket.IO frontend integration
 
-Browser code gets its public Socket.IO origin from the Laravel API and requests a short-lived ticket at `POST /api/private/realtime/socket-session`. The account bearer token is sent only to the API. The WSS handshake receives the scoped ticket.
+Browser code gets its public Socket.IO origin from the Laravel API and requests a short-lived ticket at `POST /api/private/realtime/socket-session` with the app session cookie and CSRF header. The WSS handshake receives the scoped ticket from memory. Reloading the page requires a fresh ticket from Laravel.
 
 The adapter renews tickets, retries failed authentication with backoff, restores authorized subscriptions after reconnection, handles presence, and measures acknowledgement latency. Reverb/Pusher dependencies and frontend proxy endpoints have been removed.
 

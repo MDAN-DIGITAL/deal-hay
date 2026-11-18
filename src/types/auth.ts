@@ -32,7 +32,7 @@ export type User = {
 
 export type AuthPayload = {
   message: string
-  token: string
+  session: string
   user: User
 }
 

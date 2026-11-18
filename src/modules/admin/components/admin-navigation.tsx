@@ -19,7 +19,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { openAuthenticatedTab } from "@/lib/authenticated-tab"
 import {
   adminSections,
   adminSection,
@@ -78,8 +77,8 @@ export function AdminNavigation() {
                   href="/diagnostics"
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={openAuthenticatedTab}
-                  onAuxClick={openAuthenticatedTab}
+
+
                 />
               }
             >

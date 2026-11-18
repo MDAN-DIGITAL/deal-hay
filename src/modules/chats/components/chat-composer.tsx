@@ -48,7 +48,7 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 import { runUploadAction } from "@/lib/form-utils"
-import { getAccessToken } from "@/lib/session"
+import { getSessionId } from "@/lib/session"
 import {
   CHAT_ATTACHMENT_ACCEPT,
   chatAttachmentFileSchema,
@@ -95,7 +95,7 @@ export function ChatComposer({
   const submittingRef = useRef(false)
   const queueRef = useRef<ReturnType<typeof createChatSendQueue> | null>(null)
   const callbacksRef = useRef({ socketId, onSent })
-  const [accountToken] = useState(getAccessToken)
+  const [accountToken] = useState(getSessionId)
   const [outgoing, setOutgoing] = useState<ChatSendBatch[]>([])
   const [showAdminPicker, setShowAdminPicker] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
@@ -113,7 +113,7 @@ export function ChatComposer({
     mentionAdminIds.length > 0
   useEffect(() => {
     let active = true
-    const isCurrent = () => active && getAccessToken() === accountToken
+    const isCurrent = () => active && getSessionId() === accountToken
     queueRef.current = createChatSendQueue({
       isCurrent,
       onChange: setOutgoing,

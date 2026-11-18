@@ -26,7 +26,7 @@ const runtime = moduleUrl(`
   export const useForm=(options)=>globalThis.__composer.getForm(options)
   export const useWatch=({name})=>globalThis.__composer.values[name]
   export const zodResolver=()=>({})
-  export const getAccessToken=()=>globalThis.__composer.token
+  export const getSessionId=()=>globalThis.__composer.token
   export const useImageUpload=()=>({prepareUploads:globalThis.__composer.prepareUploads,uploadProgress:null})
   export const sendMessageAction=(slug,payload)=>globalThis.__composer.send(slug,payload)
   export const uploadChatFile=async(file)=>'https://chat.test/files/'+file.name

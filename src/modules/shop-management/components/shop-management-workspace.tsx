@@ -45,7 +45,6 @@ import {
 } from "@/components/ui/sidebar"
 import { apiAssetUrl } from "@/config/env"
 import { initials } from "@/lib/format"
-import { openAuthenticatedTab } from "@/lib/authenticated-tab"
 import {
   managementHref,
   managementSections,
@@ -215,8 +214,8 @@ export function ShopManagementWorkspace({
                 render={
                   <Link
                     href="/profile"
-                    onClick={openAuthenticatedTab}
-                    onAuxClick={openAuthenticatedTab}
+
+
                     target="_blank"
                     rel="noopener noreferrer"
                   />
@@ -265,8 +264,8 @@ export function ShopManagementWorkspace({
                   href="/chats"
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={openAuthenticatedTab}
-                  onAuxClick={openAuthenticatedTab}
+
+
                 />
               }
             >
@@ -285,8 +284,8 @@ export function ShopManagementWorkspace({
               render={
                 <Link
                   href="/notifications"
-                  onClick={openAuthenticatedTab}
-                  onAuxClick={openAuthenticatedTab}
+
+
                   target="_blank"
                   rel="noopener noreferrer"
                 />

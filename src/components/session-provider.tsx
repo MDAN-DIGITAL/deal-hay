@@ -15,8 +15,9 @@ import { getAuthPageHref, getSafeAuthRedirect } from "@/lib/auth-redirect"
 import { DATA_CHANGED } from "@/lib/query-cache"
 import {
   SESSION_CHANGED,
-  getAccessToken,
-  watchStoredSession,
+  getSessionId,
+  setSessionId,
+  watchBrowserSession,
 } from "@/lib/session"
 import type { SessionResponse } from "@/api/auth/types"
 import type { User } from "@/types/auth"
@@ -58,9 +59,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     let revision = 0
     const load = () => {
       const request = ++revision
-      const account = getAccessToken()
+      const account = getSessionId()
       const current = () =>
-        !disposed && request === revision && getAccessToken() === account
+        !disposed && request === revision && getSessionId() === account
       let accountResolved = false
       if (chatPage)
         void getCachedChatSession()
@@ -81,13 +82,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       void getCurrentSession()
         .then((data) => {
           accountResolved = true
-          if (current())
+          if (current()) {
+            const changed = account !== data.session
+            setSessionId(data.session)
             setSession({
               ...data,
               loading: false,
               offlineChat: false,
               accountLoading: false,
             })
+            if (changed)
+              window.dispatchEvent(
+                new CustomEvent(SESSION_CHANGED, { detail: { verified: true } })
+              )
+          }
         })
         .catch(async () => {
           accountResolved = true
@@ -111,7 +119,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             )
         })
     }
-    const changeSession = () => {
+    const changeSession = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail?.verified) return
       setSession({
         ...guest,
         loading: true,
@@ -123,10 +132,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     load()
     window.addEventListener(SESSION_CHANGED, changeSession)
     window.addEventListener(DATA_CHANGED, load)
-    const stopStoredSession = watchStoredSession()
+    const stopWatching = watchBrowserSession()
+    window.addEventListener("focus", load)
+    window.addEventListener("pageshow", load)
     return () => {
       disposed = true
-      stopStoredSession()
+      stopWatching()
+      window.removeEventListener("focus", load)
+      window.removeEventListener("pageshow", load)
       window.removeEventListener(SESSION_CHANGED, changeSession)
       window.removeEventListener(DATA_CHANGED, load)
     }

@@ -36,10 +36,9 @@ const mocks = moduleUrl(`
   export class ApiError extends Error {
     constructor(message, errors = {current_password:[message]}) { super(message); this.errors = errors }
   }
-  export function getAccessToken() { return state.token }
-  export function isAccessTokenRemembered() { return state.remembered }
-  export async function setAuthSession(payload, remember) { state.saved.push({payload,remember});state.token=payload.token }
-  export function clearAccessToken(expected) {
+  export function getSessionId() { return state.token }
+  export async function setAuthSession(id) { state.saved.push(id);state.token=id }
+  export function clearAuthSession(expected) {
     state.cleared.push(expected)
     if (state.token === expected) state.token = null
   }
@@ -47,7 +46,7 @@ const mocks = moduleUrl(`
     state.calls.push(values)
     await state.wait
     if (state.error) throw state.error
-    return {message:"Cập nhật mật khẩu thành công.",token:"replacement-token",user:{id:"user-a"}}
+    return {message:"Cập nhật mật khẩu thành công.",session:"replacement-session",user:{id:"user-a"}}
   }
   export function invalidateQueries() {}
   export function updateAvatar() { throw new Error("Unexpected avatar update") }
@@ -119,16 +118,8 @@ test("a successful password change replaces the revoked credential while keeping
   assert.equal(result.message, "Cập nhật mật khẩu thành công.")
   assert.deepEqual(state.calls, [password])
   assert.deepEqual(state.cleared, [])
-  assert.equal(state.token, "replacement-token")
-  assert.equal(state.saved[0].remember, false)
-})
-
-test("password rotation preserves the user's remembered login choice", async () => {
-  state.remembered = true
-  const result = await updatePasswordAction(password)
-  assert.equal(result.success, true)
-  assert.equal(state.token, "replacement-token")
-  assert.equal(state.saved[0].remember, true)
+  assert.equal(state.token, "replacement-session")
+  assert.deepEqual(state.saved, ["replacement-session"])
 })
 
 test("an invalid password never reaches the API or logs the account out", async () => {

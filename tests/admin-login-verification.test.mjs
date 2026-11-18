@@ -53,9 +53,8 @@ const apiUrl = moduleUrl(`
     if (state.error) throw state.error
     return state.payload
   }
-  export async function setAuthSession(payload, remember) {
-    state.cookies.push(payload)
-    state.remembers.push(remember)
+  export async function setAuthSession(id) {
+    state.cookies.push(id)
   }
   export function invalidateQueries(path) { state.revalidated.push(path) }
   export class Redirect extends Error {
@@ -66,7 +65,7 @@ const apiUrl = moduleUrl(`
   }
   export function redirect(destination) { throw new Redirect(destination) }
   export function clearAuthSession() { throw new Error("Unexpected logout") }
-  export function getAccessToken() { return null }
+  export function getSessionId() { return null }
   export function forgotPassword() { throw new Error("Unexpected password reset") }
   export function resetPassword() { throw new Error("Unexpected password reset") }
   export function logout() { throw new Error("Unexpected logout") }
@@ -105,7 +104,7 @@ test.beforeEach(() => {
   state.error = undefined
   state.payload = {
     message: "Đăng nhập thành công.",
-    token: "test-token",
+    session: "test-session",
     user: { role: "customer" },
   }
   state.calls.length = 0
@@ -191,8 +190,7 @@ test("a regular account signs in without supplying an administrator code", async
   })
 
   assert.equal(state.calls[0].admin_verification_code, undefined)
-  assert.deepEqual(state.cookies, [state.payload])
-  assert.deepEqual(state.remembers, [false])
+  assert.deepEqual(state.cookies, [state.payload.session])
   assert.equal(state.revalidated.length, 0)
 })
 
@@ -212,16 +210,14 @@ test("a verified administrator receives a session and retains the safe return de
   )
 
   assert.equal(state.calls[0].admin_verification_code, "123456")
-  assert.deepEqual(state.cookies, [state.payload])
-  assert.deepEqual(state.remembers, [false])
+  assert.deepEqual(state.cookies, [state.payload.session])
 })
 
-test("a regular account forwards the explicit remember choice to the API and session storage", async () => {
+test("a regular account forwards the explicit remember choice to the API", async () => {
   await assert.rejects(
     signInAction({ ...credentials, remember: true }),
     (error) => error instanceof Redirect
   )
 
   assert.equal(state.calls[0].remember, true)
-  assert.deepEqual(state.remembers, [true])
 })

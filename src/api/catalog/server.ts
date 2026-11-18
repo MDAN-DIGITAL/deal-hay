@@ -71,7 +71,7 @@ async function readPublicCatalog<T>(
     const data = await apiFetch<unknown>({
       ...request,
       // Public snapshots must never depend on a browser account or cached identity.
-      token: null,
+      credentials: "omit",
       // A short shared cache avoids paying for the same anonymous catalog read on
       // every navigation while the browser still revalidates viewer-specific data.
       cache: "force-cache",

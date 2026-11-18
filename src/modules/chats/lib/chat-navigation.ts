@@ -1,9 +1,5 @@
 import type { SelectedConversation, ConversationAlias } from "@/types/chat"
-import {
-  ACCESS_TOKEN_SESSION_ONLY_KEY,
-  ACCESS_TOKEN_STORAGE_KEY,
-  getAccessToken,
-} from "@/lib/session"
+import { getSessionId } from "@/lib/session"
 
 export const CHAT_NAVIGATION_EVENT = "dealhay:chat-navigation"
 
@@ -29,7 +25,7 @@ function chatHref(href: string): string | null {
 /** Reserve during the click gesture, before awaiting conversation creation. */
 export function reserveChatPage(): ReservedChatPage | null {
   if (typeof window === "undefined") return null
-  const account = getAccessToken()
+  const account = getSessionId()
   let page: Window | null
   try {
     page = window.open("about:blank", "_blank")
@@ -38,33 +34,7 @@ export function reserveChatPage(): ReservedChatPage | null {
   }
   if (!page) return null
   try {
-    // The owned blank document is same-origin. Disconnect its opener before any
-    // app code runs. Shared storage handles native/noopener new tabs; this copy
-    // also supports browsers that restrict persistent storage.
     page.opener = null
-    let realtime: string | null = null
-    try {
-      realtime = window.localStorage.getItem("dealhay_wss_session")
-    } catch {
-      // Fall back to the current tab when persistent storage is unavailable.
-    }
-    if (realtime === null)
-      realtime = window.sessionStorage.getItem("dealhay_wss_session")
-    // The destination validates the record's account fingerprint and expiry.
-    // An empty canonical record must override any inherited stale credential.
-    page.sessionStorage.setItem(
-      "dealhay_wss_session",
-      account ? realtime || "" : ""
-    )
-    if (account) {
-      page.sessionStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, account)
-      // A copied credential must not become a remembered login. A real shared
-      // token still takes precedence when the source account was remembered.
-      page.sessionStorage.setItem(ACCESS_TOKEN_SESSION_ONLY_KEY, "1")
-    } else {
-      page.sessionStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
-      page.sessionStorage.removeItem(ACCESS_TOKEN_SESSION_ONLY_KEY)
-    }
   } catch {
     page.close()
     return null
@@ -80,7 +50,7 @@ export function reserveChatPage(): ReservedChatPage | null {
     navigate(href) {
       const destination = chatHref(href)
       if (settled || page.closed) return false
-      if (!destination || getAccessToken() !== account) {
+      if (!destination || getSessionId() !== account) {
         close()
         return false
       }

@@ -37,7 +37,6 @@ import {
 } from "@/components/ui/sheet"
 import { UserAvatar } from "@/components/user-avatar"
 import { ChatPageLink } from "@/components/chat-page-link"
-import { openAuthenticatedTab } from "@/lib/authenticated-tab"
 import type { User } from "@/types/auth"
 
 const publicItems = [
@@ -177,11 +176,7 @@ export function MobileNavigation({
           ) : null}
           {user?.role === "shop_owner" ? (
             <Link
-              onClick={(event) => {
-                setOpen(false)
-                openAuthenticatedTab(event)
-              }}
-              onAuxClick={openAuthenticatedTab}
+              onClick={() => setOpen(false)}
               href="/shop-manage"
               target="_blank"
               rel="noopener noreferrer"

@@ -1,22 +1,21 @@
-import { getAccessToken } from "@/lib/session"
-
 import { apiFetch, ApiError } from "@/api/client"
 import { authRoutes } from "@/api/auth/routes"
 import type { SessionResponse, MeResponse } from "@/api/auth/types"
 
-export async function getCurrentSession(): Promise<SessionResponse> {
-  const token = getAccessToken()
-  const guestSession: SessionResponse = {
+export async function getCurrentSession(): Promise<
+  SessionResponse & { session: string | null }
+> {
+  const guestSession = {
     user: null,
     unreadCounts: { messages: 0, notifications: 0 },
+    session: null,
   }
 
-  if (!token) return guestSession
-
   try {
-    const response = await apiFetch<MeResponse>({ path: authRoutes.me, token })
+    const response = await apiFetch<MeResponse>({ path: authRoutes.me })
     return {
       user: response.data,
+      session: response.session,
       unreadCounts: {
         messages: response.meta.unread_messages_count,
         notifications: response.meta.unread_notifications_count,

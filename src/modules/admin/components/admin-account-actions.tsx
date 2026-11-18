@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { getAccessToken } from "@/lib/session"
+import { getSessionId } from "@/lib/session"
 import {
   startAdminChatAction,
   toggleUserLockAction,
@@ -63,14 +63,14 @@ export function AdminChatButton({
       disabled={pending}
       aria-label={`Nhắn tin với ${name}`}
       onClick={() => {
-        const account = getAccessToken()
+        const account = getSessionId()
         const ownerId = user.id
         const reserved = reserveChatPage()
         setChatLink(null)
         startTransition(async () => {
           try {
             const state = await startAdminChatAction(userId)
-            if (getAccessToken() !== account) {
+            if (getSessionId() !== account) {
               reserved?.close()
               return
             }

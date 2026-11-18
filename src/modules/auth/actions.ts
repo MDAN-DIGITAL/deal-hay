@@ -8,7 +8,7 @@ import {
 } from "@/api/auth/mutations"
 import { clearAuthSession, setAuthSession } from "@/lib/auth"
 import { getSafeAuthRedirect } from "@/lib/auth-redirect"
-import { getAccessToken } from "@/lib/session"
+import { getSessionId } from "@/lib/session"
 import type { ActionState } from "@/types/forms"
 import {
   forgotPasswordSchema,
@@ -54,7 +54,7 @@ export async function signInAction(
       remember: parsed.data.remember,
       admin_verification_code: parsed.data.admin_verification_code || undefined,
     })
-    await setAuthSession(payload, parsed.data.remember)
+    setAuthSession(payload.session)
   } catch (error) {
     if (error instanceof ApiError) {
       return {
@@ -92,7 +92,7 @@ export async function signUpAction(
       password_confirmation: parsed.data.password_confirmation,
       accept_terms: parsed.data.accept_terms,
     })
-    await setAuthSession(payload)
+    setAuthSession(payload.session)
   } catch (error) {
     if (error instanceof ApiError) {
       return fromApiError(error)
@@ -143,7 +143,7 @@ export async function resetPasswordAction(
     }
   }
 
-  const account = getAccessToken()
+  const account = getSessionId()
   let response
   try {
     response = await resetPassword({
@@ -159,38 +159,29 @@ export async function resetPasswordAction(
     return { success: false, message: "Không thể đặt lại mật khẩu." }
   }
 
-  if (response.token && getAccessToken() === account) {
-    try {
-      await setAuthSession({ ...response, token: response.token }, false)
-    } catch {
-      return {
-        success: true,
-        authenticated: false,
-        message:
-          "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập để tiếp tục.",
-      }
-    }
+  if (response.session && getSessionId() === account) {
+    setAuthSession(response.session)
     window.location.replace("/")
     return { success: true, authenticated: true, message: response.message }
   }
   return {
     success: true,
     authenticated: false,
-    message: response.token
+    message: response.session
       ? "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập để tiếp tục."
       : response.message,
   }
 }
 
 export async function signOutAction(): Promise<void> {
-  const token = getAccessToken()
+  const session = getSessionId()
   try {
     await logout()
-  } catch {
-    // Ignore logout failures and clear local auth state anyway.
+  } catch (error) {
+    if (!(error instanceof ApiError && error.status === 401)) throw error
   }
-  const current = getAccessToken()
-  if (current !== token && current !== null) return
-  await clearAuthSession(token)
+  const current = getSessionId()
+  if (current !== session && current !== null) return
+  if (current === session) clearAuthSession(session)
   window.location.assign(new URL("/sign-in", window.location.origin).href)
 }

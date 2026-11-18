@@ -7,7 +7,7 @@ const moduleUrl = (source) =>
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
 const mocks = moduleUrl(`
   export const authRoutes={logout:"/auth/logout"}
-  export function getAccessToken(){return globalThis.__logout.token??"account-a"}
+  export function getSessionId(){return globalThis.__logout.token??"account-a"}
   export const apiFetch=async(options)=>{
     globalThis.__logout.calls.push("api-logout")
     globalThis.__logout.request=options
@@ -16,10 +16,6 @@ const mocks = moduleUrl(`
   export const clearBackgroundNotificationOwner=async()=>{
     globalThis.__logout.calls.push("clear-push")
     await globalThis.__logout.pending
-    if(globalThis.__logout.fail)throw new Error("offline")
-  }
-  export const revokeWssSession=async()=>{
-    globalThis.__logout.calls.push("revoke-wss")
     if(globalThis.__logout.fail)throw new Error("offline")
   }
 `)
@@ -52,26 +48,17 @@ test("logout clears push before revoking credentials used to delete its subscrip
   assert.deepEqual(globalThis.__logout.calls, ["clear-push"])
   release()
   assert.deepEqual(await request, { message: "Đã đăng xuất" })
-  assert.deepEqual(globalThis.__logout.calls, [
-    "clear-push",
-    "revoke-wss",
-    "api-logout",
-  ])
+  assert.deepEqual(globalThis.__logout.calls, ["clear-push", "api-logout"])
   assert.deepEqual(globalThis.__logout.request, {
     method: "POST",
     path: "/auth/logout",
-    token: "account-a",
   })
 })
 
-test("offline push cleanup and WSS revocation do not prevent API logout", async () => {
+test("offline push cleanup does not prevent API logout", async () => {
   globalThis.__logout = { calls: [], fail: true }
   await logout()
-  assert.deepEqual(globalThis.__logout.calls, [
-    "clear-push",
-    "revoke-wss",
-    "api-logout",
-  ])
+  assert.deepEqual(globalThis.__logout.calls, ["clear-push", "api-logout"])
 })
 
 test("a slow logout cannot revoke the account signed in from another tab", async () => {
@@ -86,7 +73,6 @@ test("a slow logout cannot revoke the account signed in from another tab", async
   const request = logout()
   globalThis.__logout.token = "account-b"
   release()
-  await request
-  assert.deepEqual(globalThis.__logout.calls, ["clear-push", "api-logout"])
-  assert.equal(globalThis.__logout.request.token, "account-a")
+  await assert.rejects(request, /Phiên đăng nhập đã thay đổi/)
+  assert.deepEqual(globalThis.__logout.calls, ["clear-push"])
 })

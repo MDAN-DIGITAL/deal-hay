@@ -29,7 +29,7 @@ const runtime = moduleUrl(`
  export const useForm=(options)=>globalThis.__reviewTest.getForm(options)
  export const useWatch=({name})=>globalThis.__reviewTest.values[name]
  export const useImageUpload=()=>({prepareUploads:(...args)=>globalThis.__reviewTest.prepare(...args),uploadProgress:null})
- export const getAccessToken=()=>globalThis.__reviewTest.token
+ export const getSessionId=()=>globalThis.__reviewTest.token
  export const reviewProductAction=(...args)=>globalThis.__reviewTest.save(...args)
  export const deleteReviewAction=()=>{},zodResolver=()=>({})
  export const toast={success:(message)=>globalThis.__reviewTest.toasts.push(["success",message]),error:(message)=>globalThis.__reviewTest.toasts.push(["error",message])}

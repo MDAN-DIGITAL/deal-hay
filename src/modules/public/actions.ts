@@ -2,7 +2,7 @@ import { invalidateQueries } from "@/lib/query-cache"
 
 import { ApiError } from "@/api/client"
 import { apiFetch } from "@/api/client"
-import { getAccessToken } from "@/lib/session"
+import { getSessionId } from "@/lib/session"
 import {
   deleteReview,
   clearShopReaction,
@@ -144,7 +144,7 @@ export async function reviewProductAction(
   formData: FormData,
   submittingToken?: string
 ): Promise<ActionState> {
-  if (submittingToken !== undefined && getAccessToken() !== submittingToken) {
+  if (submittingToken !== undefined && getSessionId() !== submittingToken) {
     return { success: false, message: "Phiên đăng nhập đã thay đổi." }
   }
   const parsed = reviewProductUploadSchema.safeParse({
@@ -176,7 +176,7 @@ export async function reviewProductAction(
       payload,
       submittingToken
     )
-    if (submittingToken === undefined || getAccessToken() === submittingToken) {
+    if (submittingToken === undefined || getSessionId() === submittingToken) {
       invalidateQueries()
     }
     return { success: true, message: response.message }

@@ -22,7 +22,7 @@ function transpile(file, imports = {}, suffix = "") {
 }
 const mocks = dataUrl(`
 export const state={token:'account-a',apiCalls:[],apiError:null,response:null}
-export function getAccessToken(){return state.token}
+export function getSessionId(){return state.token}
 export class ApiError extends Error {constructor(status,payload){super(payload.message);this.status=status;this.errors=payload.errors}}
 export async function apiFetch(options){state.apiCalls.push(options);if(state.apiError)throw state.apiError;return state.response}
 `)
@@ -67,6 +67,7 @@ function storage(values = {}) {
 }
 
 test.beforeEach(() => {
+  sessions.clearWssSession()
   globalThis.window = {
     sessionStorage: storage(),
     localStorage: storage(),
@@ -81,107 +82,36 @@ test.beforeEach(() => {
   }
 })
 
-test("a server-owned session survives a page reload and API outage without another API call", async () => {
+test("a usable ticket stays in memory and a reloaded page needs a new API ticket", async () => {
   const first = await sessions.getWssSession()
-  assert.equal(state.apiCalls.length, 1)
-  state.apiError = new Error("API is offline")
-  const reloaded = await import(
-    transpile(
-      "../src/lib/wss-session.ts",
-      imports,
-      "\n// reload session module"
-    )
-  )
-  assert.deepEqual(await reloaded.getWssSession(), first)
-  assert.equal(state.apiCalls.length, 1)
-  assert.equal(state.apiCalls[0].path, "/private/realtime/socket-session")
-  assert.equal(state.apiCalls[0].token, "account-a")
-})
-
-test("cached WSS credentials never cross account changes or an expired session", async () => {
-  await sessions.getWssSession()
-  state.token = "account-b"
-  state.apiError = new Error("API offline")
-  assert.equal(await sessions.cachedWssSession(), null)
-  await assert.rejects(sessions.getWssSession(), /API offline/)
-  state.token = "account-a"
-  const entry = JSON.parse(window.sessionStorage.getItem("dealhay_wss_session"))
-  entry.session.expires_at = Math.floor(Date.now() / 1000) - 1
-  window.localStorage.setItem("dealhay_wss_session", JSON.stringify(entry))
-  assert.equal(await sessions.cachedWssSession(), null)
-})
-
-test("a native new chat tab and browser reopen reuse the remembered WSS session while API is offline", async () => {
-  const first = await sessions.getWssSession()
-  const shared = window.localStorage
-  globalThis.window = { localStorage: shared, sessionStorage: storage() }
-  state.apiError = new Error("API offline")
-  const freshTab = await import(
-    transpile("../src/lib/wss-session.ts", imports, "\n// native new tab")
-  )
-  assert.deepEqual(await freshTab.getWssSession(), first)
-  assert.equal(state.apiCalls.length, 1)
-  assert.equal(
-    JSON.parse(window.sessionStorage.getItem("dealhay_wss_session")).session
-      .token,
-    first.token
-  )
-})
-
-test("only an account-matching unexpired legacy WSS credential migrates to shared storage", async () => {
-  await sessions.getWssSession()
-  const legacy = window.sessionStorage.getItem("dealhay_wss_session")
-  window.localStorage.removeItem("dealhay_wss_session")
-  state.token = "account-b"
-  assert.equal(await sessions.cachedWssSession(), null)
   assert.equal(window.localStorage.getItem("dealhay_wss_session"), null)
-  state.token = "account-a"
-  assert.ok(await sessions.cachedWssSession())
-  assert.equal(window.localStorage.getItem("dealhay_wss_session"), legacy)
-})
+  assert.equal(window.sessionStorage.getItem("dealhay_wss_session"), null)
+  assert.equal(state.apiCalls[0].path, "/private/realtime/socket-session")
+  assert.equal(state.apiCalls[0].token, undefined)
 
-test("shared WSS revocation and expired records never resurrect another tab's legacy credential", async () => {
-  await sessions.getWssSession()
-  const valid = window.sessionStorage.getItem("dealhay_wss_session")
-  sessions.clearWssSession()
-  window.sessionStorage.setItem("dealhay_wss_session", valid)
-  assert.equal(await sessions.cachedWssSession(), null)
-  const expired = JSON.parse(valid)
-  expired.session.expires_at = Math.floor(Date.now() / 1000) - 1
-  window.localStorage.setItem("dealhay_wss_session", JSON.stringify(expired))
-  assert.equal(await sessions.cachedWssSession(), null)
-  const malformed = "not json"
-  window.localStorage.setItem("dealhay_wss_session", malformed)
-  assert.equal(await sessions.cachedWssSession(), null)
-})
-
-test("a logout arriving while a legacy WSS record is validated prevents migration", async (t) => {
-  await sessions.getWssSession()
-  window.localStorage.removeItem("dealhay_wss_session")
-  const digest = crypto.subtle.digest.bind(crypto.subtle)
-  let finish
-  t.mock.method(
-    crypto.subtle,
-    "digest",
-    (algorithm, input) =>
-      new Promise((resolve) => {
-        finish = async () => resolve(await digest(algorithm, input))
-      })
+  state.apiError = new Error("API is offline")
+  assert.deepEqual(await sessions.getWssSession(), first)
+  const reloaded = await import(
+    transpile("../src/lib/wss-session.ts", imports, "\n// reload session module")
   )
-  const validating = sessions.cachedWssSession()
-  window.localStorage.setItem("dealhay_wss_session", "")
-  await finish()
-  assert.equal(await validating, null)
-  assert.equal(window.localStorage.getItem("dealhay_wss_session"), "")
+  assert.equal(reloaded.cachedWssSession(), null)
+  await assert.rejects(reloaded.getWssSession(), /API is offline/)
 })
 
-test("late rejection of an old WSS credential cannot clear a newer shared session", async () => {
+test("cached tickets cannot cross an account change", async () => {
+  await sessions.getWssSession()
+  state.token = "account-b"
+  assert.equal(sessions.cachedWssSession(), null)
+  state.token = "account-a"
+  assert.equal(sessions.cachedWssSession(), null)
+})
+
+test("late rejection of an old ticket cannot clear a renewed ticket", async () => {
   const first = await sessions.getWssSession()
-  const renewed = JSON.parse(window.localStorage.getItem("dealhay_wss_session"))
-  renewed.session.token = "b".repeat(64)
-  window.localStorage.setItem("dealhay_wss_session", JSON.stringify(renewed))
+  state.response = { ...state.response, token: "b".repeat(64) }
+  const renewed = await sessions.getWssSession(true)
   sessions.clearWssSession(first.token)
-  assert.equal((await sessions.cachedWssSession()).token, "b".repeat(64))
+  assert.equal(sessions.cachedWssSession().token, renewed.token)
 })
 
 test("WSS login remains usable when persistent browser storage is blocked", async () => {
@@ -308,7 +238,7 @@ test("a rejected WSS credential is removed without logging out the API account",
   assert.equal(state.token, "account-a")
 })
 
-test("a RAM database restart renews its scoped credential once and retries the chat request", async (t) => {
+test("a rejected ticket is renewed once and retries the chat request", async (t) => {
   await sessions.getWssSession()
   state.response = { ...state.response, token: "b".repeat(64) }
   const credentials = []
@@ -332,7 +262,6 @@ test("a RAM database restart renews its scoped credential once and retries the c
 test("a guarded chat request cannot use a new account after asynchronous session lookup", async (t) => {
   const owner = state.token
   const originalGet = sessions.getWssSession
-  // A valid cached session still performs asynchronous owner fingerprinting.
   await originalGet()
   let current = true
   t.mock.method(globalThis, "fetch", async () => assert.fail("Obsolete request must not reach WSS"))
@@ -385,56 +314,6 @@ test("WSS requests forward cancellation so push settings cannot stall logout", a
   controller.abort()
   await assert.rejects(request, { name: "AbortError" })
   assert.ok(await sessions.cachedWssSession())
-})
-
-test("logout revokes only the WSS-owned session then clears its local cache", async (t) => {
-  await sessions.getWssSession()
-  const calls = []
-  t.mock.method(globalThis, "fetch", async (url, options) => {
-    calls.push({ url, options })
-    return new Response(null, { status: 204 })
-  })
-  await sessions.revokeWssSession()
-  assert.equal(calls[0].url, "https://wss.example.test/auth/logout")
-  assert.equal(
-    calls[0].options.headers.Authorization,
-    `Bearer ${"a".repeat(64)}`
-  )
-  assert.equal(await sessions.cachedWssSession(), null)
-})
-
-test("logout for an old account never revokes the new account's remembered WSS credential", async (t) => {
-  await sessions.getWssSession()
-  state.token = "account-b"
-  state.response = { ...state.response, token: "b".repeat(64) }
-  const newer = await sessions.getWssSession()
-  t.mock.method(globalThis, "fetch", async () => {
-    assert.fail("The old account must not revoke the current session")
-  })
-  await sessions.revokeWssSession("account-a")
-  assert.deepEqual(await sessions.cachedWssSession(), newer)
-})
-
-test("a pending logout response never clears another account's freshly issued WSS session", async (t) => {
-  await sessions.getWssSession()
-  let finish, started
-  const requestStarted = new Promise((resolve) => {
-    started = resolve
-  })
-  t.mock.method(globalThis, "fetch", async () => {
-    started()
-    return new Promise((resolve) => {
-      finish = resolve
-    })
-  })
-  const revocation = sessions.revokeWssSession("account-a")
-  await requestStarted
-  state.token = "account-b"
-  state.response = { ...state.response, token: "b".repeat(64) }
-  const newer = await sessions.getWssSession()
-  finish(new Response(null, { status: 204 }))
-  await revocation
-  assert.deepEqual(await sessions.cachedWssSession(), newer)
 })
 
 test("the chat page preloads all conversations in one snapshot request", async (t) => {

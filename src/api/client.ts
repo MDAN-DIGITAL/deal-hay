@@ -1,4 +1,5 @@
-import { clearAccessToken, getAccessToken } from "@/lib/session"
+import { clearAuthSession } from "@/lib/auth"
+import { getSessionId } from "@/lib/session"
 
 import { env } from "@/config/env"
 import type { ValidationErrors } from "@/types/common"
@@ -13,7 +14,8 @@ export type ApiRequestOptions = {
   searchParams?: Record<string, SearchValue>
   body?: BodyInit | Record<string, unknown> | undefined
   headers?: HeadersInit
-  token?: string | null
+  credentials?: "include" | "omit"
+  expectedSession?: string
   cache?: RequestCache
   next?: NextFetchRequestConfig
   signal?: AbortSignal
@@ -60,18 +62,55 @@ function isFormData(value: ApiRequestOptions["body"]): value is FormData {
   return typeof FormData !== "undefined" && value instanceof FormData
 }
 
+function readCsrfCookie(): string | undefined {
+  const value = document.cookie
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith("XSRF-TOKEN="))
+    ?.slice("XSRF-TOKEN=".length)
+  return value ? decodeURIComponent(value) : undefined
+}
+
+let csrfRequest: Promise<void> | undefined
+
+async function csrfToken(refresh = false): Promise<string> {
+  const current = readCsrfCookie()
+  if (current && !refresh) return current
+  csrfRequest ??= fetch(new URL("/sanctum/csrf-cookie", env.API_URL), {
+    credentials: "include",
+    cache: "no-store",
+    redirect: "error",
+    headers: { Accept: "application/json" },
+  })
+    .then((response) => {
+      if (!response.ok) throw new ApiError(response.status, {})
+    })
+    .finally(() => {
+      csrfRequest = undefined
+    })
+  await csrfRequest
+  const token = readCsrfCookie()
+  if (!token)
+    throw new ApiError(419, {
+      message: "Trình duyệt không nhận được cookie bảo mật.",
+    })
+  return token
+}
+
 export async function apiFetch<T>({
   method = "GET",
   path,
   searchParams,
   body,
   headers,
-  token,
+  credentials = typeof document === "undefined" ? "omit" : "include",
+  expectedSession,
   cache = "no-store",
   next,
   signal,
 }: ApiRequestOptions): Promise<T> {
-  const resolvedToken = token === undefined ? getAccessToken() : token
+  const session =
+    credentials === "include" ? (expectedSession ?? getSessionId()) : null
   const requestHeaders = new Headers(headers)
   const url = `${env.API_URL}${path}${toQueryString(searchParams)}`
 
@@ -79,8 +118,14 @@ export async function apiFetch<T>({
     requestHeaders.set("Accept", "application/json")
   }
 
-  if (resolvedToken) {
-    requestHeaders.set("Authorization", `Bearer ${resolvedToken}`)
+  const needsCsrf = credentials === "include" && method !== "GET"
+  if (needsCsrf) {
+    requestHeaders.set("X-XSRF-TOKEN", await csrfToken())
+    if (session) {
+      if (getSessionId() !== session)
+        throw new ApiError(409, { message: "Phiên đăng nhập đã thay đổi." })
+      requestHeaders.set("X-Dealhay-Session", session)
+    }
   }
 
   let requestBody: BodyInit | undefined
@@ -98,16 +143,27 @@ export async function apiFetch<T>({
     }
   }
 
-  const response = await fetch(url, {
-    method,
-    headers: requestHeaders,
-    body: requestBody,
-    cache,
-    next,
-    redirect: "error",
-    credentials: "omit",
-    signal,
-  })
+  const send = () =>
+    fetch(url, {
+      method,
+      headers: requestHeaders,
+      body: requestBody,
+      cache,
+      next,
+      redirect: "error",
+      credentials,
+      signal,
+    })
+  let response = await send()
+  if (
+    response.status === 419 &&
+    needsCsrf &&
+    getSessionId() === session &&
+    !signal?.aborted
+  ) {
+    requestHeaders.set("X-XSRF-TOKEN", await csrfToken(true))
+    if (getSessionId() === session) response = await send()
+  }
 
   const contentType = response.headers.get("content-type") ?? ""
   const isJson = contentType.includes("application/json")
@@ -116,12 +172,8 @@ export async function apiFetch<T>({
     const payload: ApiErrorPayload | undefined = isJson
       ? await response.json().catch(() => undefined)
       : undefined
-    if (
-      response.status === 401 &&
-      resolvedToken &&
-      getAccessToken() === resolvedToken
-    )
-      clearAccessToken(resolvedToken)
+    if (response.status === 401 && credentials === "include" && session)
+      clearAuthSession(session)
     throw new ApiError(
       response.status,
       payload ?? { message: response.statusText }

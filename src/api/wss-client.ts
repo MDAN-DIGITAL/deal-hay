@@ -66,8 +66,7 @@ async function requestWss<T>(
     if (response.status === 401) {
       clearWssSession(session.token)
       if (renewSession && !signal?.aborted) {
-        // A RAM database restart invalidates scoped WSS credentials. Bootstrap
-        // once from the signed-in API account, without logging that account out.
+        // A scoped ticket can expire while the browser session is still active.
         return requestWss<T>(
           { path, method, body, headers, searchParams, signal },
           false,

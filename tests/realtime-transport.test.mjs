@@ -27,9 +27,9 @@ const clientUrl = transpile("../src/api/client.ts", {
   "@/config/env": moduleUrl(
     'export const env = { API_URL: "https://api.example.test/api" }'
   ),
+  "@/lib/auth": moduleUrl(`export function clearAuthSession(expected) { if (expected === globalThis.__directTransport.token) { globalThis.__directTransport.token = null; globalThis.__directTransport.clears++ } }`),
   "@/lib/session": moduleUrl(`
-    export function getAccessToken() { return globalThis.__directTransport.token }
-    export function clearAccessToken() { globalThis.__directTransport.token = null; globalThis.__directTransport.clears++ }
+    export function getSessionId() { return globalThis.__directTransport.token }
   `),
 })
 const { apiFetch, ApiError } = await import(clientUrl)
@@ -39,6 +39,7 @@ const liveUrl = transpile("../src/api/live-client.ts", {
 const { liveApiFetch } = await import(liveUrl)
 
 function reset() {
+  globalThis.document = { cookie: "XSRF-TOKEN=csrf%2Bvalue" }
   globalThis.__directTransport = { token: "account-token", clears: 0 }
 }
 
@@ -77,6 +78,7 @@ test("chat, presence and session requests run concurrently directly against API"
     method: "POST",
     body: { body: "Xin chào" },
   })
+  await new Promise((resolve) => setImmediate(resolve))
   assert.equal(pending.length, 3)
   assert.deepEqual(
     pending.map(({ url }) => url),
@@ -87,8 +89,12 @@ test("chat, presence and session requests run concurrently directly against API"
     ]
   )
   for (const { options } of pending) {
-    assert.equal(options.headers.get("Authorization"), "Bearer account-token")
-    assert.equal(options.credentials, "omit")
+    assert.equal(options.headers.get("Authorization"), null)
+    assert.equal(options.credentials, "include")
+    if (options.method !== "GET") {
+      assert.equal(options.headers.get("X-XSRF-TOKEN"), "csrf+value")
+      assert.equal(options.headers.get("X-Dealhay-Session"), "account-token")
+    }
     assert.equal(options.cache, "no-store")
     assert.equal(options.redirect, "error")
   }
@@ -140,7 +146,7 @@ test("API query values are encoded and anonymous calls omit the account token", 
   })
   await apiFetch({
     path: "/",
-    token: null,
+    credentials: "omit",
     searchParams: {
       q: "a&b",
       page: 2,
@@ -231,4 +237,25 @@ test("empty successful API responses do not attempt JSON parsing", async (t) => 
     await liveApiFetch("/notifications/read", { method: "PATCH", body: {} }),
     undefined
   )
+})
+
+test("a stale CSRF cookie is refreshed once and retried with the new value", async (t) => {
+  reset()
+  const calls = []
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    calls.push({ url: String(url), token: new Headers(options.headers).get("X-XSRF-TOKEN") })
+    if (calls.length === 1) return Response.json({}, { status: 419 })
+    if (calls.length === 2) {
+      assert.equal(options.credentials, "include")
+      document.cookie = "XSRF-TOKEN=fresh%3D"
+      return new Response(null, { status: 204 })
+    }
+    return Response.json({ ok: true })
+  })
+  assert.deepEqual(await apiFetch({ path: "/auth/logout", method: "POST" }), { ok: true })
+  assert.deepEqual(calls, [
+    { url: "https://api.example.test/api/auth/logout", token: "csrf+value" },
+    { url: "https://api.example.test/sanctum/csrf-cookie", token: null },
+    { url: "https://api.example.test/api/auth/logout", token: "fresh=" },
+  ])
 })

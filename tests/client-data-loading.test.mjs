@@ -14,7 +14,7 @@ const api = url(
    export class ApiError extends Error { constructor(status) { super("failed");this.status=status } }`
 )
 const session = url(
-  `export const SESSION_CHANGED="session";export function getAccessToken() { return globalThis.__queryToken }`
+  `export const SESSION_CHANGED="session";export function getSessionId() { return globalThis.__queryToken }`
 )
 const imports = {
   react,

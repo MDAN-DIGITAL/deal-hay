@@ -32,7 +32,6 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { openAuthenticatedTab } from "@/lib/authenticated-tab"
 import { invalidateQueries } from "@/lib/query-cache"
 import { AdminNavigation } from "@/modules/admin/components/admin-navigation"
 import { adminSection } from "@/modules/admin/lib/admin-navigation"
@@ -101,8 +100,8 @@ export function AdminWorkspace({ children }: { children: ReactNode }) {
                         href="/profile"
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={openAuthenticatedTab}
-                        onAuxClick={openAuthenticatedTab}
+
+
                       />
                     }
                   >
@@ -156,8 +155,8 @@ export function AdminWorkspace({ children }: { children: ReactNode }) {
                         href={item.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={openAuthenticatedTab}
-                        onAuxClick={openAuthenticatedTab}
+
+
                       />
                     }
                   >
