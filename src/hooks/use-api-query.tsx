@@ -6,7 +6,7 @@ import { API_UNAVAILABLE_MESSAGE, ApiError } from "@/api/client"
 import Loading from "@/components/layout/page-loading"
 import NotFound from "@/components/layout/page-not-found"
 import { Button } from "@/components/ui/button"
-import { SESSION_CHANGED, getAccessToken } from "@/lib/session"
+import { SESSION_CHANGED, getSessionId } from "@/lib/session"
 import { DATA_CHANGED, invalidateQueries } from "@/lib/query-cache"
 
 const TRANSIENT_RETRY_DELAY_MS = 500
@@ -78,15 +78,17 @@ export function useApiQuery<T>(
       initialData !== undefined &&
       revision === 0 &&
       (revalidateOnMount === false ||
-        (revalidateOnMount === "authenticated" && !getAccessToken()))
+        (revalidateOnMount === "authenticated" && !getSessionId()))
     )
       return
     let disposed = false
     let retried = false
     let retryTimer: ReturnType<typeof setTimeout> | undefined
-    const requestToken = getAccessToken()
+    const requestSession = getSessionId()
+    const isCurrent = () =>
+      !disposed && (!sessionSensitive || requestSession === getSessionId())
     const fail = (error: Error) => {
-      if (disposed || requestToken !== getAccessToken()) return
+      if (!isCurrent()) return
       if (error instanceof ApiError && error.status === 401) {
         router.replace(
           `/sign-in?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
@@ -104,16 +106,14 @@ export function useApiQuery<T>(
       )
     }
     const request = () => {
-      if (disposed || requestToken !== getAccessToken()) return
+      if (!isCurrent()) return
       void load().then(
         (data) => {
-          if (!disposed && requestToken === getAccessToken())
-            setState({ key, data, pending: false })
+          if (isCurrent()) setState({ key, data, pending: false })
         },
         (error: Error) => {
           if (
-            !disposed &&
-            requestToken === getAccessToken() &&
+            isCurrent() &&
             !retried &&
             isTransientQueryError(error)
           ) {

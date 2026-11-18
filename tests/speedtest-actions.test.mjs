@@ -25,7 +25,7 @@ function transpile(path, imports) {
 const mocks = moduleUrl(`
   export const state = { token: null, calls: [], response: null, error: null, beforeReject: null }
   export class ApiError extends Error { constructor(status, message) { super(message); this.status = status } }
-  export function getAccessToken() { state.calls.push({cookie:"dealhay_access_token"}); return state.token }
+  export function getSessionId() { state.calls.push({cookie:"dealhay_access_token"}); return state.token }
   export async function clearAuthSession() { state.calls.push({clearAuthSession:true}); state.token=null }
   export async function apiFetch(options) { state.calls.push(options); if(state.error) { state.beforeReject?.(); throw state.error } return state.response }
   export async function wssFetch(options) { state.calls.push({transport:'wss',...options}); if(state.error) {state.beforeReject?.();throw state.error}return state.response }
@@ -82,7 +82,6 @@ test("exchanges the private account token for a scoped grant without a second pr
       method: "POST",
       path: "/diagnostics/speedtest/session",
       body: { target: "backend" },
-      token: state.token,
       signal: state.calls[1].signal,
     },
   ])

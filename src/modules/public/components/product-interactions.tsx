@@ -47,7 +47,7 @@ import {
   runUploadAction,
 } from "@/lib/form-utils"
 import { IMAGE_UPLOAD_ACCEPT } from "@/lib/validation"
-import { getAccessToken } from "@/lib/session"
+import { getSessionId } from "@/lib/session"
 import { ImageUploadProgress } from "@/components/image-upload-progress"
 import { useImageUpload } from "@/hooks/use-image-upload"
 import { formatCurrency } from "@/lib/format"
@@ -98,12 +98,12 @@ function ReviewProductForm({
   })
 
   const onSubmit = form.handleSubmit((values) => {
-    const submittingToken = getAccessToken()
+    const submittingToken = getSessionId()
     if (!submittingToken) {
       toast.error("Vui lòng đăng nhập để gửi đánh giá.")
       return
     }
-    const isCurrent = () => getAccessToken() === submittingToken
+    const isCurrent = () => getSessionId() === submittingToken
     const formData = new FormData()
     formData.set("reaction", values.reaction)
     formData.set("content", values.content)

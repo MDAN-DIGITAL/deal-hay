@@ -29,9 +29,10 @@ export function useEffect(effect,deps){return globalThis.__standaloneSession.com
 `)
 const mocked = url(`
 export const state={account:null,fallback:null,cache:null,profile:null,calls:0,token:'account-a'}
-export function getAccessToken(){return state.token}
-export function watchStoredSession(){return()=>{}}
-export function getCurrentSession(){return state.account}
+export function getSessionId(){return state.token}
+export function setSessionId(id){state.token=id}
+export function watchBrowserSession(){return()=>{}}
+export async function getCurrentSession(){return {session: state.token,...await state.account}}
 export async function getCachedChatSession(){return state.fallback}
 export async function cachedWssSession(){return state.cache}
 export async function wssFetch(){state.calls++;return state.profile}

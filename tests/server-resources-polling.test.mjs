@@ -12,7 +12,7 @@ export function useEffect(effect,deps){return globalThis.__resourceHook.screen.u
 export function useCallback(callback,deps){return globalThis.__resourceHook.screen.useCallback(callback,deps)}
 `)
 const transport = url(`
-export function getAccessToken(){return globalThis.__resourceHook.token}
+export function getSessionId(){return globalThis.__resourceHook.token}
 export function loadServerResources(target,signal){return globalThis.__resourceHook.load(target,signal)}
 `)
 const imports = {

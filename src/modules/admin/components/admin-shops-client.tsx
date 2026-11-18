@@ -60,7 +60,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { QueryPlaceholder, useApiQuery } from "@/hooks/use-api-query"
 import { applyServerErrors } from "@/lib/form-utils"
 import { formatCurrency, formatDate } from "@/lib/format"
-import { openAuthenticatedTab } from "@/lib/authenticated-tab"
 import { deleteShopProductAction } from "@/modules/admin/actions"
 import {
   AdminAccountLockButton,
@@ -237,8 +236,8 @@ function ShopDetails({ shopId }: { shopId: string }) {
               href={`/shops/${encodeURIComponent(shop.user_code)}`}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={openAuthenticatedTab}
-              onAuxClick={openAuthenticatedTab}
+
+
             />
           }
         >

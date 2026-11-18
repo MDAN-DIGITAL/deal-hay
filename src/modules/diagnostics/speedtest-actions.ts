@@ -1,4 +1,4 @@
-import { getAccessToken } from "@/lib/session"
+import { getSessionId } from "@/lib/session"
 import { z } from "zod"
 import { env } from "@/config/env"
 import { ApiError, apiFetch } from "@/api/client"
@@ -28,7 +28,7 @@ export async function startSpeedtestAction(
 ): Promise<SpeedtestSessionResult> {
   if (!targetSchema.safeParse(target).success)
     return { success: false, message: "Máy chủ đo không hợp lệ." }
-  const token = getAccessToken()
+  const token = getSessionId()
   const signInHref = getAuthPageHref("/sign-in", "/diagnostics")
   if (!token) {
     window.location.assign(signInHref)
@@ -45,7 +45,6 @@ export async function startSpeedtestAction(
             method: "POST",
             path: "/diagnostics/speedtest/session",
             body: { target },
-            token,
             signal: AbortSignal.timeout(10_000),
           }))
     )
@@ -78,14 +77,14 @@ export async function startSpeedtestAction(
           message:
             "Phiên WSS đã hết hạn hoặc bị thu hồi. Vui lòng kết nối lại rồi đo lại.",
         }
-      const currentToken = getAccessToken()
+      const currentToken = getSessionId()
       if (currentToken && currentToken !== token) {
         return {
           success: false,
           message: "Phiên đăng nhập đã thay đổi. Vui lòng bắt đầu đo lại.",
         }
       }
-      if (currentToken === token) await clearAuthSession()
+      if (currentToken === token) clearAuthSession(token)
       window.location.assign(signInHref)
       return { success: false, message: "Vui lòng đăng nhập lại." }
     }

@@ -64,7 +64,7 @@ import {
 import { applyServerErrors } from "@/lib/form-utils"
 import { formatCurrency, formatDate } from "@/lib/format"
 import { getAuthPageHref } from "@/lib/auth-redirect"
-import { getAccessToken } from "@/lib/session"
+import { getSessionId } from "@/lib/session"
 import { reserveChatPage } from "@/modules/chats/lib/chat-navigation"
 import {
   loadDiscountCodesAction,
@@ -334,12 +334,12 @@ export function ProductCheckout({
       toast.error("Sản phẩm chưa có biến thể đang bán để tư vấn.")
       return
     }
-    const account = getAccessToken()
+    const account = getSessionId()
     const page = reserveChatPage()
     startMessageTransition(async () => {
       try {
         const state = await startChatAction(shop.code, product.id, variant?.id)
-        if (getAccessToken() !== account) {
+        if (getSessionId() !== account) {
           page?.close()
           return
         }

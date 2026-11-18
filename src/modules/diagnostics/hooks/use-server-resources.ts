@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import { getAccessToken } from "@/lib/session"
+import { getSessionId } from "@/lib/session"
 import { loadServerResources } from "@/modules/diagnostics/resource-actions"
 import type { ServerResources } from "@/types/server-resources"
 import type { SpeedtestTarget } from "@/types/speedtest"
@@ -27,13 +27,13 @@ export function useServerResources() {
     for (const target of targets) {
       if (requests.current.has(target)) continue
       const controller = new AbortController()
-      const account = getAccessToken()
+      const account = getSessionId()
       requests.current.set(target, controller)
       const timeout = setTimeout(() => controller.abort(), 10_000)
       const current = () =>
         mounted.current &&
         requests.current.get(target) === controller &&
-        getAccessToken() === account
+        getSessionId() === account
       setStates((previous) => ({
         ...previous,
         [target]: { ...previous[target], loading: true },

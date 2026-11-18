@@ -115,7 +115,7 @@ test("robots advertises the canonical sitemap and lets crawlers observe HTML noi
 
 test("a catalog outage still serves real static URLs without fabricated products or dates", async () => {
   globalThis.__sitemapFetch = async (request) => {
-    assert.equal(request.token, null)
+    assert.equal(request.credentials, "omit")
     assert.equal(request.method, "GET")
     assert.equal(request.cache, "no-store")
     assert.ok(request.signal instanceof AbortSignal)
@@ -131,7 +131,7 @@ test("public pagination and shop results add only valid same-origin product URLs
   const requests = []
   globalThis.__sitemapFetch = async (request) => {
     requests.push(request)
-    assert.equal(request.token, null)
+    assert.equal(request.credentials, "omit")
     assert.equal(request.method, "GET")
     if (request.path === "/") {
       if (request.searchParams.page === 2)

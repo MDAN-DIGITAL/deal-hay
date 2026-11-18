@@ -24,14 +24,15 @@ export type ResetPasswordPayload = {
 
 export type MeResponse = {
   data: User
+  session: string
   meta: {
     unread_messages_count: number
     unread_notifications_count: number
   }
 }
 export type LoginResponse = AuthPayload
-export type PasswordChangeResponse = Omit<AuthPayload, "token"> & {
-  token: string | null
+export type PasswordChangeResponse = Omit<AuthPayload, "session"> & {
+  session: string | null
 }
 export type RegisterResponse = AuthPayload
 export type LogoutResponse = { message: string }

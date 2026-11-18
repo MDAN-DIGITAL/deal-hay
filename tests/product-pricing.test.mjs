@@ -241,7 +241,7 @@ const noopUrl = moduleUrl(`
   export function useWatch() {}
   export function zodResolver() {}
   export function useImageUpload() {}
-  export const getAccessToken = () => null
+  export const getSessionId = () => null
   export function appendOptionalFile() {}
   export function applyServerErrors() {}
   export function runUploadAction() {}

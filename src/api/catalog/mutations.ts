@@ -50,13 +50,13 @@ export function upsertReview(
   shopUserCode: string,
   productSlug: string,
   payload: FormData,
-  token?: string
+  expectedSession?: string
 ): Promise<ApiMessageResponse> {
   return apiFetch({
     method: "PUT",
     path: catalogRoutes.review(shopUserCode, productSlug),
     body: payload,
-    token,
+    expectedSession,
   })
 }
 

@@ -25,9 +25,9 @@ const api = transpile("../src/api/client.ts", {
   "@/config/env": moduleUrl(
     'export const env={API_URL:"https://public-api.example.test/api"}'
   ),
+  "@/lib/auth": moduleUrl('export function clearAuthSession(){throw new Error("Public SSR must not modify an account")}'),
   "@/lib/session": moduleUrl(`
-    export function getAccessToken(){throw new Error("Public SSR must not read an account token")}
-    export function clearAccessToken(){throw new Error("Public SSR must not modify an account")}
+    export function getSessionId(){throw new Error("Public SSR must not read an account token")}
   `),
 })
 const {

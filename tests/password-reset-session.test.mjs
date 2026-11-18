@@ -30,11 +30,11 @@ const schemas = transpile("../src/modules/auth/schemas/auth.ts", {
   "@/lib/validation": validation,
 })
 const mocks = moduleUrl(`
-  export const state={account:null,requests:[],sessions:[],response:null,error:null,storageError:null,wait:null}
+  export const state={account:null,requests:[],sessions:[],response:null,error:null,wait:null}
   export class ApiError extends Error { constructor(status,errors){super('Không thể đặt lại mật khẩu.');this.status=status;this.errors=errors} }
-  export function getAccessToken(){return state.account}
+  export function getSessionId(){return state.account}
   export async function resetPassword(payload){state.requests.push(payload);await state.wait;if(state.error)throw state.error;return state.response}
-  export async function setAuthSession(payload,remember){if(state.storageError)throw state.storageError;state.sessions.push({payload,remember});state.account=payload.token}
+  export async function setAuthSession(id){state.sessions.push(id);state.account=id}
   export function clearAuthSession(){}
   export function login(){};export function register(){};export function forgotPassword(){};export function logout(){}
 `)
@@ -71,11 +71,10 @@ test.beforeEach(() => {
     sessions: [],
     response: {
       message: "Đặt lại mật khẩu thành công.",
-      token: "new-session",
+      session: "new-session",
       user: { id: "customer", is_active: true },
     },
     error: null,
-    storageError: null,
     wait: null,
   })
 })
@@ -85,9 +84,7 @@ test("a successful reset saves a temporary session and replaces the reset page",
   assert.equal(result.authenticated, true)
   assert.equal(state.account, "new-session")
   assert.deepEqual(state.requests, [values])
-  assert.deepEqual(state.sessions, [
-    { payload: state.response, remember: false },
-  ])
+  assert.deepEqual(state.sessions, [state.response.session])
   assert.deepEqual(destinations, ["/"])
 })
 
@@ -112,7 +109,7 @@ test("local validation rejects an invalid password without submitting the reset 
 test("a locked account can finish the reset without receiving an authenticated session", async () => {
   state.response = {
     message: "Mật khẩu đã đổi. Tài khoản vẫn bị khóa.",
-    token: null,
+    session: null,
     user: { id: "customer", is_active: false },
   }
   const result = await resetPasswordAction(values)
@@ -120,15 +117,6 @@ test("a locked account can finish the reset without receiving an authenticated s
   assert.equal(result.authenticated, false)
   assert.equal(result.message, state.response.message)
   assert.deepEqual(state.sessions, [])
-  assert.deepEqual(destinations, [])
-})
-
-test("unavailable browser storage reports password success without encouraging reuse of the consumed reset link", async () => {
-  state.storageError = new Error("Storage unavailable")
-  const result = await resetPasswordAction(values)
-  assert.equal(result.success, true)
-  assert.equal(result.authenticated, false)
-  assert.match(result.message, /đăng nhập/)
   assert.deepEqual(destinations, [])
 })
 

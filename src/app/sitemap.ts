@@ -37,7 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       method: "GET",
       path,
       searchParams: { page },
-      token: null,
+      credentials: "omit",
       cache: "no-store",
       signal,
     })

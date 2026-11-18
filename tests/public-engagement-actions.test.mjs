@@ -24,7 +24,7 @@ const api = moduleUrl(`
   export class ApiError extends Error {}
   export const requests = []
   export const state = { invalidations: 0, token: "account-a", response: null }
-  export const getAccessToken = () => state.token
+  export const getSessionId = () => state.token
   export const invalidateQueries = () => { state.invalidations++ }
   export async function apiFetch(request) {
     requests.push(request)
@@ -139,7 +139,7 @@ test("review requests pin the initiating credential and ignore stale response in
     reviewForm(),
     "account-a"
   )
-  assert.equal(requests[0].token, "account-a")
+  assert.equal(requests[0].expectedSession, "account-a")
   state.token = "account-b"
   finish({ message: "Đã lưu cho tài khoản ban đầu" })
   assert.equal((await response).success, true)

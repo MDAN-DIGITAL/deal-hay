@@ -39,10 +39,10 @@ export class ApiError extends Error {}
 export const calls=[]
 export const state={response:null}
 export const invalidateQueries=()=>{}
-export const getAccessToken=()=>null
+export const getSessionId=()=>null
 export const isAccessTokenRemembered=()=>false
 export const setAuthSession=()=>{}
-export const clearAccessToken=()=>{}
+export const clearAuthSession=()=>{}
 export const updateAvatar=async(...args)=>{calls.push(args);return{message:'Saved'}}
 export const updatePassword=()=>{}; export const updateProfile=()=>{}; export const updateShop=()=>{}; export const createShopOwnerUpgrade=()=>{}
 export const profileRoutes={avatar:'/private/me/avatar',shopAvatar:'/private/shop/avatar'}
