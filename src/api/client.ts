@@ -25,13 +25,20 @@ type ApiErrorPayload = {
   [key: string]: unknown
 }
 
+export const API_UNAVAILABLE_MESSAGE =
+  "Hệ thống đang tạm gián đoạn. Vui lòng thử lại sau ít phút."
+
 export class ApiError extends Error {
   status: number
   errors?: ValidationErrors
   payload: ApiErrorPayload
 
   constructor(status: number, payload: ApiErrorPayload) {
-    super(payload.message ?? "Yêu cầu thất bại.")
+    super(
+      status >= 500
+        ? API_UNAVAILABLE_MESSAGE
+        : (payload.message ?? "Yêu cầu thất bại.")
+    )
     this.status = status
     this.errors = payload.errors
     this.payload = payload
@@ -104,11 +111,11 @@ export async function apiFetch<T>({
 
   const contentType = response.headers.get("content-type") ?? ""
   const isJson = contentType.includes("application/json")
-  const payload = isJson
-    ? ((await response.json()) as ApiErrorPayload)
-    : undefined
 
   if (!response.ok) {
+    const payload: ApiErrorPayload | undefined = isJson
+      ? await response.json().catch(() => undefined)
+      : undefined
     if (
       response.status === 401 &&
       resolvedToken &&
@@ -126,7 +133,7 @@ export async function apiFetch<T>({
   }
 
   if (isJson) {
-    return payload as T
+    return (await response.json()) as T
   }
 
   return (await response.text()) as T

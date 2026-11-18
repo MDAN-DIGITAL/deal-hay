@@ -4,7 +4,10 @@ Next.js App Router dùng cho giao diện và điều hướng, deploy trên Verc
 
 ## Phát triển
 
+Các lệnh local dùng Node.js 22.23.5, được khóa trong `.nvmrc`. Nếu chưa có phiên bản này, chạy `nvm install` từ thư mục dự án.
+
 ```sh
+nvm use
 npm ci
 cp .env.example .env.local
 npm run dev
@@ -16,7 +19,7 @@ Cấu hình public API trước khi chạy hoặc build:
 NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api
 ```
 
-Vercel dùng Root Directory `deal-hay`, preset Next.js và cùng biến `NEXT_PUBLIC_API_URL` trỏ tới API HTTPS thật. Biến này được đưa vào bundle khi build; đổi địa chỉ cần build lại. Không cần Docker hoặc Render cho frontend.
+Vercel dùng Root Directory `deal-hay`, preset Next.js và cùng biến `NEXT_PUBLIC_API_URL` trỏ tới API HTTPS thật. Biến này được đưa vào bundle khi build. Đổi địa chỉ cần build lại. `engines.node` chọn Node.js `22.x` cho build và Functions. Vercel tự quản lý các bản minor và patch. [Tài liệu phiên bản Node.js của Vercel](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)
 
 Đặt thêm `NEXT_PUBLIC_SITE_URL=https://ten-mien-chinh.example` cho origin canonical/sitemap. Nếu bỏ trống hoặc không hợp lệ, dùng `VERCEL_PROJECT_PRODUCTION_URL`, cuối cùng là `https://dealhay.vercel.app`. Hướng dẫn rà quảng cáo, nội dung công khai và bước gửi duyệt trong tài khoản Google: [adsense-readiness.md](docs/adsense-readiness.md).
 

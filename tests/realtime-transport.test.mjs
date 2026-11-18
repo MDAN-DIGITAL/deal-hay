@@ -151,6 +151,25 @@ test("API query values are encoded and anonymous calls omit the account token", 
   })
 })
 
+test("backend outages preserve their status even when the response body is invalid JSON", async (t) => {
+  reset()
+  const responses = [
+    Response.json({ message: "Internal database error" }, { status: 500 }),
+    new Response("<html>Bad Gateway</html>", {
+      status: 502,
+      headers: { "Content-Type": "application/json" },
+    }),
+  ]
+  for (const response of responses) {
+    t.mock.method(globalThis, "fetch", async () => response)
+    await assert.rejects(apiFetch({ path: "/" }), {
+      constructor: ApiError,
+      status: response.status,
+      message: "Hệ thống đang tạm gián đoạn. Vui lòng thử lại sau ít phút.",
+    })
+  }
+})
+
 test("validation errors retain API status and field errors", async (t) => {
   reset()
   const errors = { body: ["Nội dung quá dài."] }

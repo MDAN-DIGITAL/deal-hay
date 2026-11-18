@@ -10,7 +10,8 @@ export function useState(value) { return globalThis.__queryHarness.useState(valu
 export function useEffect(effect, deps) { return globalThis.__queryHarness.useEffect(effect, deps) }
 `)
 const api = url(
-  `export class ApiError extends Error { constructor(status) { super("failed");this.status=status } }`
+  `export const API_UNAVAILABLE_MESSAGE = "Hệ thống đang tạm gián đoạn. Vui lòng thử lại sau ít phút."
+   export class ApiError extends Error { constructor(status) { super("failed");this.status=status } }`
 )
 const session = url(
   `export const SESSION_CHANGED="session";export function getAccessToken() { return globalThis.__queryToken }`
@@ -48,8 +49,32 @@ const source = ts
     assert.ok(imports[name], `Unexpected import ${name}`)
     return `from ${quote}${imports[name]}${quote}`
   })
-const { useApiQuery: renderQueryHook } = await import(url(source))
+const { QueryPlaceholder, useApiQuery: renderQueryHook } = await import(
+  url(source)
+)
 const { ApiError } = await import(api)
+
+test("the query placeholder shows an outage message for retryable failures", () => {
+  for (const error of [
+    new ApiError(500),
+    new ApiError(503),
+    new TypeError("Failed to fetch"),
+    new DOMException("Request timed out", "TimeoutError"),
+  ]) {
+    const alert = QueryPlaceholder({ error })
+    const [message, retry] = alert.props.children
+    assert.equal(alert.props.role, "alert")
+    assert.equal(
+      message.props.children,
+      "Hệ thống đang tạm gián đoạn. Vui lòng thử lại sau ít phút."
+    )
+    assert.equal(retry.props.children, "Thử tải lại")
+  }
+
+  assert.equal(QueryPlaceholder({ error: new ApiError(404) }).type, "not-found")
+  const validation = QueryPlaceholder({ error: new ApiError(422) })
+  assert.equal(validation.props.children[0].props.children, "failed")
+})
 const flush = async () => {
   for (let i = 0; i < 4; i++) await Promise.resolve()
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ApiError } from "@/api/client"
+import { API_UNAVAILABLE_MESSAGE, ApiError } from "@/api/client"
 import Loading from "@/components/layout/page-loading"
 import NotFound from "@/components/layout/page-not-found"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,7 @@ const TRANSIENT_RETRY_DELAY_MS = 500
 function isTransientQueryError(error: Error): boolean {
   return (
     error instanceof TypeError ||
+    error.name === "TimeoutError" ||
     (error instanceof ApiError && error.status >= 500)
   )
 }
@@ -146,13 +147,14 @@ export function useApiQuery<T>(
 export function QueryPlaceholder({ error }: { error?: Error }) {
   if (!error) return <Loading />
   if (error instanceof ApiError && error.status === 404) return <NotFound />
+  const message = isTransientQueryError(error)
+    ? API_UNAVAILABLE_MESSAGE
+    : error instanceof ApiError
+      ? error.message
+      : "Không thể tải nội dung. Vui lòng thử lại."
   return (
     <div role="alert" className="space-y-4 rounded-xl border p-6 text-center">
-      <p>
-        {error instanceof ApiError
-          ? error.message
-          : "Không thể tải nội dung. Vui lòng thử lại."}
-      </p>
+      <p>{message}</p>
       <Button onClick={invalidateQueries}>Thử tải lại</Button>
     </div>
   )

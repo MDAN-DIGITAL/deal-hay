@@ -1,7 +1,12 @@
 import "server-only"
 
 import { cache } from "react"
-import { ApiError, apiFetch, type ApiRequestOptions } from "@/api/client"
+import {
+  API_UNAVAILABLE_MESSAGE,
+  ApiError,
+  apiFetch,
+  type ApiRequestOptions,
+} from "@/api/client"
 import { catalogRoutes } from "@/api/catalog/routes"
 import type { HomeResponse, ProductResponse } from "@/api/catalog/types"
 
@@ -12,7 +17,7 @@ export type PublicCatalogResult<T> =
 
 export const PUBLIC_CATALOG_TIMEOUT_MS = 5000
 export const PUBLIC_CATALOG_REVALIDATE_SECONDS = 30
-export const PUBLIC_CATALOG_ERROR = "Không thể tải nội dung. Vui lòng thử lại."
+export const PUBLIC_CATALOG_ERROR = API_UNAVAILABLE_MESSAGE
 
 function object(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
