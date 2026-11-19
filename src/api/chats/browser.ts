@@ -9,12 +9,43 @@ import type {
 import type { ChatMessage } from "@/types/chat"
 import type { SessionUser } from "@/types/auth"
 
-export async function getCurrentSession(): Promise<SessionUser> {
-  return wssFetch<SessionUser>({ path: "/auth/me" })
+export async function getUnreadMessageCount(): Promise<number | null> {
+  const data = await wssFetch<{ messages: number } | SessionUser>({
+    path: "/auth/me",
+    searchParams: { view: "unread-messages" },
+  })
+  return "messages" in data
+    ? data.messages
+    : data.user
+      ? data.unreadCounts.messages
+      : null
 }
 
-export function getChats(): Promise<ChatsResponse> {
-  return wssFetch({ path: chatRoutes.list })
+type CompactChatsResponse = Pick<ChatsResponse, "conversations" | "admins"> & {
+  messagesByConversation: Record<string, Omit<ChatMessage, "conversation_id">[]>
+}
+
+export async function getChats(): Promise<ChatsResponse> {
+  const data = await wssFetch<ChatsResponse | CompactChatsResponse>({
+    path: chatRoutes.list,
+    searchParams: { view: "compact" },
+  })
+  if (!("messagesByConversation" in data)) return data
+
+  const messages = new Map(Object.entries(data.messagesByConversation))
+  return {
+    conversations: data.conversations,
+    admins: data.admins,
+    selectedConversation: null,
+    conversationSnapshots: data.conversations.map((conversation) => ({
+      ...conversation,
+      messages: (messages.get(conversation.id) ?? []).map((message) => ({
+        ...message,
+        conversation_id: conversation.id,
+      })),
+      messages_pagination: { has_more: false, next_cursor: null },
+    })),
+  }
 }
 
 export function getChatHistory(

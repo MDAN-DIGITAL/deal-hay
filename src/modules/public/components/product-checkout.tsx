@@ -85,9 +85,9 @@ import type { ProductDiscountCode } from "@/types/discount-code"
 import type { ShippingQuote } from "@/types/shipping"
 import type { ShippingDiscountCode } from "@/types/shipping-reward"
 import type {
-  PublicProduct,
+  CheckoutProduct,
+  CheckoutShop,
   PublicProductVariant,
-  PublicShop,
 } from "@/types/catalog"
 
 export function ProductCheckout({
@@ -99,8 +99,8 @@ export function ProductCheckout({
   initialDiscountCode,
   initialShopCouponCode,
 }: {
-  shop: PublicShop
-  product: PublicProduct
+  shop: CheckoutShop
+  product: CheckoutProduct
   variant?: PublicProductVariant
   salePrice: number
   stock: number
@@ -763,7 +763,7 @@ export function ProductCheckout({
                 </Link>
                 <div className="flex items-start gap-4">
                   <MediaImage
-                    src={product.image_url || product.images[0]?.image_url}
+                    src={product.image_url || product.images?.[0]?.image_url}
                     alt={product.name}
                     className="size-20 shrink-0 rounded-xl sm:size-24"
                     sizes="96px"

@@ -1,5 +1,19 @@
 import type { User } from "@/types/auth"
-import type { Ticket } from "@/types/ticket"
+import type { Ticket, TicketUser } from "@/types/ticket"
+
+export type AdminOverviewResponse = {
+  users: number
+  shops: number
+  locked_shops: number
+  categories: number
+  active_categories: number
+  pending_tickets: number
+  recent_tickets: Array<
+    Pick<Ticket, "id" | "type_label" | "created_at"> & {
+      user_name: string | null
+    }
+  >
+}
 
 export type AdminShopOnlineStatus = {
   is_online: boolean
@@ -21,11 +35,8 @@ export type AdminShopProduct = {
   description: string | null
   price: number
   stock: number
-  label: string | null
   image_url: string | null
   is_active: boolean
-  created_at: string | null
-  updated_at: string | null
 }
 
 export type AdminShopChangeLog = {
@@ -43,30 +54,25 @@ export type AdminShopChangeLog = {
 
 export type AdminShop = {
   id: string
-  role: "shop_owner"
   user_code: string
   full_name: string
   shop_name: string | null
   email: string
   shop_email: string | null
-  phone_number: string | null
-  shop_phone_number: string | null
   avatar_url: string | null
   shop_avatar_url: string | null
-  province: string | null
-  ward: string | null
-  address_detail: string | null
-  personal_address: string
-  shop_province: string | null
-  shop_ward: string | null
-  shop_address_detail: string | null
-  shop_address: string
   is_active: boolean
   lock_reason: string | null
   products_count: number
-  categories_count: number
-  change_logs_count: number
   online_status: AdminShopOnlineStatus
+}
+
+export type AdminShopDetails = AdminShop & {
+  phone_number: string | null
+  shop_phone_number: string | null
+  personal_address: string
+  shop_address: string
+  change_logs_count: number
   created_at: string | null
   updated_at: string | null
   categories?: AdminShopCategory[]
@@ -86,13 +92,15 @@ export type AdminUsersResponse = {
   users: import("@/types/common").PaginatedResponse<User>
 }
 export type AdminShopsResponse = {
-  filters: { search: string; status: string }
-  selectedShop: AdminShop | null
   shops: import("@/types/common").PaginatedResponse<AdminShop>
 }
+export type AdminShopDetailResponse = { selectedShop: AdminShopDetails }
+export type AdminTicketSummary = Pick<
+  Ticket,
+  "id" | "type_label" | "source_label" | "status" | "created_at"
+> & { user: Pick<TicketUser, "full_name" | "email"> | null }
 export type AdminTicketsResponse = {
-  filters: { type: string | null; status: string | null; source: string | null }
-  selectedTicket: Ticket | null
-  tickets: import("@/types/common").PaginatedResponse<Ticket>
+  tickets: import("@/types/common").PaginatedResponse<AdminTicketSummary>
 }
+export type AdminTicketDetailResponse = { selectedTicket: Ticket }
 export type AdminCategoriesResponse = { categories: ProductCategory[] }

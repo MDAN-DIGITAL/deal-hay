@@ -161,7 +161,7 @@ const { ProductCheckoutPageContainer } = await import(
       "next/link": moduleUrl('export default "a"'),
       "lucide-react": moduleUrl('export const ArrowLeftIcon = "arrow"'),
       "@/hooks/use-api-query": queryUrl,
-      "@/api/catalog/queries": moduleUrl("export function getProduct() {}"),
+      "@/api/catalog/queries": moduleUrl("export function getCheckoutProduct() {}"),
       "@/components/layout/empty-state": moduleUrl(
         'export const EmptyState = "empty-state"'
       ),

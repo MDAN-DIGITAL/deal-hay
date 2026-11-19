@@ -4,7 +4,7 @@ import { useApiQuery, QueryPlaceholder } from "@/hooks/use-api-query"
 import Link from "next/link"
 import { ArrowLeftIcon } from "lucide-react"
 
-import { getProduct } from "@/api/catalog/queries"
+import { getCheckoutProduct } from "@/api/catalog/queries"
 import { EmptyState } from "@/components/layout/empty-state"
 import { buttonVariants } from "@/components/ui/button"
 import { ProductCheckout } from "@/modules/public/components/product-checkout"
@@ -26,7 +26,7 @@ export function ProductCheckoutPageContainer({
 }) {
   const { data, error } = useApiQuery(
     JSON.stringify(["checkout", shopUserCode, productSlug, variantId]),
-    () => getProduct(shopUserCode, productSlug)
+    () => getCheckoutProduct(shopUserCode, productSlug)
   )
   if (!data) return <QueryPlaceholder error={error} />
 

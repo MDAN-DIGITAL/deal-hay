@@ -50,7 +50,7 @@ import {
   managementSections,
   type ManagementTab,
 } from "@/modules/shop-management/lib/management-navigation"
-import type { User } from "@/types/auth"
+import type { ShopManagementUser } from "@/types/shop"
 
 const sectionIcons = {
   overview: LayoutDashboardIcon,
@@ -133,7 +133,7 @@ export function ShopManagementWorkspace({
   onCreateProduct,
   children,
 }: {
-  user: User
+  user: ShopManagementUser
   activeTab: ManagementTab
   openOrders: number
   unansweredReviews: number

@@ -67,7 +67,7 @@ const { ProductOfferPageContainer } = await import(
         'export const cn = (...values) => values.filter(Boolean).join(" ")'
       ),
       "@/api/catalog/queries": moduleUrl(
-        "export function getProduct() { throw new Error('No real API requests in this test') }"
+        "export function getCheckoutProduct() { throw new Error('No real API requests in this test') }"
       ),
       "@/components/layout/empty-state": uiUrl,
       "@/components/layout/page-header": uiUrl,

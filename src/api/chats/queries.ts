@@ -1,4 +1,5 @@
 import { wssFetch } from "@/api/wss-client"
+import { getChats as getChatSnapshot } from "@/api/chats/browser"
 import { getWssSession } from "@/lib/wss-session"
 import { chatRoutes } from "@/api/chats/routes"
 import type {
@@ -11,7 +12,7 @@ export async function getChats(
   conversationSlug?: string,
   limit?: number
 ): Promise<ChatsResponse> {
-  const data = await wssFetch<ChatsResponse>({ path: chatRoutes.list })
+  const data = await getChatSnapshot()
   const canonicalSlug =
     data.conversationAliases?.find(({ slug }) => slug === conversationSlug)
       ?.target_slug ?? conversationSlug

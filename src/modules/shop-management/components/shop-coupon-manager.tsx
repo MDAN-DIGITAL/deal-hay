@@ -42,7 +42,7 @@ import {
 import { shopCouponSchema } from "@/modules/shop-management/schemas/shop-coupon"
 import { formatCurrency, formatDate } from "@/lib/format"
 import { parseLocalDateTime, toLocalDateTimeValue } from "@/lib/date-time"
-import type { ShopCoupon, ShopProduct } from "@/types/shop"
+import type { ShopCoupon, ShopCouponProduct } from "@/types/shop"
 
 function couponStatus(coupon: ShopCoupon): string {
   if (!coupon.is_active) return "Đang tắt"
@@ -60,7 +60,7 @@ export function ShopCouponManager({
   products,
 }: {
   coupons: ShopCoupon[]
-  products: ShopProduct[]
+  products: ShopCouponProduct[]
 }) {
   const router = useRouter()
   const prefix = useId()

@@ -6,6 +6,7 @@
   "engines": {
     "node": "22.x"
   },
+  "browserslist": ["chrome 111", "edge 111", "firefox 111", "safari 15.6"],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

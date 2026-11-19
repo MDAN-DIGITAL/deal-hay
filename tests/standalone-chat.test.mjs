@@ -40,18 +40,18 @@ const clientUrl = transpile("../src/api/wss-client.ts", {
 })
 const { wssFetch } = await import(clientUrl)
 const routesUrl = transpile("../src/api/chats/routes.ts")
-const browser = await import(
-  transpile("../src/api/chats/browser.ts", {
-    "@/api/wss-client": clientUrl,
-    "@/api/chats/routes": routesUrl,
-    "@/lib/chat-upload": dataUrl(
-      'export async function uploadChatFile(){throw new Error("Unexpected file upload")}'
-    ),
-  })
-)
+const browserUrl = transpile("../src/api/chats/browser.ts", {
+  "@/api/wss-client": clientUrl,
+  "@/api/chats/routes": routesUrl,
+  "@/lib/chat-upload": dataUrl(
+    'export async function uploadChatFile(){throw new Error("Unexpected file upload")}'
+  ),
+})
+const browser = await import(browserUrl)
 const queries = await import(
   transpile("../src/api/chats/queries.ts", {
     "@/api/wss-client": clientUrl,
+    "@/api/chats/browser": browserUrl,
     "@/api/chats/routes": routesUrl,
     "@/lib/wss-session": sessionUrl,
   })
@@ -144,7 +144,7 @@ test("chat history, writes, read receipts and presence go directly to WSS during
   const calls = []
   t.mock.method(globalThis, "fetch", async (url, options) => {
     calls.push({ url, options })
-    if (url.endsWith("/chats"))
+    if (new URL(url).pathname === "/chats")
       return Response.json({ conversations: [], selectedConversation: null })
     if (url.includes("/messages?"))
       return Response.json({ messages: [], has_more: false, next_cursor: null })
@@ -189,6 +189,29 @@ test("chat history, writes, read receipts and presence go directly to WSS during
   })
   assert.equal(calls[2].options.headers.get("Idempotency-Key"), "client-id")
   assert.equal(state.apiCalls.length, 1)
+})
+
+test("compact chat snapshots restore message context without fetching history again", async (t) => {
+  await sessions.getWssSession()
+  const summary = { id: "room", slug: "shop-customer", counterpart: { id: "peer" } }
+  const empty = { id: "support", slug: "support-room", is_support: true }
+  const fetch = t.mock.method(globalThis, "fetch", async (url) => {
+    assert.equal(new URL(url).pathname, "/chats")
+    assert.equal(new URL(url).searchParams.get("view"), "compact")
+    return Response.json({
+      conversations: [empty, summary],
+      messagesByConversation: { room: [{ id: "stored-message", body: "Xin chào" }] },
+      admins: [],
+    })
+  })
+  const result = await queries.getChats("shop-customer", 50)
+  assert.equal(fetch.mock.callCount(), 1)
+  assert.deepEqual(result.conversationSnapshots[0].messages, [])
+  assert.deepEqual(result.selectedConversation, {
+    ...summary,
+    messages: [{ id: "stored-message", body: "Xin chào", conversation_id: "room" }],
+    messages_pagination: { has_more: false, next_cursor: null },
+  })
 })
 
 test("the chat page combines WSS summaries and paginated history without API detail requests", async (t) => {

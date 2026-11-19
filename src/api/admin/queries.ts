@@ -2,10 +2,17 @@ import { apiFetch } from "@/api/client"
 import { adminRoutes } from "@/api/admin/routes"
 import type {
   AdminCategoriesResponse,
+  AdminOverviewResponse,
+  AdminShopDetailResponse,
   AdminShopsResponse,
+  AdminTicketDetailResponse,
   AdminTicketsResponse,
   AdminUsersResponse,
 } from "@/types/admin"
+
+export function getAdminOverview(): Promise<AdminOverviewResponse> {
+  return apiFetch({ path: adminRoutes.overview })
+}
 
 export function getAdminUsers(
   page?: string,
@@ -19,13 +26,13 @@ export function getAdminUsers(
   })
 }
 
-export function getAdminShop(shopId: string): Promise<AdminShopsResponse> {
+export function getAdminShop(shopId: string): Promise<AdminShopDetailResponse> {
   return apiFetch({ path: adminRoutes.shop(encodeURIComponent(shopId)) })
 }
 
 export function getAdminTicket(
   ticketId: string
-): Promise<AdminTicketsResponse> {
+): Promise<AdminTicketDetailResponse> {
   return apiFetch({ path: adminRoutes.ticket(encodeURIComponent(ticketId)) })
 }
 

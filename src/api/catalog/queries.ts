@@ -1,6 +1,7 @@
 import { apiFetch } from "@/api/client"
 import { catalogRoutes } from "@/api/catalog/routes"
 import type {
+  CheckoutProductResponse,
   HomeResponse,
   ProductResponse,
   ShopResponse,
@@ -32,4 +33,14 @@ export function getProduct(
   productSlug: string
 ): Promise<ProductResponse> {
   return apiFetch({ path: catalogRoutes.product(shopUserCode, productSlug) })
+}
+
+export function getCheckoutProduct(
+  shopUserCode: string,
+  productSlug: string
+): Promise<CheckoutProductResponse> {
+  return apiFetch({
+    path: catalogRoutes.product(shopUserCode, productSlug),
+    searchParams: { view: "checkout" },
+  })
 }

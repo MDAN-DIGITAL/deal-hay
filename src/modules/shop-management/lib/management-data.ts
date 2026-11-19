@@ -25,15 +25,16 @@ export function isOpenOrder(order: ShopOrder) {
   return order.status !== "completed" && order.status !== "cancelled"
 }
 
-export function isLowStock(product: ShopProduct) {
+export function isLowStock(product: Pick<ShopProduct, "is_active" | "stock">) {
   return product.is_active && product.stock <= 5
 }
 
-export function filterShopProducts(
-  products: ShopProduct[],
-  query: string,
-  status: ProductFilter
-) {
+export function filterShopProducts<
+  T extends Pick<
+    ShopProduct,
+    "name" | "sku" | "category" | "is_active" | "stock"
+  >,
+>(products: T[], query: string, status: ProductFilter) {
   const search = searchable(query)
   return products.filter((product) => {
     const matchesStatus =

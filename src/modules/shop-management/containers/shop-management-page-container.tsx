@@ -10,11 +10,15 @@ import { managementTab } from "@/modules/shop-management/lib/management-navigati
 export function ShopManagementPageContainer({
   initialTab,
 }: { initialTab?: string } = {}) {
-  const { data: data, error } = useApiQuery("shop-manage", () =>
-    getShopManage()
+  const tab = managementTab(initialTab)
+  const { data: shell, error } = useApiQuery("shop-manage-shell", () =>
+    getShopManage("shell")
   )
-  if (!data) return <QueryPlaceholder error={error} />
-  const user = data.auth?.user
+  const { data, error: sectionError } = useApiQuery(`shop-manage-${tab}`, () =>
+    tab === "settings" ? Promise.resolve(undefined) : getShopManage(tab)
+  )
+  if (!shell) return <QueryPlaceholder error={error} />
+  const user = shell.auth?.user
 
   if (!user) {
     redirect("/sign-in")
@@ -23,14 +27,28 @@ export function ShopManagementPageContainer({
   return (
     <ShopManagementClient
       user={user}
-      categories={data.categories ?? []}
-      products={data.products ?? []}
-      coupons={data.coupons ?? []}
-      orders={data.orders ?? []}
-      metrics={data.shopMetrics ?? data.metrics}
-      inventoryMovements={data.inventoryMovements ?? []}
-      productReviews={data.productReviews ?? []}
-      initialTab={managementTab(initialTab)}
+      categories={shell.categories ?? []}
+      openOrderCount={shell.openOrders}
+      unansweredReviewCount={
+        shell.unansweredReviews ??
+        shell.productReviews?.filter((review) => !review.shop_reply).length
+      }
+      products={data?.products ?? []}
+      inventoryProducts={data?.inventoryProducts ?? data?.products ?? []}
+      coupons={data?.coupons ?? []}
+      couponProducts={data?.couponProducts ?? data?.products ?? []}
+      orders={data?.orders ?? []}
+      recentOrders={data?.recentOrders}
+      lowStockCount={data?.lowStock}
+      metrics={data?.shopMetrics ?? data?.metrics}
+      inventoryMovements={data?.inventoryMovements ?? []}
+      productReviews={data?.productReviews ?? []}
+      sectionPlaceholder={
+        tab !== "settings" && !data ? (
+          <QueryPlaceholder error={sectionError} />
+        ) : undefined
+      }
+      initialTab={tab}
     />
   )
 }

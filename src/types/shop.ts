@@ -3,6 +3,21 @@ import type {
   ProductVariant,
   ProductReview,
 } from "@/types/catalog"
+import type { User } from "@/types/auth"
+
+export type ShopManagementUser = Pick<
+  User,
+  | "user_code"
+  | "full_name"
+  | "avatar_url"
+  | "shop_avatar_url"
+  | "shop_name"
+  | "shop_email"
+  | "shop_phone_number"
+  | "shop_province"
+  | "shop_ward"
+  | "shop_address_detail"
+>
 
 export type ShopProductImage = {
   id: string
@@ -54,6 +69,35 @@ export type ShopCoupon = {
   is_active: boolean
 }
 
+export type ShopCouponProduct = Pick<
+  ShopProduct,
+  "id" | "sku" | "name" | "price" | "is_active"
+>
+
+export type ShopInventoryProduct = Pick<
+  ShopProduct,
+  | "id"
+  | "name"
+  | "sku"
+  | "stock"
+  | "category"
+  | "image_url"
+  | "is_active"
+  | "has_variants"
+> & {
+  variants: Pick<
+    ShopProductVariant,
+    | "id"
+    | "sku"
+    | "stock"
+    | "is_active"
+    | "is_default"
+    | "option_values"
+    | "variant_label"
+    | "retired_at"
+  >[]
+}
+
 export type ShopOrderItem = {
   id: string
   product_name: string
@@ -97,6 +141,11 @@ export type InventoryMovement = {
   note: string | null
   created_at: string | null
 }
+
+export type ShopOrderSummary = Pick<
+  ShopOrder,
+  "id" | "order_number" | "customer_name" | "status" | "total" | "created_at"
+>
 
 export type ShopCategory = {
   id: string

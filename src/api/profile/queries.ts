@@ -6,6 +6,6 @@ export function getProfile(): Promise<ProfileResponse> {
   return apiFetch({ path: profileRoutes.me })
 }
 
-export function getShopManage(): Promise<ShopManageResponse> {
-  return apiFetch({ path: profileRoutes.shopManage })
+export function getShopManage(section: string): Promise<ShopManageResponse> {
+  return apiFetch({ path: profileRoutes.shopManage, searchParams: { section } })
 }

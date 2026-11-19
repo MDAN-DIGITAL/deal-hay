@@ -71,6 +71,7 @@ import {
 } from "@/modules/admin/schemas/admin"
 import type { PaginatedResponse } from "@/types/common"
 import type { Ticket } from "@/types/ticket"
+import type { AdminTicketSummary } from "@/types/admin"
 
 function TicketContext({ ticket }: { ticket: Ticket }) {
   const upgrade = ticket.metadata?.shop_owner_upgrade
@@ -342,7 +343,7 @@ function TicketDetails({ ticketId }: { ticketId: string }) {
 export function AdminTicketsClient({
   tickets,
 }: {
-  tickets: PaginatedResponse<Ticket>
+  tickets: PaginatedResponse<AdminTicketSummary>
 }) {
   const query = useSearchParams()
   const router = useRouter()
@@ -351,7 +352,8 @@ export function AdminTicketsClient({
     const params = new URLSearchParams(query.toString())
     if (id) params.set("ticket", id)
     else params.delete("ticket")
-    const href = params.size ? `/admin/tickets?${params}` : "/admin/tickets"
+    const search = params.toString()
+    const href = search ? `/admin/tickets?${search}` : "/admin/tickets"
     if (id) router.push(href, { scroll: false })
     else router.replace(href, { scroll: false })
   }

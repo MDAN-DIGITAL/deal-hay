@@ -140,13 +140,17 @@ import { formatCurrency, formatDate } from "@/lib/format"
 import { IMAGE_UPLOAD_ACCEPT } from "@/lib/validation"
 import { ImageUploadProgress } from "@/components/image-upload-progress"
 import { useImageUpload } from "@/hooks/use-image-upload"
-import type { User } from "@/types/auth"
+import type { ReactNode } from "react"
 import type {
   InventoryMovement,
   ShopCategory,
   ShopCoupon,
+  ShopCouponProduct,
+  ShopInventoryProduct,
+  ShopManagementUser,
   ShopMetrics,
   ShopOrder,
+  ShopOrderSummary,
   ShopProduct,
   ShopProductReview,
 } from "@/types/shop"
@@ -200,7 +204,7 @@ const orderFilterOptions: { value: OrderFilter; label: string }[] = [
   })),
 ]
 
-function ProductInventoryForm({ product }: { product: ShopProduct }) {
+function ProductInventoryForm({ product }: { product: ShopInventoryProduct }) {
   const [isPending, startTransition] = useTransition()
   const availableVariants = product.variants.filter(
     (variant) => variant.is_active && !variant.retired_at
@@ -456,7 +460,7 @@ function ReviewReplyForm({ review }: { review: ShopProductReview }) {
   )
 }
 
-function ShopAvatarForm({ user }: { user: User }) {
+function ShopAvatarForm({ user }: { user: ShopManagementUser }) {
   const [isPending, startTransition] = useTransition()
   const { prepareUploads, uploadProgress } = useImageUpload()
   const form = useForm<AvatarValues>({
@@ -541,7 +545,7 @@ function ShopAvatarForm({ user }: { user: User }) {
   )
 }
 
-function ShopProfileForm({ user }: { user: User }) {
+function ShopProfileForm({ user }: { user: ShopManagementUser }) {
   const [isPending, startTransition] = useTransition()
   const [requiresEmailVerification, setRequiresEmailVerification] =
     useState(false)
@@ -1274,21 +1278,35 @@ export function ShopManagementClient({
   user,
   categories,
   products,
+  inventoryProducts,
   coupons,
+  couponProducts,
   orders,
+  recentOrders,
+  openOrderCount,
+  lowStockCount,
+  unansweredReviewCount,
   metrics,
   inventoryMovements,
   productReviews,
+  sectionPlaceholder,
   initialTab = "overview",
 }: {
-  user: User
+  user: ShopManagementUser
   categories: ShopCategory[]
   products: ShopProduct[]
+  inventoryProducts: ShopInventoryProduct[]
   coupons: ShopCoupon[]
+  couponProducts: ShopCouponProduct[]
   orders: ShopOrder[]
+  recentOrders?: ShopOrderSummary[]
+  openOrderCount?: number
+  lowStockCount?: number
+  unansweredReviewCount?: number
   metrics?: ShopMetrics
   inventoryMovements: InventoryMovement[]
   productReviews: ShopProductReview[]
+  sectionPlaceholder?: ReactNode
   initialTab?: ManagementTab
 }) {
   const [pending, startTransition] = useTransition()
@@ -1303,11 +1321,13 @@ export function ShopManagementClient({
   const [orderStatus, setOrderStatus] = useState<OrderFilter>("all")
   const [reviewStatus, setReviewStatus] = useState("all")
   const openOrders =
-    metrics?.open_orders_count ?? orders.filter(isOpenOrder).length
-  const lowStock = products.filter(isLowStock).length
-  const unansweredReviews = productReviews.filter(
-    (review) => !review.shop_reply
-  ).length
+    openOrderCount ??
+    metrics?.open_orders_count ??
+    orders.filter(isOpenOrder).length
+  const lowStock = lowStockCount ?? products.filter(isLowStock).length
+  const unansweredReviews =
+    unansweredReviewCount ??
+    productReviews.filter((review) => !review.shop_reply).length
   const reviewFilterOptions = [
     { value: "all", label: "Tất cả đánh giá" },
     { value: "unanswered", label: `Chưa phản hồi (${unansweredReviews})` },
@@ -1317,8 +1337,8 @@ export function ShopManagementClient({
     productSearch,
     productStatus
   )
-  const inventoryProducts = filterShopProducts(
-    products,
+  const visibleInventoryProducts = filterShopProducts(
+    inventoryProducts,
     inventorySearch,
     inventoryStatus
   )
@@ -1364,10 +1384,11 @@ export function ShopManagementClient({
       unansweredReviews={unansweredReviews}
       onCreateProduct={() => setCreateProductOpen(true)}
     >
-      {activeTab === "overview" ? (
+      {sectionPlaceholder}
+      {!sectionPlaceholder && activeTab === "overview" ? (
         <ShopManagementOverview
           products={products}
-          orders={orders}
+          orders={recentOrders ?? orders}
           metrics={metrics}
           openOrders={openOrders}
           lowStock={lowStock}
@@ -1512,7 +1533,7 @@ export function ShopManagementClient({
         </div>
       ) : null}
 
-      {activeTab === "products" ? (
+      {!sectionPlaceholder && activeTab === "products" ? (
         <div className="space-y-6">
           <Card className="min-w-0">
             <CardHeader>
@@ -1610,7 +1631,7 @@ export function ShopManagementClient({
         </div>
       ) : null}
 
-      {activeTab === "inventory" ? (
+      {!sectionPlaceholder && activeTab === "inventory" ? (
         <div className="space-y-6">
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)]">
             <Card>
@@ -1658,10 +1679,11 @@ export function ShopManagementClient({
                   </Select>
                 </div>
                 <p className="text-xs text-muted-foreground" role="status">
-                  {inventoryProducts.length} / {products.length} sản phẩm
+                  {visibleInventoryProducts.length} / {inventoryProducts.length}{" "}
+                  sản phẩm
                 </p>
                 <Accordion className="gap-3" multiple>
-                  {inventoryProducts.map((product) => (
+                  {visibleInventoryProducts.map((product) => (
                     <AccordionItem
                       key={product.id}
                       className="rounded-xl border px-4"
@@ -1693,7 +1715,7 @@ export function ShopManagementClient({
                     </AccordionItem>
                   ))}
                 </Accordion>
-                {inventoryProducts.length === 0 ? (
+                {visibleInventoryProducts.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     Không có sản phẩm phù hợp để điều chỉnh tồn kho.
                   </p>
@@ -1716,13 +1738,13 @@ export function ShopManagementClient({
         </div>
       ) : null}
 
-      {activeTab === "promotions" ? (
+      {!sectionPlaceholder && activeTab === "promotions" ? (
         <div className="space-y-6">
-          <ShopCouponManager coupons={coupons} products={products} />
+          <ShopCouponManager coupons={coupons} products={couponProducts} />
         </div>
       ) : null}
 
-      {activeTab === "reviews" ? (
+      {!sectionPlaceholder && activeTab === "reviews" ? (
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -1775,7 +1797,7 @@ export function ShopManagementClient({
         </div>
       ) : null}
 
-      {activeTab === "orders" ? (
+      {!sectionPlaceholder && activeTab === "orders" ? (
         <div className="space-y-6">
           <Card>
             <CardHeader>

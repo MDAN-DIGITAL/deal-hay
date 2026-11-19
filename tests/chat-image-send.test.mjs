@@ -40,7 +40,8 @@ const apiUrl = moduleUrl(`
     sentMessages.push(args)
     return { id: "sent-message", attachment: { type: "image" } }
   }
-  export function getCurrentSession() {authQueries.count++;if(authQueries.session)return Promise.resolve(authQueries.session);throw new Error("Unexpected auth query") }
+  export async function getUnreadMessageCount() {authQueries.count++;if(authQueries.session)return authQueries.session.unreadCounts.messages;throw new Error("Unexpected auth query") }
+  export function getUnreadNotificationCount() {throw new Error("Unexpected notification count query") }
   export function markConversationRead() { throw new Error("Unexpected read mutation") }
   export function recordPresenceHeartbeat() { throw new Error("Unexpected heartbeat") }
   export function getChatHistory() { throw new Error("Unexpected history query") }

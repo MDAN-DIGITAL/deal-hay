@@ -69,8 +69,31 @@ export type PublicProduct = {
 
 export type PublicProductSummary = Omit<
   PublicProduct,
-  "description" | "images" | "options" | "variants"
+  | "sku"
+  | "description"
+  | "video_url"
+  | "has_variants"
+  | "images"
+  | "options"
+  | "variants"
 >
+
+export type CheckoutProduct = Pick<
+  PublicProduct,
+  | "id"
+  | "slug"
+  | "name"
+  | "price"
+  | "display_price"
+  | "stock"
+  | "has_variants"
+  | "image_url"
+  | "variants"
+> & { images?: PublicProduct["images"] }
+
+export type CheckoutShop = Pick<PublicShop, "code" | "name"> & {
+  viewer: Pick<PublicShop["viewer"], "can_interact">
+}
 
 export type ProductReview = {
   id: string
@@ -104,7 +127,6 @@ export type HomeProduct = PublicProductSummary & {
   shop: {
     code: string
     name: string
-    avatar_url: string | null
   }
 }
 

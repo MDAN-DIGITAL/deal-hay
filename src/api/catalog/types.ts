@@ -1,5 +1,7 @@
 import type {
   FeaturedShop,
+  CheckoutProduct,
+  CheckoutShop,
   HomeProduct,
   ProductReview,
   ProductReviewSummary,
@@ -25,6 +27,11 @@ export type ShopResponse = {
   categories: string[]
   metrics?: Record<string, unknown>
   viewerState?: Record<string, unknown>
+}
+
+export type CheckoutProductResponse = {
+  shop: CheckoutShop
+  product: CheckoutProduct
 }
 
 export type ProductResponse = {

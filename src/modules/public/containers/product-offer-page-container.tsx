@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import { cn } from "cn"
 
-import { getProduct } from "@/api/catalog/queries"
+import { getCheckoutProduct } from "@/api/catalog/queries"
 import { EmptyState } from "@/components/layout/empty-state"
 import { PageHeader } from "@/components/layout/page-header"
 import { MediaImage } from "@/components/media-image"
@@ -46,9 +46,9 @@ import {
 } from "@/modules/public/lib/shop-offers"
 import { loadShopOffersAction } from "@/modules/public/shop-offer-actions"
 import type {
-  PublicProduct,
+  CheckoutProduct,
+  CheckoutShop,
   PublicProductVariant,
-  PublicShop,
 } from "@/types/catalog"
 import type { ShopOffer } from "@/types/shop-coupon"
 
@@ -67,7 +67,7 @@ export function ProductOfferPageContainer({
 }) {
   const { data, error } = useApiQuery(
     JSON.stringify(["product-offer", shopUserCode, productSlug, variantId]),
-    () => getProduct(shopUserCode, productSlug)
+    () => getCheckoutProduct(shopUserCode, productSlug)
   )
   if (!data) return <QueryPlaceholder error={error} />
 
@@ -133,8 +133,8 @@ function ProductOfferDetails({
   initialDiscountCode,
   initialShopCouponCode,
 }: {
-  product: PublicProduct
-  shop: PublicShop
+  product: CheckoutProduct
+  shop: CheckoutShop
   variant?: PublicProductVariant
   shopUserCode: string
   productSlug: string
@@ -326,7 +326,7 @@ function ProductOfferDetails({
             <div className="flex min-w-0 items-start gap-4">
               <MediaImage
                 alt={product.name}
-                src={product.image_url || product.images[0]?.image_url}
+                src={product.image_url || product.images?.[0]?.image_url}
                 className="size-24 shrink-0 rounded-lg sm:size-28"
                 imageClassName="object-contain"
                 sizes="112px"

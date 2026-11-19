@@ -47,7 +47,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/format"
 import { orderStatusLabels } from "@/modules/shop-management/lib/management-data"
 import type { ManagementTab } from "@/modules/shop-management/lib/management-navigation"
-import type { ShopMetrics, ShopOrder, ShopProduct } from "@/types/shop"
+import type { ShopMetrics, ShopOrderSummary, ShopProduct } from "@/types/shop"
 
 export function ShopManagementOverview({
   products,
@@ -60,7 +60,7 @@ export function ShopManagementOverview({
   onTask,
 }: {
   products: ShopProduct[]
-  orders: ShopOrder[]
+  orders: ShopOrderSummary[]
   metrics?: ShopMetrics
   openOrders: number
   lowStock: number

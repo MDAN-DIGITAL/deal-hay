@@ -1,4 +1,5 @@
 export const adminRoutes = {
+  overview: "/admin/overview",
   users: "/admin/users",
   toggleUserLock: (userId: string) => `/admin/users/${userId}/toggle-lock`,
   startChat: (userId: string) => `/admin/users/${userId}/chat`,

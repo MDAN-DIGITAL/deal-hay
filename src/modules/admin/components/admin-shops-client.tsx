@@ -429,7 +429,8 @@ export function AdminShopsClient({
     const params = new URLSearchParams(query.toString())
     if (id) params.set("shop", id)
     else params.delete("shop")
-    const href = params.size ? `/admin/shops?${params}` : "/admin/shops"
+    const search = params.toString()
+    const href = search ? `/admin/shops?${search}` : "/admin/shops"
     if (id) router.push(href, { scroll: false })
     else router.replace(href, { scroll: false })
   }

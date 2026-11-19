@@ -30,6 +30,7 @@ async function requestWss<T>(
   for (const [key, value] of Object.entries(searchParams ?? {}))
     if (value !== undefined && value !== null && value !== "")
       query.set(key, String(value))
+  const queryString = query.toString()
   const requestHeaders = new Headers(headers)
   requestHeaders.set("Authorization", `Bearer ${session.token}`)
   requestHeaders.set("Accept", "application/json")
@@ -48,7 +49,7 @@ async function requestWss<T>(
     }
   }
   const response = await fetch(
-    `${session.url}${path}${query.size ? `?${query}` : ""}`,
+    `${session.url}${path}${queryString ? `?${queryString}` : ""}`,
     {
       method,
       headers: requestHeaders,

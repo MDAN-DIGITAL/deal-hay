@@ -11,7 +11,7 @@ function productPath(shopUserCode: string, productSlug: string): string {
   return `/shops/${encodeURIComponent(shopUserCode)}/products/${encodeURIComponent(productSlug)}`
 }
 
-function productQuery(options: ProductNavigationOptions): URLSearchParams {
+function productQuery(options: ProductNavigationOptions): string {
   const query = new URLSearchParams()
   const variantIds = Array.isArray(options.variantId)
     ? options.variantId
@@ -24,7 +24,7 @@ function productQuery(options: ProductNavigationOptions): URLSearchParams {
   if (options.shopCouponCode)
     query.set("shop_coupon_code", options.shopCouponCode)
 
-  return query
+  return query.toString()
 }
 
 export function productDetailHref(
@@ -35,7 +35,7 @@ export function productDetailHref(
   const query = productQuery(options)
   const path = productPath(shopUserCode, productSlug)
 
-  return query.size > 0 ? `${path}?${query}` : path
+  return query ? `${path}?${query}` : path
 }
 
 export function productCheckoutHref(
@@ -45,7 +45,7 @@ export function productCheckoutHref(
 ): string {
   const query = productQuery(options)
   const path = `${productPath(shopUserCode, productSlug)}/checkout`
-  return query.size > 0 ? `${path}?${query}` : path
+  return query ? `${path}?${query}` : path
 }
 
 export function productOfferHref(
@@ -55,7 +55,7 @@ export function productOfferHref(
 ): string {
   const query = productQuery(options)
   const path = `${productPath(shopUserCode, productSlug)}/offer`
-  return query.size > 0 ? `${path}?${query}` : path
+  return query ? `${path}?${query}` : path
 }
 
 export function normalizeShopCouponCode(value: unknown): string | undefined {

@@ -3,11 +3,11 @@ export type AppNotification = {
   title: string
   body: string
   category: string
-  user_id?: string | null
-  ticket_id: string | null
   action_url: string | null
   sender?: { id: string; name: string; avatar_url: string | null } | null
-  data: Record<string, unknown>
+  conversation_id?: string | null
+  message_id?: string | null
+  avatar_url?: string | null
   read_at: string | null
   created_at: string | null
 }

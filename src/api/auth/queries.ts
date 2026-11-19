@@ -2,6 +2,16 @@ import { apiFetch, ApiError } from "@/api/client"
 import { authRoutes } from "@/api/auth/routes"
 import type { SessionResponse, MeResponse } from "@/api/auth/types"
 
+export async function getUnreadNotificationCount(): Promise<number> {
+  const data = await apiFetch<{ notifications: number } | MeResponse>({
+    path: authRoutes.me,
+    searchParams: { view: "unread-notifications" },
+  })
+  return "notifications" in data
+    ? data.notifications
+    : data.meta.unread_notifications_count
+}
+
 export async function getCurrentSession(): Promise<
   SessionResponse & { session: string | null }
 > {

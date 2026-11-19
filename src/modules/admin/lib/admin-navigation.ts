@@ -55,7 +55,8 @@ export function adminFilterHref(
     if (value.trim() && value !== "all") params.set(key, value.trim())
     else params.delete(key)
   }
-  return params.size ? `${pathname}?${params}` : pathname
+  const search = params.toString()
+  return search ? `${pathname}?${search}` : pathname
 }
 
 export const roleLabels: Record<string, string> = {

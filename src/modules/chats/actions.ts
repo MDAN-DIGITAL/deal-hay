@@ -3,7 +3,7 @@ import {
   markConversationRead,
   recordPresenceHeartbeat,
   sendChatMessage,
-  getCurrentSession,
+  getUnreadMessageCount,
   getChatHistory,
   getChats,
 } from "@/api/chats/browser"
@@ -12,7 +12,7 @@ import type { UnreadCounts } from "@/types/auth"
 import type { ActionState } from "@/types/forms"
 import { sendMessageUploadSchema } from "@/modules/chats/schemas/chats"
 import type { ChatMessage } from "@/types/chat"
-import { getCurrentSession as getAccountSession } from "@/api/auth/queries"
+import { getUnreadNotificationCount } from "@/api/auth/queries"
 
 export type SendMessageActionState = ActionState & { data?: ChatMessage }
 export type ChatHistoryActionState = ActionState & {
@@ -25,8 +25,8 @@ export async function refreshUnreadCountsAction(): Promise<
   | null
 > {
   try {
-    const session = await getCurrentSession()
-    return session.user ? { messages: session.unreadCounts.messages } : null
+    const messages = await getUnreadMessageCount()
+    return messages === null ? null : { messages }
   } catch {
     return null
   }
@@ -34,8 +34,7 @@ export async function refreshUnreadCountsAction(): Promise<
 
 export async function refreshNotificationCountAction(): Promise<number | null> {
   try {
-    const session = await getAccountSession()
-    return session.user ? session.unreadCounts.notifications : null
+    return await getUnreadNotificationCount()
   } catch {
     return null
   }

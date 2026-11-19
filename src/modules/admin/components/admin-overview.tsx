@@ -9,12 +9,7 @@ import {
   TicketCheckIcon,
   UsersIcon,
 } from "lucide-react"
-import {
-  getAdminCategories,
-  getAdminShops,
-  getAdminTickets,
-  getAdminUsers,
-} from "@/api/admin/queries"
+import { getAdminOverview } from "@/api/admin/queries"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -39,45 +34,30 @@ import { QueryPlaceholder, useApiQuery } from "@/hooks/use-api-query"
 import { formatDate } from "@/lib/format"
 
 export function AdminOverview() {
-  const { data, error } = useApiQuery("admin-overview", async () => {
-    const [users, shops, categories, pending, locked] = await Promise.all([
-      getAdminUsers(),
-      getAdminShops(),
-      getAdminCategories(),
-      getAdminTickets(undefined, "pending"),
-      getAdminShops(undefined, "locked"),
-    ])
-    return {
-      users: users.users,
-      shops: shops.shops,
-      categories: categories.categories,
-      pending: pending.tickets,
-      locked: locked.shops,
-    }
-  })
+  const { data, error } = useApiQuery("admin-overview", getAdminOverview)
   if (!data) return <QueryPlaceholder error={error} />
   const metrics = [
     {
       label: "Người dùng",
-      value: data.users.total,
+      value: data.users,
       icon: UsersIcon,
       description: "Tài khoản trong hệ thống",
     },
     {
       label: "Cửa hàng",
-      value: data.shops.total,
+      value: data.shops,
       icon: StoreIcon,
       description: "Tổng số gian hàng",
     },
     {
       label: "Danh mục",
-      value: data.categories.length,
+      value: data.categories,
       icon: FolderTreeIcon,
-      description: `${data.categories.filter((category) => category.is_active).length} danh mục đang hiển thị`,
+      description: `${data.active_categories} danh mục đang hiển thị`,
     },
     {
       label: "Yêu cầu chờ xử lý",
-      value: data.pending.total,
+      value: data.pending_tickets,
       icon: TicketCheckIcon,
       description: "Cần quản trị viên xem xét",
     },
@@ -87,21 +67,21 @@ export function AdminOverview() {
       href: "/admin/tickets?status=pending",
       label: "Yêu cầu cần xử lý",
       description: "Duyệt nâng cấp, mở khóa và khiếu nại",
-      count: data.pending.total,
+      count: data.pending_tickets,
       icon: TicketCheckIcon,
     },
     {
       href: "/admin/shops?status=locked",
       label: "Cửa hàng đang khóa",
       description: "Kiểm tra tình trạng và lý do khóa",
-      count: data.locked.total,
+      count: data.locked_shops,
       icon: LockIcon,
     },
     {
       href: "/admin/categories",
       label: "Danh mục đang ẩn",
       description: "Rà soát danh mục sản phẩm dùng chung",
-      count: data.categories.filter((category) => !category.is_active).length,
+      count: data.categories - data.active_categories,
       icon: FolderTreeIcon,
     },
   ]
@@ -194,9 +174,9 @@ export function AdminOverview() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {data.pending.data.length ? (
+          {data.recent_tickets.length ? (
             <ItemGroup>
-              {data.pending.data.slice(0, 5).map((ticket) => (
+              {data.recent_tickets.map((ticket) => (
                 <Item
                   key={ticket.id}
                   variant="interactive"
@@ -209,7 +189,7 @@ export function AdminOverview() {
                   <ItemContent>
                     <ItemTitle>{ticket.type_label}</ItemTitle>
                     <ItemDescription>
-                      {ticket.user?.full_name ?? "Ẩn danh"} ·{" "}
+                      {ticket.user_name ?? "Ẩn danh"} ·{" "}
                       {formatDate(ticket.created_at)}
                     </ItemDescription>
                   </ItemContent>
