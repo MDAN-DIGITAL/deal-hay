@@ -3,7 +3,11 @@ import type { AppNotification } from "@/types/notification"
 
 export function notificationPresentation(category: string) {
   if (category.startsWith("order."))
-    return { kind: "order", label: "Đơn hàng", actionLabel: "Xem đơn hàng" } as const
+    return {
+      kind: "order",
+      label: "Đơn hàng",
+      actionLabel: "Xem đơn hàng",
+    } as const
   if (category.startsWith("ticket."))
     return {
       kind: category === "ticket.rejected" ? "warning" : "support",
@@ -17,10 +21,22 @@ export function notificationPresentation(category: string) {
       actionLabel: "Xem sản phẩm",
     } as const
   if (category.startsWith("shop."))
-    return { kind: "shop", label: "Cửa hàng", actionLabel: "Xem cập nhật" } as const
+    return {
+      kind: "shop",
+      label: "Cửa hàng",
+      actionLabel: "Xem cập nhật",
+    } as const
   if (category.startsWith("user."))
-    return { kind: "account", label: "Tài khoản", actionLabel: "Xem tài khoản" } as const
-  return { kind: "general", label: "Hệ thống", actionLabel: "Xem chi tiết" } as const
+    return {
+      kind: "account",
+      label: "Tài khoản",
+      actionLabel: "Xem tài khoản",
+    } as const
+  return {
+    kind: "general",
+    label: "Hệ thống",
+    actionLabel: "Xem chi tiết",
+  } as const
 }
 
 /** Keep old notifications useful while only following local destinations. */

@@ -10,7 +10,9 @@ export function SignUpPageContent() {
   const searchParams = useSearchParams()
   return (
     <SignUpPageContainer
-      redirectTo={getSafeAuthRedirect(routeQueryValue(searchParams, "redirect"))}
+      redirectTo={getSafeAuthRedirect(
+        routeQueryValue(searchParams, "redirect")
+      )}
     />
   )
 }

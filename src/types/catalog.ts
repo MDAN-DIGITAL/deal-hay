@@ -1,3 +1,5 @@
+import type { ProductDescriptionDocument } from "@/lib/product-description"
+
 export type ProductOption = {
   id?: string
   name: string
@@ -53,6 +55,7 @@ export type PublicProduct = {
   name: string
   category: string
   description: string | null
+  description_content?: ProductDescriptionDocument
   price: number
   display_price?: number
   old_price?: number | null
@@ -71,6 +74,7 @@ export type PublicProductSummary = Omit<
   PublicProduct,
   | "sku"
   | "description"
+  | "description_content"
   | "video_url"
   | "has_variants"
   | "images"

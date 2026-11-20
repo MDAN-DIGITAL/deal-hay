@@ -33,6 +33,7 @@ import { Surface } from "@/components/ui/surface"
 import { UserAvatar } from "@/components/user-avatar"
 import { formatDate } from "@/lib/format"
 import { ProductCard } from "@/modules/public/components/product-card"
+import { ProductDescriptionContent } from "@/modules/public/components/product-description-content"
 import { ProductGallery } from "@/modules/public/components/product-gallery"
 import { ProductInteractions } from "@/modules/public/components/product-interactions"
 
@@ -130,10 +131,7 @@ export function ProductPageContainer({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="min-w-0 leading-7 [overflow-wrap:anywhere] whitespace-pre-wrap text-muted-foreground">
-              {data.product.description ||
-                "Cửa hàng chưa bổ sung mô tả chi tiết cho sản phẩm này."}
-            </p>
+            <ProductDescriptionContent product={data.product} />
           </CardContent>
         </Card>
 

@@ -215,7 +215,6 @@ export function ShopManagementWorkspace({
                   <Link
                     href="/profile"
 
-
                     target="_blank"
                     rel="noopener noreferrer"
                   />
@@ -260,13 +259,7 @@ export function ShopManagementWorkspace({
               aria-label={`Tin nhắn${unreadCounts.messages > 0 ? `, ${unreadCounts.messages} chưa đọc` : ""} (mở tab mới)`}
               tooltip="Tin nhắn (mở tab mới)"
               render={
-                <Link
-                  href="/chats"
-                  target="_blank"
-                  rel="noopener noreferrer"
-
-
-                />
+                <Link href="/chats" target="_blank" rel="noopener noreferrer" />
               }
             >
               <MessageCircleIcon aria-hidden="true" />
@@ -284,7 +277,6 @@ export function ShopManagementWorkspace({
               render={
                 <Link
                   href="/notifications"
-
 
                   target="_blank"
                   rel="noopener noreferrer"

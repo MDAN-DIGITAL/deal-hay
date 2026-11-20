@@ -142,18 +142,25 @@ test("editing prices rejects inconsistent amounts and non-HTTPS video URLs befor
   })
 })
 
-test("the product gallery validates the complete selection and flags unsupported files", () => {
+test("the product gallery validates the total and allows source images with an unidentified format", () => {
   const image = productDraft().image
   assert.equal(
-    productGallerySchema.safeParse(Array(50).fill(image)).success,
+    productGallerySchema.safeParse(Array(5).fill(image)).success,
     true
   )
   assert.equal(
-    productGallerySchema.safeParse(Array(51).fill(image)).success,
+    productGallerySchema.safeParse(Array(6).fill(image)).success,
     false
   )
-  const unsupported = new File(["text"], "notes.txt", { type: "text/plain" })
-  const invalid = productGallerySchema.safeParse([image, unsupported])
+  const cameraImage = new File(["source"], "camera.heic")
+  assert.equal(
+    productGallerySchema.safeParse([image, cameraImage]).success,
+    true
+  )
+  const invalid = productGallerySchema.safeParse([
+    image,
+    new File([], "empty.jpg"),
+  ])
   assert.equal(invalid.success, false)
   assert.deepEqual(invalid.error.issues[0].path, [1])
 })
@@ -187,7 +194,7 @@ test("camera batches larger than one request remain valid for staged uploads", (
   assert.equal(parsed.success, true)
 })
 
-test("source images above 10 MB are accepted for compression while galleries remain limited to 50 images", () => {
+test("source images above 10 MB are accepted for compression while galleries remain limited to five images", () => {
   const oversized = new File(
     [new Uint8Array(10 * 1024 * 1024 + 1)],
     "large.jpg",
@@ -200,17 +207,22 @@ test("source images above 10 MB are accepted for compression while galleries rem
   const image = productDraft().image
   assert.equal(
     createProductSchema.safeParse(
-      productDraft({ gallery_images: Array(51).fill(image) })
+      productDraft({ gallery_images: Array(6).fill(image) })
     ).success,
     false
   )
 })
 
-test("a staged 51-image product submission forwards references without any image binaries", async () => {
+test("a staged six-image product submission forwards references without any image binaries", async () => {
   const form = productFormData()
   form.delete("image")
   form.set("primary_image_upload", "primary-upload-token")
-  for (let index = 0; index < 50; index++) {
+  const description = JSON.stringify({
+    type: "doc",
+    content: [{ type: "image", attrs: { imageId: "gallery:4" } }],
+  })
+  form.set("description_content", description)
+  for (let index = 0; index < 5; index++) {
     form.append("gallery_image_uploads", `gallery-upload-token-${index}`)
   }
 
@@ -218,9 +230,10 @@ test("a staged 51-image product submission forwards references without any image
   assert.equal(result.success, true)
   const payload = state.calls[0].body
   assert.equal(payload.get("primary_image_upload"), "primary-upload-token")
+  assert.equal(payload.get("description_content"), description)
   assert.deepEqual(
     payload.getAll("gallery_image_uploads[]"),
-    Array.from({ length: 50 }, (_, index) => `gallery-upload-token-${index}`)
+    Array.from({ length: 5 }, (_, index) => `gallery-upload-token-${index}`)
   )
   assert.equal(payload.has("image"), false)
   assert.equal(payload.has("gallery_images[]"), false)
@@ -229,11 +242,11 @@ test("a staged 51-image product submission forwards references without any image
   )
 })
 
-test("staged uploads retain catalog validation and reject galleries above fifty images", async () => {
+test("staged uploads retain catalog validation and reject galleries above five images", async () => {
   const form = productFormData()
   form.delete("image")
   form.set("primary_image_upload", "primary-upload-token")
-  for (let index = 0; index < 51; index++)
+  for (let index = 0; index < 6; index++)
     form.append("gallery_image_uploads", `gallery-${index}`)
   const result = await actions.createProductAction(form)
   assert.equal(result.success, false)
@@ -306,4 +319,34 @@ test("product server action requires staged references and never forwards origin
   assert.equal(result.success, false)
   assert.ok(result.errors.primary_image_upload)
   assert.equal(state.calls.length, 0)
+})
+
+test("description images follow the current gallery order and removed images and preview URLs are omitted", async () => {
+  const { productImageId, serializeProductDescription } = await import(
+    transpileModule("../src/lib/product-description.ts")
+  )
+  const primary = new File(["primary"], "main.jpg")
+  const removed = new File(["removed"], "removed.jpg")
+  const retained = new File(["retained"], "retained.jpg")
+  const content = [removed, retained, primary].map((file) => ({
+    type: "image",
+    attrs: {
+      imageId: productImageId(file),
+      src: "blob:local-preview",
+      alt: file.name,
+    },
+  }))
+  const draft = JSON.stringify({ type: "doc", content })
+
+  const description = JSON.parse(
+    serializeProductDescription(draft, primary, [retained])
+  )
+
+  assert.deepEqual(
+    description.content.map(({ attrs }) => attrs),
+    [
+      { imageId: "gallery:0", alt: "retained.jpg" },
+      { imageId: "primary", alt: "main.jpg" },
+    ]
+  )
 })

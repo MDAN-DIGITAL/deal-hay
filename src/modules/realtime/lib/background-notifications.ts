@@ -377,7 +377,7 @@ export async function clearBackgroundNotificationOwner(
   )
   if (!registration || mutation !== currentMutation()?.id) return
   const subscription = await bounded(
-    registration.pushManager.getSubscription(),
+    registration.pushManager?.getSubscription() ?? Promise.resolve(null),
     2000
   )
   if (mutation !== currentMutation()?.id) return
@@ -417,19 +417,22 @@ export async function clearBackgroundNotificationOwner(
     )
 }
 
-/** Socket fallback while a tab is alive; Web Push handles suspended/closed tabs. */
-export async function showBackgroundNotification(
-  notification: BackgroundNotification
+/** Socket delivery shares a worker tag with Web Push for the same event. */
+export async function showRealtimeBackgroundNotification(
+  notification: BackgroundNotification,
+  isCurrent: () => boolean
 ): Promise<void> {
-  if (
-    typeof window === "undefined" ||
-    document.visibilityState === "visible" ||
-    !backgroundNotificationAvailability().supported ||
-    Notification.permission !== "granted" ||
-    backgroundNotificationOwner() !== notification.ownerId
-  )
-    return
+  function canDeliver() {
+    return (
+      isCurrent() &&
+      backgroundNotificationOwner() === notification.ownerId &&
+      backgroundNotificationAvailability().permission === "granted"
+    )
+  }
+
+  if (!canDeliver()) return
   const registration = await notificationWorker()
+  if (!canDeliver()) return
   await sendWorkerMessage(registration, {
     type: "dealhay:show-notification",
     notification,

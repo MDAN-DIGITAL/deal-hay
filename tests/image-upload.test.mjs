@@ -386,13 +386,28 @@ test("failed storage upload discards every reservation and reports the original 
   })
   assert.deepEqual(grants.discarded, [["batch-0-token-0"]])
 })
-test("invalid source formats fail before storage reservations", async () => {
+test("the browser decodes product files by content and rejects unreadable files before reserving storage", async (t) => {
+  const unknownType = new File(["source"], "product.bin")
+  const prepared = await prepareBrowserImage(unknownType, "product")
+  assert.equal(prepared.type, "image/webp")
+  assert.equal(await prepareBrowserImage(prepared, "product"), prepared)
+
+  t.mock.method(globalThis, "createImageBitmap", async () => {
+    throw new Error("Invalid image bytes")
+  })
   const form = new FormData()
-  form.set("image", new File(["svg"], "bad.svg", { type: "image/svg+xml" }))
-  await assert.rejects(prepareImageUploads(form, "product"))
+  form.set(
+    "image",
+    new File(["not an image"], "document.jpg", { type: "text/plain" })
+  )
+  await assert.rejects(
+    prepareImageUploads(form, "product"),
+    /Không thể đọc tệp này dưới dạng ảnh/
+  )
   assert.equal(grants.batches.length, 0)
   assert.equal(state.uploads.length, 0)
 })
+
 test("large originals are accepted and only the compressed image is uploaded", async () => {
   const form = new FormData()
   form.set(
@@ -458,20 +473,26 @@ test("failed ordinary image decoding revokes its object URL and never uploads th
   form.set("image", original())
   await assert.rejects(
     prepareImageUploads(form, "product"),
-    /Không thể đọc ảnh/
+    /Không thể đọc tệp này dưới dạng ảnh/
   )
   assert.equal(revoked.mock.calls[0].arguments[0], "blob:invalid-image")
   assert.equal(state.canvases.length, 0)
   assert.equal(grants.batches.length, 0)
   assert.equal(state.uploads.length, 0)
 })
-test("direct upload accepts 51 product references without multipart image bytes", async () => {
+test("direct upload accepts six product references without multipart image bytes", async () => {
   const form = new FormData()
   form.set("image", original())
-  for (let i = 0; i < 50; i++) form.append("gallery_images", original())
+  for (let i = 0; i < 5; i++) form.append("gallery_images", original())
   const output = await prepareImageUploads(form, "product")
-  assert.equal(output.getAll("gallery_image_uploads").length, 50)
-  assert.equal(state.uploads.length, 51)
+  assert.equal(output.getAll("gallery_image_uploads").length, 5)
+  assert.equal(state.uploads.length, 6)
+  form.append("gallery_images", original())
+  await assert.rejects(
+    prepareImageUploads(form, "product"),
+    /Số lượng ảnh vượt quá giới hạn/
+  )
+  assert.equal(grants.batches.length, 1)
 })
 test("storage URLs require HTTPS except loopback and reject embedded credentials or fragments", () => {
   assert.equal(
@@ -531,7 +552,7 @@ function heldUploads(t) {
 test("multiple image PUTs overlap up to four and out-of-order completion preserves gallery references", async (t) => {
   const held = heldUploads(t)
   const form = new FormData()
-  for (let i = 0; i < 9; i++)
+  for (let i = 0; i < 6; i++)
     form.append(
       i === 0 ? "image" : "gallery_images",
       new File(["source"], i + ".jpg", { type: "image/jpeg" })
@@ -549,7 +570,7 @@ test("multiple image PUTs overlap up to four and out-of-order completion preserv
         snapshot.files.filter((file) => file.stage === "uploading").length === 4
     )
   )
-  while (state.uploads.length < 9 || held.active) {
+  while (state.uploads.length < 6 || held.active) {
     held.pending.pop()?.()
     await new Promise(setImmediate)
   }
@@ -557,14 +578,14 @@ test("multiple image PUTs overlap up to four and out-of-order completion preserv
   assert.equal(output.get("primary_image_upload"), "batch-0-token-0")
   assert.deepEqual(
     output.getAll("gallery_image_uploads"),
-    Array.from({ length: 8 }, (_, i) => "batch-0-token-" + (i + 1))
+    Array.from({ length: 5 }, (_, i) => "batch-0-token-" + (i + 1))
   )
   assert.deepEqual(
     grants.batches[0].uploads.map((file) => file.filename),
-    Array.from({ length: 9 }, (_, i) => i + ".webp")
+    Array.from({ length: 6 }, (_, i) => i + ".webp")
   )
   assert.equal(progress.at(-1).percent, 100)
-  assert.equal(progress.at(-1).completed, 9)
+  assert.equal(progress.at(-1).completed, 6)
 })
 
 test("decode memory is bounded to two bitmaps across forms while completed images can upload", async (t) => {
@@ -617,7 +638,7 @@ test("decode memory is bounded to two bitmaps across forms while completed image
 test("a failed PUT stops queued work and discards reservations only after active PUTs settle", async (t) => {
   const held = heldUploads(t),
     form = new FormData()
-  for (let i = 0; i < 7; i++) form.append("gallery_images", original())
+  for (let i = 0; i < 5; i++) form.append("gallery_images", original())
   let finished = false
   const result = prepareImageUploads(form, "product").then(
     () => assert.fail("Failure expected"),
@@ -638,7 +659,7 @@ test("a failed PUT stops queued work and discards reservations only after active
   assert.equal(state.uploads.length, 4)
   assert.equal(held.active, 0)
   assert.deepEqual(grants.discarded, [
-    Array.from({ length: 7 }, (_, i) => "batch-0-token-" + i),
+    Array.from({ length: 5 }, (_, i) => "batch-0-token-" + i),
   ])
   await new Promise(setImmediate)
   assert.equal(state.uploads.length, 4)
@@ -662,10 +683,16 @@ test("fifty chat images use one batch reservation and preserve attachment order"
 })
 
 test("an account change during image compression stops reservations and uploads", async (t) => {
-  let resumeDecode, current = true
-  t.mock.method(globalThis, "createImageBitmap", () => new Promise((resolve) => {
-    resumeDecode = () => resolve({ width: 4000, height: 3000, close() {} })
-  }))
+  let resumeDecode,
+    current = true
+  t.mock.method(
+    globalThis,
+    "createImageBitmap",
+    () =>
+      new Promise((resolve) => {
+        resumeDecode = () => resolve({ width: 4000, height: 3000, close() {} })
+      })
+  )
   const form = new FormData()
   form.set("attachment", original())
   const result = prepareImageUploads(form, "chat", undefined, () => current)
@@ -679,7 +706,8 @@ test("an account change during image compression stops reservations and uploads"
 })
 
 test("an account change during active uploads stops queued PUTs and skips cleanup with new credentials", async (t) => {
-  const held = heldUploads(t), form = new FormData()
+  const held = heldUploads(t),
+    form = new FormData()
   let current = true
   for (let i = 0; i < 7; i++) form.append("attachment", original())
   const result = prepareImageUploads(form, "chat", undefined, () => current)
@@ -699,11 +727,11 @@ test("parallel uploads retry a temporary failure with the same bytes and reserva
   })
   state.statuses = [503]
   const form = new FormData()
-  for (let i = 0; i < 6; i++) form.append("gallery_images", original())
+  for (let i = 0; i < 5; i++) form.append("gallery_images", original())
   const output = await prepareImageUploads(form, "product")
   assert.deepEqual(delays, [1000])
   assert.equal(grants.batches.length, 1)
-  assert.equal(state.uploads.length, 7)
+  assert.equal(state.uploads.length, 6)
   const first = state.uploads[0]
   const retry = state.uploads.find(
     (upload, index) => index > 0 && upload.url === first.url
@@ -714,6 +742,6 @@ test("parallel uploads retry a temporary failure with the same bytes and reserva
   assert.deepEqual(grants.discarded, [])
   assert.deepEqual(
     output.getAll("gallery_image_uploads"),
-    Array.from({ length: 6 }, (_, i) => "batch-0-token-" + i)
+    Array.from({ length: 5 }, (_, i) => "batch-0-token-" + i)
   )
 })

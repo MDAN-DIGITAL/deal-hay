@@ -158,6 +158,42 @@ function mount(t, props = {}) {
   return screen
 }
 
+test("Enter uses the send button in browsers without requestSubmit", async (t) => {
+  const screen = mount(t)
+  const button = nodes(screen.tree).find(
+    (node) => node.type === "input-button" && node.props.type === "submit"
+  )
+  button.props.ref.current = { click: () => screen.submit() }
+  const pressEnter = ({ shiftKey = false, isComposing = false } = {}) => {
+    const textarea = nodes(screen.tree).find((node) => node.type === "textarea")
+    let prevented = false
+    textarea.props.onKeyDown({
+      key: "Enter",
+      shiftKey,
+      nativeEvent: { isComposing },
+      currentTarget: { form: {} },
+      preventDefault: () => { prevented = true },
+    })
+    return prevented
+  }
+
+  assert.equal(pressEnter(), true)
+  assert.equal(screen.requests.length, 0)
+
+  screen.type("Tin nhắn từ Safari")
+  assert.equal(pressEnter({ shiftKey: true }), false)
+  assert.equal(pressEnter({ isComposing: true }), false)
+  assert.equal(screen.values.body, "Tin nhắn từ Safari")
+  assert.equal(screen.requests.length, 0)
+
+  assert.equal(pressEnter(), true)
+  assert.equal(screen.values.body, "")
+  await screen.until(() => screen.requests.length === 1)
+  assert.equal(screen.requests[0].payload.get("body"), "Tin nhắn từ Safari")
+  screen.succeed(0)
+  await screen.until(() => screen.sent.length === 1)
+})
+
 test("sending clears only the submitted snapshot and leaves the composer enabled while two requests are pending", async (t) => {
   const screen = mount(t)
   screen.type("First message")

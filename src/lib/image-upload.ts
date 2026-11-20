@@ -1,7 +1,11 @@
 import { UploadError } from "@/lib/form-utils"
 import { prepareBrowserImage } from "@/lib/browser-image"
 import { storageUploadUrl } from "@/lib/storage-upload"
-import { imageFileSchema } from "@/lib/validation"
+import {
+  fileSchema,
+  imageFileSchema,
+  PRODUCT_GALLERY_LIMIT,
+} from "@/lib/validation"
 import {
   discardProductImageUploadsAction,
   requestImageUploadsAction,
@@ -176,8 +180,9 @@ export async function prepareImageUploads(
     })
   }
   publish()
+  const inputSchema = purpose === "product" ? fileSchema : imageFileSchema
   for (const [position, { field, file }] of images.entries()) {
-    const parsed = imageFileSchema("Ảnh không hợp lệ.").safeParse(file)
+    const parsed = inputSchema("Ảnh không hợp lệ.").safeParse(file)
     if (!parsed.success) {
       Object.assign(progress[position], { stage: "error" })
       publish()
@@ -189,9 +194,15 @@ export async function prepareImageUploads(
     for (const [field, value] of entries) payload.append(field, value)
     return payload
   }
-  if (
-    images.length > (purpose === "product" ? 51 : purpose === "chat" ? 50 : 1)
-  ) {
+  const primaryCount =
+    purpose === "product"
+      ? images.filter(({ field }) => field === "image").length
+      : 0
+  const exceedsLimit =
+    purpose === "product"
+      ? primaryCount > 1 || images.length - primaryCount > PRODUCT_GALLERY_LIMIT
+      : images.length > (purpose === "chat" ? 50 : 1)
+  if (exceedsLimit) {
     throw new UploadError("Số lượng ảnh vượt quá giới hạn cho phép.")
   }
 

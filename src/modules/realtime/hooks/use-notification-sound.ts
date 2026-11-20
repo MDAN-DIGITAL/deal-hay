@@ -11,6 +11,15 @@ import {
 const PREFERENCE_EVENT = "deal-hay:notification-sound-change"
 const PENDING_SOUND_MAX_AGE = 30_000
 const preferences = new Map<string, boolean>()
+const CHIME_NOTES = [
+  { frequency: 659.25, offset: 0, duration: 0.2, level: 0.13 },
+  { frequency: 880, offset: 0.105, duration: 0.23, level: 0.11 },
+  { frequency: 1108.73, offset: 0.225, duration: 0.29, level: 0.09 },
+] as const
+const BELL_PARTIALS = [
+  { ratio: 1, level: 1, decay: 1 },
+  { ratio: 2.006, level: 0.16, decay: 0.48 },
+] as const
 
 function readPreference(key: string): boolean {
   if (preferences.has(key)) return preferences.get(key) as boolean
@@ -50,28 +59,35 @@ function claimSound(key: string, eventId: string): boolean {
   }
 }
 
-function playChime(context: AudioContext) {
-  for (const [index, frequency] of [880, 1174].entries()) {
-    const start = context.currentTime + index * 0.24
-    const oscillator = context.createOscillator()
-    const gain = context.createGain()
-    oscillator.type = "sine"
-    oscillator.frequency.setValueAtTime(frequency, start)
-    gain.gain.setValueAtTime(0.0001, start)
-    gain.gain.exponentialRampToValueAtTime(0.24, start + 0.02)
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22)
-    oscillator.connect(gain)
-    gain.connect(context.destination)
-    oscillator.addEventListener(
-      "ended",
-      () => {
-        oscillator.disconnect()
-        gain.disconnect()
-      },
-      { once: true }
-    )
-    oscillator.start(start)
-    oscillator.stop(start + 0.23)
+function playDealHayChime(context: BaseAudioContext) {
+  const startTime = context.currentTime + 0.008
+  for (const note of CHIME_NOTES) {
+    const start = startTime + note.offset
+    for (const partial of BELL_PARTIALS) {
+      const end = start + note.duration * partial.decay
+      const oscillator = context.createOscillator()
+      const gain = context.createGain()
+      oscillator.type = "sine"
+      oscillator.frequency.setValueAtTime(note.frequency * partial.ratio, start)
+      gain.gain.setValueAtTime(0.0001, start)
+      gain.gain.exponentialRampToValueAtTime(
+        note.level * partial.level,
+        start + 0.009
+      )
+      gain.gain.exponentialRampToValueAtTime(0.0001, end)
+      oscillator.connect(gain)
+      gain.connect(context.destination)
+      oscillator.addEventListener(
+        "ended",
+        () => {
+          oscillator.disconnect()
+          gain.disconnect()
+        },
+        { once: true }
+      )
+      oscillator.start(start)
+      oscillator.stop(end)
+    }
   }
 }
 
@@ -158,7 +174,7 @@ export function useNotificationSound(currentUserId?: string) {
         if (!claimSound(claimKey, sound.id)) return
 
         try {
-          playChime(context)
+          playDealHayChime(context)
           lastPlayedAt = performance.now()
         } catch {
           // An unsupported or blocked audio device leaves visual alerts intact.
@@ -257,7 +273,7 @@ export function useNotificationSound(currentUserId?: string) {
       if (!audio || !(await waitForRunning(audio))) return false
       if (disposed || !readPreference(preferenceKey)) return false
       try {
-        playChime(audio)
+        playDealHayChime(audio)
         return true
       } catch {
         return false
@@ -276,8 +292,25 @@ export function useNotificationSound(currentUserId?: string) {
     const recover = () => {
       if (context && document.visibilityState === "visible") activate()
     }
+    const handlePushSound = (event: MessageEvent) => {
+      const { source, data } = event
+      if (
+        !source ||
+        !("scriptURL" in source) ||
+        source.scriptURL !==
+          `${window.location.origin}/notification-worker.js` ||
+        data?.type !== "dealhay:play-notification-sound" ||
+        data.ownerId !== currentUserId ||
+        typeof data.id !== "string" ||
+        !/^(message|notification):[A-Za-z0-9_-]{1,128}$/.test(data.id)
+      )
+        return
+      play(data.id)
+    }
+    const serviceWorker = navigator.serviceWorker
 
     player.current = { play, test, clearPending }
+    serviceWorker?.addEventListener("message", handlePushSound)
     for (const event of ["pointerdown", "touchend", "click", "keydown"]) {
       document.addEventListener(event, unlock, true)
     }
@@ -291,6 +324,7 @@ export function useNotificationSound(currentUserId?: string) {
       player.current = null
       pending = null
       for (const finish of testWaiters) finish()
+      serviceWorker?.removeEventListener("message", handlePushSound)
       for (const event of ["pointerdown", "touchend", "click", "keydown"]) {
         document.removeEventListener(event, unlock, true)
       }
@@ -317,8 +351,8 @@ export function useNotificationSound(currentUserId?: string) {
       // Keep the preference for this tab when browser storage is unavailable.
     }
     window.dispatchEvent(new Event(PREFERENCE_EVENT))
-    if (enabled) void player.current?.test()
-    else player.current?.clearPending()
+    if (!enabled) player.current?.clearPending()
+    else void player.current?.test()
   }, [currentUserId, preferenceKey])
 
   const playNotificationSound = useCallback((eventId: string) => {

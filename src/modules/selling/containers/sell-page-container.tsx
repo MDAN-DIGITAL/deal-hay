@@ -22,7 +22,8 @@ import type { User } from "@/types/auth"
 export function SellPageContainer({ user }: { user: User }) {
   const { data, error } = useApiQuery(
     JSON.stringify(["sell", user.id, user.role]),
-    async () => (user.role === "shop_owner" ? getShopManage("categories") : null)
+    async () =>
+      user.role === "shop_owner" ? getShopManage("categories") : null
   )
   if (user.role === "administrator") {
     redirect("/admin/shops")

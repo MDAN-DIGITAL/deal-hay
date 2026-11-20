@@ -2,7 +2,8 @@
 
 import { Surface } from "@/components/ui/surface"
 
-import { useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
+import dynamic from "next/dynamic"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   PackageIcon,
@@ -12,7 +13,6 @@ import {
   TagIcon,
   ImageIcon,
   ImagesIcon,
-  FileTextIcon,
   BoxesIcon,
   ListTreeIcon,
   ListIcon,
@@ -47,10 +47,12 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
 import { applyServerErrors, runUploadAction } from "@/lib/form-utils"
-import { IMAGE_UPLOAD_ACCEPT } from "@/lib/validation"
+import { prepareBrowserImage } from "@/lib/browser-image"
+import { serializeProductDescription } from "@/lib/product-description"
+import { PRODUCT_GALLERY_LIMIT } from "@/lib/validation"
 import { ImageUploadProgress } from "@/components/image-upload-progress"
 import { useImageUpload } from "@/hooks/use-image-upload"
 import type { ShopCategory } from "@/types/shop"
@@ -68,6 +70,14 @@ import {
   type CreateProductValues,
 } from "@/modules/shop-management/schemas/shop-management"
 
+const ProductDescriptionEditor = dynamic(
+  () =>
+    import("./product-description-editor").then(
+      (module) => module.ProductDescriptionEditor
+    ),
+  { loading: () => <Skeleton className="h-48 w-full" /> }
+)
+
 function initialProductValues(categories: ShopCategory[]): CreateProductValues {
   return {
     name: "",
@@ -78,6 +88,7 @@ function initialProductValues(categories: ShopCategory[]): CreateProductValues {
     stock: 0,
     label: "",
     description: "",
+    description_content: "",
     image: undefined as unknown as File,
     gallery_images: [],
     has_variants: false,
@@ -123,6 +134,9 @@ export function CreateProductForm({
   categories: ShopCategory[]
 }) {
   const [isPending, startTransition] = useTransition()
+  const [preparingImages, setPreparingImages] = useState(false)
+  const [descriptionVersion, setDescriptionVersion] = useState(0)
+  const selectingImages = useRef(false)
   const { prepareUploads, uploadProgress } = useImageUpload()
   const form = useForm<CreateProductValues>({
     resolver: zodResolver(createProductSchema),
@@ -141,6 +155,63 @@ export function CreateProductForm({
     name: "has_variants",
   })
   const variants = useWatch({ control: form.control, name: "variants" }) ?? []
+  const primary = useWatch({ control: form.control, name: "image" })
+  const gallery = useWatch({ control: form.control, name: "gallery_images" })
+  const imageFieldsLocked = preparingImages || isPending
+
+  async function selectProductImages(
+    files: File[],
+    field: "image" | "gallery_images",
+    onPrepared?: (image: File) => void
+  ) {
+    if (!files.length || selectingImages.current || isPending) return
+    if (field === "gallery_images") {
+      const selection = productGallerySchema.safeParse([
+        ...form.getValues(field),
+        ...files,
+      ])
+      if (!selection.success) {
+        form.setError(field, {
+          type: "manual",
+          message: selection.error.issues[0]?.message,
+        })
+        return
+      }
+    }
+
+    selectingImages.current = true
+    setPreparingImages(true)
+    const prepared: File[] = []
+    try {
+      for (const file of files) {
+        try {
+          prepared.push(await prepareBrowserImage(file, "product"))
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Không thể xử lý ảnh."
+          throw new Error(`${file.name}: ${message}`)
+        }
+      }
+
+      if (field === "image") {
+        form.setValue(field, prepared[0], { shouldDirty: true })
+      } else {
+        form.setValue(field, [...form.getValues(field), ...prepared], {
+          shouldDirty: true,
+        })
+      }
+      form.clearErrors(field)
+      onPrepared?.(prepared[0])
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Không thể xử lý ảnh."
+      form.setError(field, { type: "manual", message })
+      if (onPrepared) toast.error(message)
+    } finally {
+      selectingImages.current = false
+      setPreparingImages(false)
+    }
+  }
 
   const options = useWatch({ control: form.control, name: "options" }) ?? []
   const catalog = validateProductOptions(options)
@@ -196,7 +267,7 @@ export function CreateProductForm({
     void form.trigger("variants")
   }
 
-  const onSubmit = form.handleSubmit((values) => {
+  const submitProduct = form.handleSubmit((values) => {
     const formData = new FormData()
     formData.set("name", values.name)
     formData.set("category", values.category)
@@ -206,6 +277,12 @@ export function CreateProductForm({
     formData.set("stock", String(values.stock))
     formData.set("label", values.label ?? "")
     formData.set("description", values.description ?? "")
+    const description = serializeProductDescription(
+      values.description_content,
+      values.image,
+      values.gallery_images
+    )
+    if (description) formData.set("description_content", description)
     formData.set("image", values.image)
     values.gallery_images.forEach((image) => {
       formData.append("gallery_images", image)
@@ -240,6 +317,7 @@ export function CreateProductForm({
       if (state.success) {
         toast.success(state.message)
         form.reset(initialProductValues(categories))
+        setDescriptionVersion((version) => version + 1)
         return
       }
 
@@ -251,7 +329,17 @@ export function CreateProductForm({
 
   return (
     <Form {...form}>
-      <form className="space-y-6" noValidate onSubmit={onSubmit}>
+      <form
+        className="space-y-6"
+        noValidate
+        onSubmit={(event) => {
+          if (selectingImages.current || isPending) {
+            event.preventDefault()
+            return
+          }
+          void submitProduct(event)
+        }}
+      >
         {categories.length === 0 ? (
           <Surface
             padding="none"
@@ -418,8 +506,8 @@ export function CreateProductForm({
               Hình ảnh sản phẩm
             </h3>
             <p className="text-sm text-muted-foreground">
-              Chọn một ảnh đại diện và tối đa 50 ảnh bổ sung. Tất cả ảnh đều có
-              bản xem trước trước khi đăng.
+              Tải 1 ảnh chính và tối đa {PRODUCT_GALLERY_LIMIT} ảnh phụ từ thiết
+              bị.
             </p>
           </div>
           <div className="grid gap-5 md:grid-cols-2">
@@ -428,24 +516,30 @@ export function CreateProductForm({
               name="image"
               render={({ field: { onChange, value, ...field } }) => (
                 <FormItem>
-                  <FormLabel>Ảnh đại diện</FormLabel>
+                  <FormLabel>Ảnh chính</FormLabel>
                   {value instanceof File ? (
                     <SelectedFilePreview
                       file={value}
-                      onRemove={() => onChange(undefined)}
+                      onRemove={
+                        imageFieldsLocked
+                          ? undefined
+                          : () => onChange(undefined)
+                      }
                     />
                   ) : (
                     <FormControl>
                       <Input
                         startIcon={<ImageIcon />}
-                        accept={IMAGE_UPLOAD_ACCEPT}
                         name={field.name}
                         ref={field.ref}
                         type="file"
                         onBlur={field.onBlur}
-                        onChange={(event) =>
-                          onChange(event.target.files?.[0] ?? undefined)
-                        }
+                        disabled={imageFieldsLocked}
+                        onChange={(event) => {
+                          const file = event.currentTarget.files?.[0]
+                          event.currentTarget.value = ""
+                          if (file) void selectProductImages([file], "image")
+                        }}
                       />
                     </FormControl>
                   )}
@@ -461,7 +555,7 @@ export function CreateProductForm({
                 fieldState,
               }) => (
                 <FormItem>
-                  <FormLabel>Thư viện ảnh</FormLabel>
+                  <FormLabel>Ảnh phụ</FormLabel>
                   {value.length > 0 ? (
                     <div className="grid gap-2">
                       {value.map((file, index) => (
@@ -470,14 +564,18 @@ export function CreateProductForm({
                           compact
                           className="max-w-none"
                           file={file}
-                          onRemove={() => {
-                            form.clearErrors("gallery_images")
-                            onChange(
-                              value.filter(
-                                (_, fileIndex) => fileIndex !== index
-                              )
-                            )
-                          }}
+                          onRemove={
+                            imageFieldsLocked
+                              ? undefined
+                              : () => {
+                                  form.clearErrors("gallery_images")
+                                  onChange(
+                                    value.filter(
+                                      (_, fileIndex) => fileIndex !== index
+                                    )
+                                  )
+                                }
+                          }
                         />
                       ))}
                     </div>
@@ -486,33 +584,25 @@ export function CreateProductForm({
                     <Input
                       startIcon={<ImagesIcon />}
                       multiple
-                      accept={IMAGE_UPLOAD_ACCEPT}
                       name={field.name}
                       ref={field.ref}
                       type="file"
                       onBlur={field.onBlur}
+                      disabled={
+                        imageFieldsLocked ||
+                        value.length >= PRODUCT_GALLERY_LIMIT
+                      }
                       onChange={(event) => {
-                        const selected = Array.from(event.target.files ?? [])
-                        event.target.value = ""
-                        const result = productGallerySchema.safeParse([
-                          ...value,
-                          ...selected,
-                        ])
-                        if (!result.success) {
-                          form.setError("gallery_images", {
-                            type: "manual",
-                            message: result.error.issues[0]?.message,
-                          })
-                          return
-                        }
-                        form.clearErrors("gallery_images")
-                        onChange(result.data)
+                        const selected = Array.from(
+                          event.currentTarget.files ?? []
+                        )
+                        event.currentTarget.value = ""
+                        void selectProductImages(selected, "gallery_images")
                       }}
                     />
                   </FormControl>
                   <FormDescription>
-                    Đã chọn {value.length}/50 ảnh bổ sung. Ảnh tự động nén còn
-                    tối đa 20 KB. Ảnh được nén trên thiết bị trước khi tải lên.
+                    Đã chọn {value.length}/{PRODUCT_GALLERY_LIMIT} ảnh phụ.
                   </FormDescription>
                   <FormMessage>
                     {fieldErrorMessage(fieldState.error)}
@@ -521,6 +611,11 @@ export function CreateProductForm({
               )}
             />
           </div>
+          {preparingImages ? (
+            <p className="text-sm text-muted-foreground" role="status">
+              Đang xử lý ảnh...
+            </p>
+          ) : null}
         </section>
 
         <Separator />
@@ -536,19 +631,36 @@ export function CreateProductForm({
           </div>
           <FormField
             control={form.control}
-            name="description"
+            name="description_content"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Nội dung mô tả</FormLabel>
                 <FormControl>
-                  <Textarea
-                    startIcon={<FileTextIcon />}
-                    className="min-h-32"
-                    placeholder="Mô tả chi tiết để khách hàng hiểu rõ sản phẩm..."
-                    {...field}
-                    value={field.value ?? ""}
+                  <ProductDescriptionEditor
+                    key={descriptionVersion}
+                    primary={primary}
+                    gallery={gallery}
+                    canUpload={
+                      !primary || gallery.length < PRODUCT_GALLERY_LIMIT
+                    }
+                    disabled={imageFieldsLocked}
+                    onChange={(value) => {
+                      form.clearErrors("description_content")
+                      field.onChange(value)
+                    }}
+                    onBlur={field.onBlur}
+                    onUpload={(file, insert) => {
+                      const fieldName = form.getValues("image")
+                        ? "gallery_images"
+                        : "image"
+                      void selectProductImages([file], fieldName, insert)
+                    }}
                   />
                 </FormControl>
+                <FormDescription>
+                  Chèn ảnh chính hoặc ảnh phụ vào nội dung. Ảnh mới tải ở đây
+                  cũng tính vào giới hạn ảnh sản phẩm.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -884,7 +996,7 @@ export function CreateProductForm({
         <FormSubmitButton
           startIcon={<PackagePlusIcon />}
           className="w-full sm:w-auto"
-          disabled={categories.length === 0}
+          disabled={categories.length === 0 || preparingImages}
           idleText="Đăng sản phẩm"
           pending={isPending}
           pendingText="Đang đăng..."

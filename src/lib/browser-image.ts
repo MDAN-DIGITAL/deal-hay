@@ -1,4 +1,8 @@
-import { IMAGE_OUTPUT_MAX_BYTES, imageFileSchema } from "@/lib/validation"
+import {
+  IMAGE_OUTPUT_MAX_BYTES,
+  fileSchema,
+  imageFileSchema,
+} from "@/lib/validation"
 import type { ImagePurpose } from "@/types/media"
 
 export const imageOutputMaxBytes = () => IMAGE_OUTPUT_MAX_BYTES
@@ -8,19 +12,24 @@ const outputFormats = [
   { mime: "image/jpeg", extension: "jpg" },
   { mime: "image/png", extension: "png" },
 ] as const
+const preparedProductImages = new WeakSet<File>()
 
-async function decodeImage(file: File) {
+function bitmapSource(bitmap: ImageBitmap) {
+  return {
+    source: bitmap as CanvasImageSource,
+    width: bitmap.width,
+    height: bitmap.height,
+    release: () => bitmap.close(),
+  }
+}
+
+async function decodeImage(file: Blob) {
   if (typeof createImageBitmap === "function") {
     try {
       const bitmap = await createImageBitmap(file, {
         imageOrientation: "from-image",
       })
-      return {
-        source: bitmap as CanvasImageSource,
-        width: bitmap.width,
-        height: bitmap.height,
-        release: () => bitmap.close(),
-      }
+      return bitmapSource(bitmap)
     } catch (error) {
       // Some WebKit versions expose createImageBitmap but reject camera files
       // that the browser's ordinary image decoder can still read.
@@ -48,14 +57,40 @@ async function decodeImage(file: File) {
   }
 }
 
+async function decodeProductImage(file: File) {
+  const declaredSource =
+    /\.svg$/i.test(file.name) && file.type !== "image/svg+xml"
+      ? file.slice(0, file.size, "image/svg+xml")
+      : file
+  try {
+    return await decodeImage(declaredSource)
+  } catch {
+    // ISO base-media container signature, including files with an empty or wrong MIME.
+    const header = await file.slice(0, 12).text()
+    if (header.slice(4, 8) === "ftyp") {
+      const { heicTo, isHeic } = await import("heic-to/csp")
+      if (await isHeic(file))
+        return bitmapSource(await heicTo({ blob: file, type: "bitmap" }))
+    }
+    throw new Error(
+      "Không thể đọc tệp này dưới dạng ảnh. Vui lòng chọn tệp ảnh khác."
+    )
+  }
+}
+
 // Draw into a fresh canvas so the encoded image carries no source metadata.
 // Browsers apply EXIF orientation while decoding with imageOrientation.
 export async function prepareBrowserImage(
   file: File,
   purpose: ImagePurpose
 ): Promise<File> {
-  imageFileSchema("Ảnh không hợp lệ.").parse(file)
-  const { source, width, height, release } = await decodeImage(file)
+  const product = purpose === "product"
+  if (product && preparedProductImages.has(file)) return file
+  const schema = product ? fileSchema : imageFileSchema
+  schema("Ảnh không hợp lệ.").parse(file)
+  const { source, width, height, release } = await (product
+    ? decodeProductImage(file)
+    : decodeImage(file))
 
   let canvas: HTMLCanvasElement | undefined
   try {
@@ -125,11 +160,13 @@ export async function prepareBrowserImage(
             break
           }
           if (blob.size <= maxBytes) {
-            return new File(
+            const image = new File(
               [blob],
               `${(file.name.replace(/\.[^.]+$/, "") || "image").slice(0, 250)}.${format.extension}`,
               { type: format.mime }
             )
+            if (product) preparedProductImages.add(image)
+            return image
           }
         }
         if (supported) break

@@ -1,9 +1,9 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
-import { Geist_Mono, Inter } from "next/font/google"
 
 import "@/app/globals.css"
 import { SiteShell } from "@/components/layout/site-shell"
+import { siteFontVariables } from "@/components/layout/site-fonts"
 import { NavigationScroll } from "@/components/layout/navigation-scroll"
 import { SessionProvider } from "@/components/session-provider"
 import { RealtimeRoot } from "@/components/realtime-root"
@@ -18,13 +18,6 @@ import {
   SITE_DESCRIPTION,
   SITE_NAME,
 } from "@/lib/seo"
-import { cn } from "@/lib/utils"
-
-const inter = Inter({
-  subsets: ["latin", "vietnamese"],
-  variable: "--font-inter",
-})
-const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
 export const siteMetadata: Metadata = {
   metadataBase: SITE_URL,
@@ -78,7 +71,7 @@ export function SiteDocument({
     <html
       lang="vi"
       suppressHydrationWarning
-      className={cn("antialiased", inter.variable, fontMono.variable)}
+      className={`antialiased ${siteFontVariables}`}
     >
       <body className="min-h-svh bg-background text-foreground">
         <ThemeProvider>

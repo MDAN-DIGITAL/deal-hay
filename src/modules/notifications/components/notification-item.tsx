@@ -104,7 +104,10 @@ export function NotificationItem({
               <span className="ml-auto inline-flex shrink-0 items-center gap-1.5">
                 {unread ? (
                   <>
-                    <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />
+                    <span
+                      aria-hidden="true"
+                      className="size-1.5 rounded-full bg-primary"
+                    />
                     <span className="font-medium text-primary">Chưa đọc</span>
                   </>
                 ) : (

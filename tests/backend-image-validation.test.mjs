@@ -68,6 +68,7 @@ const { requestImageUploadsAction } = await import(
     "@/api/client": api,
     "@/api/wss-client": api,
     "@/lib/storage-upload": module("../src/lib/storage-upload.ts"),
+    "@/lib/validation": validation,
   })
 )
 const rawImage = () =>

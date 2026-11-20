@@ -1,6 +1,10 @@
 import { z } from "zod"
 
-import { imageFileSchema, requiredText } from "@/lib/validation"
+import {
+  fileSchema,
+  PRODUCT_GALLERY_LIMIT,
+  requiredText,
+} from "@/lib/validation"
 import {
   validateProductOptions,
   variantsMatchOptions,
@@ -68,8 +72,8 @@ export const productPricingSchema = z
   })
 
 export const productGallerySchema = z
-  .array(imageFileSchema("Ảnh bổ sung không hợp lệ."))
-  .max(50, "Mỗi sản phẩm được tải tối đa 50 ảnh bổ sung.")
+  .array(fileSchema("Ảnh phụ không hợp lệ."))
+  .max(PRODUCT_GALLERY_LIMIT, "Mỗi sản phẩm được tải tối đa 5 ảnh phụ.")
 const productOptionsSchema = z.array(
   z.object({ name: z.string(), values: z.string() })
 )
@@ -102,7 +106,11 @@ const productFields = {
   old_price: z.union([priceSchema("Giá gốc"), z.literal("")]).optional(),
   video_url: z.union([productVideoUrlSchema, z.literal("")]).optional(),
   description: optionalDescriptionSchema,
-  image: imageFileSchema("Vui lòng tải ảnh đại diện sản phẩm."),
+  description_content: z
+    .string()
+    .max(40_000, "Nội dung mô tả không được vượt quá 40.000 ký tự.")
+    .optional(),
+  image: fileSchema("Vui lòng tải ảnh chính của sản phẩm."),
   gallery_images: productGallerySchema,
 }
 
@@ -202,7 +210,9 @@ const stagedImageFields = {
     .string()
     .min(1, "Vui lòng tải ảnh đại diện sản phẩm.")
     .max(2048),
-  gallery_image_uploads: z.array(z.string().min(1).max(2048)).max(50),
+  gallery_image_uploads: z
+    .array(z.string().min(1).max(2048))
+    .max(PRODUCT_GALLERY_LIMIT, "Mỗi sản phẩm được tải tối đa 5 ảnh phụ."),
 }
 
 export const createProductStagedUploadSchema = z

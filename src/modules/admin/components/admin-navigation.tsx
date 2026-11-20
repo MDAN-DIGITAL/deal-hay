@@ -77,8 +77,6 @@ export function AdminNavigation() {
                   href="/diagnostics"
                   target="_blank"
                   rel="noopener noreferrer"
-
-
                 />
               }
             >

@@ -12,13 +12,19 @@ const workerSource = readFileSync(
 function workerHarness({ cache = new Map(), windows = [] } = {}) {
   const listeners = new Map()
   const shown = [],
-    opened = []
+    opened = [],
+    soundRequests = []
   const self = {
     location: { origin: "https://dealhay.test" },
     addEventListener: (name, callback) => listeners.set(name, callback),
     skipWaiting: async () => {},
     clients: {
-      matchAll: async () => windows,
+      matchAll: async () =>
+        windows.map((client) => ({
+          postMessage: (data) => soundRequests.push({ ...data }),
+          ...client,
+        })),
+      get: async (id) => windows.find((client) => client.id === id),
       claim: async () => {},
       openWindow: async (url) => opened.push(url),
     },
@@ -56,6 +62,7 @@ function workerHarness({ cache = new Map(), windows = [] } = {}) {
     cache,
     shown,
     opened,
+    soundRequests,
     dispatch,
     bind: (ownerId) =>
       dispatch("message", {
@@ -64,6 +71,15 @@ function workerHarness({ cache = new Map(), windows = [] } = {}) {
       }),
     push: (notification) =>
       dispatch("push", { data: { json: () => notification } }),
+    socket: async (notification) => {
+      let reply
+      await dispatch("message", {
+        source: { id: "active-tab", url: "https://dealhay.test/chats" },
+        data: { type: "dealhay:show-notification", notification },
+        ports: [{ postMessage: (message) => (reply = message) }],
+      })
+      return reply
+    },
   }
 }
 const payload = (overrides = {}) => ({
@@ -76,47 +92,78 @@ const payload = (overrides = {}) => ({
   ...overrides,
 })
 
-test("a push rings while the tab is hidden and keeps an exact chat destination and avatar", async () => {
+test("a hidden tab receives a Deal Hay sound request while the native card stays silent", async () => {
   const worker = workerHarness({
     windows: [{ visibilityState: "hidden", focused: false }],
   })
   await worker.bind("viewer")
   await worker.push(payload())
   assert.equal(worker.shown.length, 1)
-  assert.equal(worker.shown[0].silent, false)
+  assert.equal(worker.shown[0].silent, true)
+  assert.equal("vibrate" in worker.shown[0], false)
   assert.equal(worker.shown[0].icon, "https://dealhay.test/shop.jpg")
   assert.equal(worker.shown[0].data.url, "/chats?conversation=c1&message=m1")
   assert.equal(worker.shown[0].tag, "dealhay:viewer:message:m1")
+  assert.deepEqual(worker.soundRequests, [
+    {
+      type: "dealhay:play-notification-sound",
+      ownerId: "viewer",
+      id: "message:m1",
+    },
+  ])
 })
 
-test("foreground Web Push remains audible even if the tab has not unlocked browser audio", async () => {
+test("a push arriving before socket delivery relays the sound once and keeps the same card", async () => {
   const worker = workerHarness({
     windows: [{ visibilityState: "visible", focused: true }],
   })
   await worker.bind("viewer")
   await worker.push(payload())
-  assert.equal(worker.shown.length, 1)
-  assert.equal(worker.shown[0].silent, false)
-  assert.ok(
-    !("vibrate" in worker.shown[0]),
-    "silent notifications must omit vibrate"
+  assert.equal((await worker.socket(payload())).shown, true)
+  assert.equal(
+    (await worker.socket(payload({ id: "message:new" }))).shown,
+    true
   )
+  assert.equal(worker.shown.length, 2)
+  assert.equal(worker.soundRequests.length, 1)
+  assert.ok(worker.shown.every(({ silent }) => silent === true))
 })
 
-test("deduplication survives worker restart, and socket fallback plus actual push rings only once", async () => {
+test("worker restarts preserve the socket card ID and do not relay a repeated push for sound", async () => {
   const worker = workerHarness()
   await worker.bind("viewer")
-  await worker.dispatch("message", {
-    source: { url: "https://dealhay.test/chats" },
-    data: { type: "dealhay:show-notification", notification: payload() },
-  })
-  const restarted = workerHarness({ cache: worker.cache })
+  assert.equal((await worker.socket(payload())).shown, true)
+  const restarted = workerHarness({ cache: worker.cache, windows: [{}] })
   await restarted.push(payload())
-  assert.equal(worker.shown[0].silent, false)
+  assert.equal(worker.shown[0].silent, true)
   assert.equal(restarted.shown[0].silent, true)
-  assert.equal(restarted.shown[0].renotify, false)
+  assert.equal(restarted.shown[0].tag, worker.shown[0].tag)
+  assert.deepEqual(restarted.soundRequests, [])
   await restarted.push(payload({ id: "message:m2" }))
-  assert.equal(restarted.shown[1].silent, false)
+  assert.equal(restarted.shown[1].silent, true)
+  assert.equal(restarted.soundRequests.length, 1)
+})
+
+test("a push with no open tab still displays its silent card", async () => {
+  const worker = workerHarness()
+  await worker.bind("viewer")
+  await worker.push(payload())
+  assert.equal(worker.shown.length, 1)
+  assert.equal(worker.shown[0].silent, true)
+  assert.deepEqual(worker.soundRequests, [])
+})
+
+test("previous sound-only cards can still focus their original tab", async () => {
+  const focus = []
+  const worker = workerHarness({
+    windows: [
+      { id: "active-tab", focus: async () => focus.push("active-tab") },
+    ],
+  })
+  await worker.dispatch("notificationclick", {
+    notification: { close() {}, data: { clientId: "active-tab" } },
+  })
+  assert.deepEqual(focus, ["active-tab"])
 })
 
 test("logout and account switch close old cards and reject queued pushes for the previous user", async () => {
@@ -240,6 +287,7 @@ async function clientHarness(
     operations,
     requests,
     storage,
+    deliveries: [],
     failPost: false,
     failDelete: false,
     failWorker: false,
@@ -284,6 +332,11 @@ async function clientHarness(
     },
     active: {
       postMessage(message, ports) {
+        if (message.type === "dealhay:show-notification") {
+          state.deliveries.push(message)
+          ports[0].partner.onmessage({ data: { ok: true, shown: true } })
+          return
+        }
         operations.push(`worker:${message.ownerId ?? "none"}`)
         ports[0].partner.onmessage({ data: { ok: !state.failWorker } })
       },
@@ -494,6 +547,25 @@ async function clientHarness(
   }
   return state
 }
+
+test("realtime cards need the current opted-in account and browser permission", async (t) => {
+  const state = await clientHarness(t, { owner: "viewer" })
+  const client = state.client
+  await client.showRealtimeBackgroundNotification(payload(), () => true)
+  assert.deepEqual(state.deliveries, [
+    { type: "dealhay:show-notification", notification: payload() },
+  ])
+
+  await client.showRealtimeBackgroundNotification(
+    payload({ ownerId: "other-account" }),
+    () => true
+  )
+  await client.showRealtimeBackgroundNotification(payload(), () => false)
+  Notification.permission = "denied"
+  await client.showRealtimeBackgroundNotification(payload(), () => true)
+  assert.equal(state.deliveries.length, 1)
+  assert.deepEqual(state.requests, [])
+})
 
 test("enabling stores only a valid subscription and user ownership after the authenticated server accepts it", async (t) => {
   const browser = await clientHarness(t, { subscription: false })

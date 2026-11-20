@@ -92,6 +92,7 @@ export function ChatComposer({
   const { prepareUploads, uploadProgress } = useImageUpload()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const sendButtonRef = useRef<HTMLButtonElement | null>(null)
   const submittingRef = useRef(false)
   const queueRef = useRef<ReturnType<typeof createChatSendQueue> | null>(null)
   const callbacksRef = useRef({ socketId, onSent })
@@ -289,7 +290,7 @@ export function ChatComposer({
         noValidate
         onSubmit={onSubmit}
       >
-        <div className="mx-auto w-full max-w-[920px] px-3 sm:px-6">
+        <div className="mx-auto w-full max-w-230 px-3 sm:px-6">
           {outgoing.length ? (
             <ItemGroup
               aria-label="Tin nhắn chờ gửi"
@@ -552,7 +553,7 @@ export function ChatComposer({
                           !event.nativeEvent.isComposing
                         ) {
                           event.preventDefault()
-                          if (canSend) event.currentTarget.form?.requestSubmit()
+                          if (canSend) sendButtonRef.current?.click()
                         }
                       }}
                     />
@@ -563,6 +564,7 @@ export function ChatComposer({
                   >
                     <InputGroupButton
                       aria-label="Gửi tin nhắn"
+                      ref={sendButtonRef}
                       tooltip="Gửi tin nhắn"
                       className="size-10 rounded-xl"
                       disabled={!canSend}

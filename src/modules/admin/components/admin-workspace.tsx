@@ -100,8 +100,6 @@ export function AdminWorkspace({ children }: { children: ReactNode }) {
                         href="/profile"
                         target="_blank"
                         rel="noopener noreferrer"
-
-
                       />
                     }
                   >
@@ -155,8 +153,6 @@ export function AdminWorkspace({ children }: { children: ReactNode }) {
                         href={item.href}
                         target="_blank"
                         rel="noopener noreferrer"
-
-
                       />
                     }
                   >

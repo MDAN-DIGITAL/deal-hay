@@ -3,6 +3,7 @@ import { z } from "zod"
 import { apiFetch, ApiError } from "@/api/client"
 import { wssFetch } from "@/api/wss-client"
 import { storageUploadUrl } from "@/lib/storage-upload"
+import { PRODUCT_GALLERY_LIMIT } from "@/lib/validation"
 import type { ImagePurpose, ImageUploadSession } from "@/types/media"
 import type { ActionState } from "@/types/forms"
 
@@ -75,7 +76,13 @@ export async function requestImageUploadsAction(
       })
     )
     .min(1)
-    .max(purpose === "product" ? 51 : purpose === "chat" ? 50 : 1)
+    .max(
+      purpose === "product"
+        ? PRODUCT_GALLERY_LIMIT + 1
+        : purpose === "chat"
+          ? 50
+          : 1
+    )
     .safeParse(uploads)
   if (!parsed.success) {
     return { success: false, message: "Thông tin tải ảnh không hợp lệ." }

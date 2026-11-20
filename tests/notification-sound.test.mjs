@@ -36,6 +36,10 @@ const { useNotificationSound: mountSound } = await import(
 const settle = async () => {
   for (let step = 0; step < 12; step++) await Promise.resolve()
 }
+const dealHayChime = [659.25, 880, 1108.73].flatMap((frequency) => [
+  frequency,
+  frequency * 2.006,
+])
 let userCounter = 0
 
 function browser(t, { webkit = false, unsupported = false } = {}) {
@@ -51,6 +55,8 @@ function browser(t, { webkit = false, unsupported = false } = {}) {
   }
   const window = new EventTarget()
   const document = new EventTarget()
+  const serviceWorker = new EventTarget()
+  window.location = { origin: "https://dealhay.test" }
   document.visibilityState = "visible"
   const storage = new Map()
   const mounts = []
@@ -68,6 +74,16 @@ function browser(t, { webkit = false, unsupported = false } = {}) {
       page.inGesture = true
       document.dispatchEvent(new Event(type))
       page.inGesture = false
+    },
+    pushSound(
+      ownerId,
+      id,
+      scriptURL = "https://dealhay.test/notification-worker.js"
+    ) {
+      const event = new Event("message")
+      event.source = { scriptURL }
+      event.data = { type: "dealhay:play-notification-sound", ownerId, id }
+      serviceWorker.dispatchEvent(event)
     },
     advance(ms) {
       page.time += ms
@@ -190,6 +206,7 @@ function browser(t, { webkit = false, unsupported = false } = {}) {
   install("window", window)
   install("document", document)
   install("navigator", {
+    serviceWorker,
     locks: { request: async (_name, _options, callback) => callback({}) },
   })
   install("performance", { now: () => page.time })
@@ -216,13 +233,13 @@ test("a blocked incoming burst keeps its latest sound until an iOS touchend unlo
   assert.equal(page.contexts[0].resumes, 1)
   page.gesture("touchend")
   await settle()
-  assert.deepEqual(page.tones, [880, 1174])
+  assert.deepEqual(page.tones, dealHayChime)
   assert.equal(mount.render().soundReady, true)
   const claimed = JSON.parse(
     page.storage.get(`deal-hay:notification-sound-events:${mount.userId}`)
   )
   assert.deepEqual(claimed.ids, ["notification:latest"])
-  assert.ok(page.peaks.includes(0.24), "chime uses an audible volume")
+  assert.equal(Math.max(...page.peaks), 0.13)
 })
 
 test("new alerts resume interrupted audio even in a hidden tab and remain deduplicated", async (t) => {
@@ -236,12 +253,12 @@ test("new alerts resume interrupted audio even in a hidden tab and remain dedupl
   assert.equal(sound.soundReady, false)
   sound.playNotificationSound("message:new")
   await settle()
-  assert.deepEqual(page.tones, [880, 1174])
+  assert.deepEqual(page.tones, dealHayChime)
   page.advance(1200)
   sound.playNotificationSound("message:new")
-  assert.equal(page.tones.length, 2)
+  assert.equal(page.tones.length, dealHayChime.length)
   sound.playNotificationSound("notification:new")
-  assert.equal(page.tones.length, 4)
+  assert.equal(page.tones.length, dealHayChime.length * 2)
 })
 
 test("the same event heard by multiple tabs produces one chime and bursts are throttled", async (t) => {
@@ -253,10 +270,40 @@ test("the same event heard by multiple tabs produces one chime and bursts are th
   first.render().playNotificationSound("message:shared")
   second.render().playNotificationSound("message:shared")
   first.render().playNotificationSound("notification:burst")
-  assert.equal(page.tones.length, 2)
+  assert.equal(page.tones.length, dealHayChime.length)
   page.advance(1200)
   second.render().playNotificationSound("notification:next")
-  assert.equal(page.tones.length, 4)
+  assert.equal(page.tones.length, dealHayChime.length * 2)
+})
+
+test("Web Push plays the same Deal Hay sound and deduplicates socket delivery", async (t) => {
+  const page = browser(t)
+  const mount = page.mount()
+  page.gesture()
+  await settle()
+
+  page.pushSound("other-account", "message:foreign")
+  page.pushSound(
+    mount.userId,
+    "message:foreign",
+    "https://unrelated.example/notification-worker.js"
+  )
+  page.pushSound(mount.userId, "invalid-id")
+  assert.deepEqual(page.tones, [])
+
+  page.pushSound(mount.userId, "notification:order")
+  assert.deepEqual(page.tones, dealHayChime)
+  page.advance(1500)
+  mount.render().playNotificationSound("notification:order")
+  assert.deepEqual(page.tones, dealHayChime)
+
+  mount.render().toggleNotificationSound()
+  page.advance(1500)
+  page.pushSound(mount.userId, "message:muted")
+  assert.deepEqual(page.tones, dealHayChime)
+  mount.unmount()
+  page.pushSound(mount.userId, "message:after-sign-out")
+  assert.equal(page.contexts[0].state, "closed")
 })
 
 test("enabling sound plays a confirmation and muted users do not queue alerts", async (t) => {
@@ -272,7 +319,7 @@ test("enabling sound plays a confirmation and muted users do not queue alerts", 
   page.inGesture = false
   await settle()
   assert.equal(mount.render().notificationSoundEnabled, true)
-  assert.equal(page.tones.length, 2)
+  assert.equal(page.tones.length, dealHayChime.length)
   mount.render().toggleNotificationSound()
   assert.equal(mount.render().soundReady, false)
   assert.equal(await mount.render().testNotificationSound(), false)
@@ -291,7 +338,7 @@ test("explicit sound testing reports success or a bounded failure instead of han
   const successful = sound.testNotificationSound()
   page.inGesture = false
   assert.equal(await successful, true)
-  assert.equal(page.tones.length, 2)
+  assert.deepEqual(page.tones, dealHayChime)
   const next = mount.render()
   assert.equal(next.testNotificationSound, sound.testNotificationSound)
   assert.equal(next.playNotificationSound, sound.playNotificationSound)
@@ -344,7 +391,7 @@ test("preferences still work when storage is unavailable and stay isolated per a
   assert.equal(mount.render().notificationSoundEnabled, true)
   page.gesture()
   mount.render().playNotificationSound("message:allowed")
-  assert.equal(page.tones.length, 2)
+  assert.equal(page.tones.length, dealHayChime.length)
 })
 
 test("unmounting settles pending sound tests and never plays after cleanup", async (t) => {
@@ -375,7 +422,7 @@ test("muting while autoplay is blocked discards the incoming alert", async (t) =
   mount.render().toggleNotificationSound()
   page.inGesture = false
   await settle()
-  assert.deepEqual(page.tones, [880, 1174])
+  assert.deepEqual(page.tones, dealHayChime)
   assert.equal(
     page.storage.has(`deal-hay:notification-sound-events:${mount.userId}`),
     false

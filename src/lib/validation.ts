@@ -22,6 +22,7 @@ export function newPasswordSchema(label = "Mật khẩu") {
 }
 
 export const IMAGE_OUTPUT_MAX_BYTES = 20 * 1024
+export const PRODUCT_GALLERY_LIMIT = 5
 export const CHAT_FILE_UPLOAD_MAX_BYTES = 3 * 1024 * 1024
 const imageMimeTypes = new Set([
   "image/jpeg",

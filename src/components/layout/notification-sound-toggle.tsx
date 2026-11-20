@@ -56,7 +56,7 @@ export function NotificationSoundToggle() {
         </div>
         <div className="space-y-2 border-t pt-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-medium">Âm thanh trên web</span>
+            <span className="text-sm font-medium">Âm báo Deal Hay</span>
             <Button
               startIcon={
                 notificationSoundEnabled ? <VolumeXIcon /> : <Volume2Icon />
@@ -73,20 +73,21 @@ export function NotificationSoundToggle() {
           <p className="text-xs text-muted-foreground">
             {notificationSoundEnabled
               ? soundReady
-                ? "Âm thanh đã sẵn sàng."
-                : "Bấm Nghe thử để trình duyệt cho phép phát âm thanh."
-              : "Bạn đã tắt tiếng tin nhắn và thông báo trong web."}
+                ? "Âm báo đã sẵn sàng cho tin nhắn và thông báo mới."
+                : "Bấm Nghe thử để kích hoạt âm báo trên trình duyệt."
+              : "Âm báo Deal Hay đang tắt."}
           </p>
           <Button
             startIcon={<PlayIcon />}
             type="button"
             size="sm"
             variant="secondary"
+            disabled={!notificationSoundEnabled}
             onClick={() => {
               void testNotificationSound().then((played) => {
                 if (!played)
                   toast.info(
-                    "Chưa phát được âm thanh. Hãy bật âm thanh và kiểm tra âm lượng thiết bị rồi thử lại."
+                    "Chưa phát được âm báo. Hãy kiểm tra âm lượng thiết bị rồi thử lại."
                   )
               })
             }}
@@ -106,7 +107,7 @@ export function NotificationSoundToggle() {
                   : background.permission === "denied"
                     ? "Quyền thông báo đang bị chặn. Hãy cho phép lại trong cài đặt trình duyệt."
                     : background.enabled
-                      ? "Đang nhận thông báo khi chuyển ứng dụng hoặc đóng tab."
+                      ? "Đang bật. Khi đóng tab, thông báo sẽ hiện dưới dạng thẻ im lặng."
                       : "Bấm Bật và chọn Cho phép để nhận khi dùng ứng dụng khác."}
           </p>
           <Button
@@ -138,10 +139,6 @@ export function NotificationSoundToggle() {
               {background.error}
             </p>
           ) : null}
-          <p className="text-xs text-muted-foreground">
-            Khi bật thông báo nền, âm báo tin mới dùng âm thanh hệ thống, phụ
-            thuộc âm lượng và chế độ Im lặng/Không làm phiền của thiết bị.
-          </p>
         </div>
       </PopoverContent>
     </Popover>

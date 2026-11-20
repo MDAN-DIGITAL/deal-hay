@@ -16,12 +16,10 @@ async function readState() {
   const cache = await caches.open(STATE_CACHE)
   const response = await cache.match(STATE_URL)
   const state = response ? await response.json() : null
-  return state && typeof state.ownerId === "string"
-    ? {
-        ownerId: state.ownerId,
-        seen: Array.isArray(state.seen) ? state.seen.slice(-100) : [],
-      }
-    : { ownerId: null, seen: [] }
+  return {
+    ownerId: typeof state?.ownerId === "string" ? state.ownerId : null,
+    seen: Array.isArray(state?.seen) ? state.seen.slice(-100) : [],
+  }
 }
 
 async function writeState(state) {
@@ -107,37 +105,47 @@ function normalize(payload) {
 
 async function show(payload, fromPush) {
   const notification = normalize(payload)
-  if (!notification) return
+  if (!notification) return false
   const state = await readState()
-  if (state.ownerId !== notification.ownerId) return
-  const windows = await self.clients.matchAll({
-    type: "window",
-    includeUncontrolled: true,
-  })
-  const focused = windows.some(
-    (client) => client.visibilityState === "visible" && client.focused
-  )
-  if (!fromPush && focused) return
+  if (state.ownerId !== notification.ownerId) return false
   const tag = `dealhay:${notification.ownerId}:${notification.id}`
   const duplicate = state.seen.includes(tag)
-  if (!fromPush && duplicate) return
+  if (!fromPush && duplicate) return true
   // A real Web Push must remain user visible (including while the app is open on Safari).
-  // Repeat delivery replaces the same card silently instead of ringing twice.
-  await self.registration.showNotification(notification.title, {
+  const options = {
     body: notification.body,
     tag,
     icon: notification.avatar,
     badge: "/notification-badge.png",
     lang: "vi",
-    silent: duplicate,
-    renotify: !duplicate,
+    silent: true,
     data: { url: notification.url, ownerId: notification.ownerId },
-  })
+  }
+  try {
+    await self.registration.showNotification(notification.title, options)
+  } catch (error) {
+    if (fromPush) throw error
+    return false
+  }
   if (!duplicate) {
     state.seen.push(tag)
     state.seen = state.seen.slice(-100)
     await writeState(state)
+    if (fromPush) {
+      const tabs = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      })
+      for (const tab of tabs) {
+        tab.postMessage({
+          type: "dealhay:play-notification-sound",
+          ownerId: notification.ownerId,
+          id: notification.id,
+        })
+      }
+    }
   }
+  return true
 }
 
 self.addEventListener("install", (event) => {
@@ -191,7 +199,7 @@ self.addEventListener("message", (event) => {
   } else if (data.type === "dealhay:show-notification") {
     event.waitUntil(
       ordered(() => show(data.notification, false)).then(
-        () => event.ports?.[0]?.postMessage({ ok: true }),
+        (shown) => event.ports?.[0]?.postMessage({ ok: true, shown }),
         () => event.ports?.[0]?.postMessage({ ok: false })
       )
     )
@@ -202,6 +210,13 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close()
   event.waitUntil(
     ordered(async () => {
+      // Notifications delivered by the older sound-only mode can still be open.
+      const clientId = event.notification.data?.clientId
+      if (typeof clientId === "string") {
+        const client = await self.clients.get(clientId)
+        await client?.focus()
+        return
+      }
       const state = await readState()
       if (!state.ownerId || event.notification.data?.ownerId !== state.ownerId)
         return

@@ -24,14 +24,19 @@ const dependencies = moduleUrl(`
   export const loadRealtimeConfigAction=async()=>globalThis.__toastHarness.config
   export const loadSocketSessionAction=async()=>null
   export const useUnreadTabTitle=()=>{}
+  const playNotificationSound=(id)=>{if(!globalThis.__toastHarness.muted)globalThis.__toastHarness.sounds.push(id)}
   export const useNotificationSound=()=>({
     notificationSoundEnabled:!globalThis.__toastHarness.muted,
     toggleNotificationSound:()=>{},
-    testNotificationSound:async()=>true,
+    testNotificationSound:async()=>{globalThis.__toastHarness.previews++;return true},
     soundReady:true,
-    playNotificationSound:(id)=>{if(!globalThis.__toastHarness.muted)globalThis.__toastHarness.sounds.push(id)}
+    playNotificationSound
   })
   export const useBackgroundNotifications=()=>globalThis.__toastHarness.background
+  export const showRealtimeBackgroundNotification=async(notification,isCurrent)=>{
+    const state=globalThis.__toastHarness
+    if(isCurrent() && state.background.enabled) state.backgroundCards.push(notification)
+  }
   export const createSocketRealtimeClient=()=>globalThis.__toastHarness.client
 `)
 const jsx = moduleUrl(
@@ -66,6 +71,7 @@ const imports = {
   "@/modules/realtime/actions": dependencies,
   "@/modules/realtime/hooks/use-notification-sound": dependencies,
   "@/modules/realtime/hooks/use-background-notifications": dependencies,
+  "@/modules/realtime/lib/background-notifications": dependencies,
   "@/modules/realtime/hooks/use-unread-tab-title": dependencies,
   "@/lib/socket-realtime-client": dependencies,
   "@/components/realtime-toast": dependencies,
@@ -98,6 +104,9 @@ async function mount(t, { muted = false } = {}) {
   const state = {
     muted,
     background: { enabled: false },
+    backgroundCards: [],
+    previews: 0,
+    disconnects: 0,
     toasts: [],
     sounds: [],
     destinations: [],
@@ -121,7 +130,9 @@ async function mount(t, { muted = false } = {}) {
           })
         return channels.get(name)
       },
-      disconnect() {},
+      disconnect() {
+        state.disconnects++
+      },
       socketId: () => "socket-id",
       connectionStatus: () => "connected",
       connector: { onConnectionChange: () => () => {} },
@@ -209,7 +220,7 @@ const message = (overrides = {}) => ({
   ...overrides,
 })
 
-test("enabled Web Push owns the sound in both background and foreground without duplicate web chimes", async (t) => {
+test("socket events use the Deal Hay sound with background notifications enabled or disabled", async (t) => {
   const page = await mount(t)
   const previousDocument = globalThis.document
   globalThis.document = { visibilityState: "hidden", hasFocus: () => false }
@@ -226,20 +237,49 @@ test("enabled Web Push owns the sound in both background and foreground without 
     read_at: null,
   })
   assert.equal(page.toasts.length, 2)
-  assert.deepEqual(
-    page.sounds,
-    [],
-    "hidden clients leave sound to the system notification"
-  )
+  assert.deepEqual(page.sounds, [
+    "message:background-message",
+    "notification:background-notification",
+  ])
   globalThis.document.visibilityState = "visible"
   globalThis.document.hasFocus = () => true
   page.emit("message", message({ id: "foreground-message" }))
-  assert.deepEqual(page.sounds, [])
+  assert.deepEqual(
+    page.backgroundCards.map(({ id }) => id),
+    [
+      "message:background-message",
+      "notification:background-notification",
+      "message:foreground-message",
+    ]
+  )
+  assert.equal(page.backgroundCards[2].ownerId, "viewer")
+  assert.equal(
+    page.backgroundCards[2].url,
+    "/chats?conversation=conversation-id&message=foreground-message"
+  )
+  assert.equal(page.sounds.at(-1), "message:foreground-message")
   page.background.enabled = false
   page.render()
   await settle()
   page.emit("message", message({ id: "web-chime-restored" }))
-  assert.deepEqual(page.sounds, ["message:web-chime-restored"])
+  await settle()
+  assert.equal(page.sounds.at(-1), "message:web-chime-restored")
+  assert.equal(page.backgroundCards.length, 3)
+  assert.equal(page.disconnects, 0)
+})
+
+test("the preview uses web audio and muting Deal Hay still allows visual cards", async (t) => {
+  const page = await mount(t)
+  assert.equal(await page.render().testNotificationSound(), true)
+  assert.equal(page.previews, 1)
+  assert.deepEqual(page.backgroundCards, [])
+
+  page.muted = true
+  page.background.enabled = true
+  page.render()
+  page.emit("notification", { id: "muted-order", title: "Đơn hàng mới" })
+  assert.equal(page.backgroundCards[0].id, "notification:muted-order")
+  assert.deepEqual(page.sounds, [])
 })
 
 test("a background tab without Web Push still plays its unlocked web sound", async (t) => {
@@ -250,6 +290,7 @@ test("a background tab without Web Push still plays its unlocked web sound", asy
     globalThis.document = previousDocument
   })
   page.emit("message", message({ id: "background-fallback" }))
+  await settle()
   assert.deepEqual(page.sounds, ["message:background-fallback"])
 })
 

@@ -98,6 +98,7 @@ export async function createProductAction(
     video_url: formData.get("video_url") || "",
     stock: Number(formData.get("stock")),
     description: formData.get("description"),
+    description_content: formData.get("description_content") ?? undefined,
     label: formData.get("label"),
     image: formData.get("image"),
     gallery_images: formData.getAll("gallery_images"),
@@ -134,6 +135,8 @@ export async function createProductAction(
   if (parsed.data.description && parsed.data.description !== "") {
     payload.set("description", parsed.data.description)
   }
+  if (parsed.data.description_content)
+    payload.set("description_content", parsed.data.description_content)
   if (parsed.data.label && parsed.data.label !== "") {
     payload.set("label", parsed.data.label)
   }

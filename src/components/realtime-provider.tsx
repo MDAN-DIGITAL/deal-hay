@@ -29,6 +29,10 @@ import { useNotificationSound } from "@/modules/realtime/hooks/use-notification-
 import { useBackgroundNotifications } from "@/modules/realtime/hooks/use-background-notifications"
 import { useUnreadTabTitle } from "@/modules/realtime/hooks/use-unread-tab-title"
 import {
+  showRealtimeBackgroundNotification,
+  type BackgroundNotification,
+} from "@/modules/realtime/lib/background-notifications"
+import {
   chatToastHref,
   notificationToastHref,
   toastAvatar,
@@ -131,7 +135,6 @@ export function RealtimeProvider({
     soundReady,
   } = useNotificationSound(currentUserId)
   const backgroundNotifications = useBackgroundNotifications(currentUserId)
-  const backgroundEnabled = backgroundNotifications.enabled
   useUnreadTabTitle(
     currentUserId ? unreadCounts.messages + unreadCounts.notifications : 0
   )
@@ -266,6 +269,14 @@ export function RealtimeProvider({
       return true
     }
 
+    const notifyDevice = (notice: Omit<BackgroundNotification, "ownerId">) => {
+      playNotificationSound(notice.id)
+      void showRealtimeBackgroundNotification(
+        { ...notice, ownerId: currentUserId },
+        () => !disposed
+      ).catch(() => {})
+    }
+
     const connect = async (): Promise<RealtimeClient> => {
       const { createSocketRealtimeClient } =
         await import("@/lib/socket-realtime-client")
@@ -336,20 +347,29 @@ export function RealtimeProvider({
               ...previous,
               messages: previous.messages + 1,
             }))
-            if (!backgroundEnabled)
-              playNotificationSound(`message:${payload.id}`)
             const senderName = toastPreview(
               "name" in payload.sender ? payload.sender.name : undefined
             )
             const destination =
               chatToastHref({ ...payload, message_id: payload.id }) ?? "/chats"
+            const id = `message:${payload.id}`
+            const title = senderName
+              ? `Tin nhắn mới từ ${senderName}`
+              : "Tin nhắn mới"
+            const description = messageToastDescription(payload)
+            const avatar = toastAvatar(payload, "Tin nhắn")
+            notifyDevice({
+              id,
+              title,
+              body: description,
+              avatar: avatar.src,
+              url: destination,
+            })
             showRealtimeToast({
-              id: `message:${payload.id}`,
-              title: senderName
-                ? `Tin nhắn mới từ ${senderName}`
-                : "Tin nhắn mới",
-              description: messageToastDescription(payload),
-              avatar: toastAvatar(payload, "Tin nhắn"),
+              id,
+              title,
+              description,
+              avatar,
               onOpen: () =>
                 navigateToChat(destination, (href) => router.push(href)),
             })
@@ -412,22 +432,31 @@ export function RealtimeProvider({
               ...previous,
               notifications: previous.notifications + 1,
             }))
-            if (!backgroundEnabled)
-              playNotificationSound(`notification:${payload.id}`)
+            const id = `notification:${payload.id}`
+            const title =
+              toastPreview("title" in payload ? payload.title : undefined) ??
+              "Thông báo mới"
+            const description = toastPreview(
+              "body" in payload ? payload.body : undefined
+            )
+            const avatar = toastAvatar(payload, "Thông báo")
+            const destination = notificationToastHref(
+              payload,
+              window.location.origin
+            )
+            notifyDevice({
+              id,
+              title,
+              body: description ?? "Bạn có thông báo mới.",
+              avatar: avatar.src,
+              url: destination,
+            })
             showRealtimeToast({
-              id: `notification:${payload.id}`,
-              title:
-                toastPreview("title" in payload ? payload.title : undefined) ??
-                "Thông báo mới",
-              description: toastPreview(
-                "body" in payload ? payload.body : undefined
-              ),
-              avatar: toastAvatar(payload, "Thông báo"),
+              id,
+              title,
+              description,
+              avatar,
               onOpen: () => {
-                const destination = notificationToastHref(
-                  payload,
-                  window.location.origin
-                )
                 if (
                   destination === "/chats" ||
                   destination.startsWith("/chats/") ||
@@ -464,7 +493,6 @@ export function RealtimeProvider({
     }
   }, [
     currentUserId,
-    backgroundEnabled,
     generation,
     loadingConfig,
     playNotificationSound,
