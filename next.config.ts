@@ -1,5 +1,6 @@
 import type { NextConfig } from "next"
 
+import { notificationMenuHref } from "./src/modules/notifications/lib/notification-menu-navigation"
 import { publicMediaRemotePattern } from "./src/lib/public-media-url"
 
 const publicMediaPattern = publicMediaRemotePattern(
@@ -15,6 +16,15 @@ const nextConfig: NextConfig = {
     maximumRedirects: 0,
     maximumResponseBody: 64 * 1024,
     dangerouslyAllowLocalIP: process.env.NODE_ENV !== "production",
+  },
+  async redirects() {
+    return [
+      {
+        source: "/notifications",
+        destination: notificationMenuHref,
+        permanent: false,
+      },
+    ]
   },
   async headers() {
     return [

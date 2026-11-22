@@ -6,12 +6,13 @@ export function markAllNotificationsRead(): Promise<ApiMessageResponse> {
   return apiFetch({ method: "PATCH", path: notificationRoutes.readAll })
 }
 
-export function markNotificationRead(
-  notificationId: string
+export function markVisibleNotificationsRead(
+  notificationIds: string[]
 ): Promise<ApiMessageResponse> {
   return apiFetch({
     method: "PATCH",
-    path: notificationRoutes.read(notificationId),
+    path: notificationRoutes.readVisible,
+    body: { notification_ids: notificationIds },
   })
 }
 

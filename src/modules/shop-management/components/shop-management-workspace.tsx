@@ -3,7 +3,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 import {
-  BellIcon,
   BoxesIcon,
   ExternalLinkIcon,
   HouseIcon,
@@ -45,6 +44,7 @@ import {
 } from "@/components/ui/sidebar"
 import { apiAssetUrl } from "@/config/env"
 import { initials } from "@/lib/format"
+import { NotificationMenu } from "@/modules/notifications/components/notification-menu"
 import {
   managementHref,
   managementSections,
@@ -268,27 +268,7 @@ export function ShopManagementWorkspace({
                 <Badge variant="secondary">{unreadCounts.messages}</Badge>
               ) : null}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              nativeButton={false}
-              aria-label={`Thông báo${unreadCounts.notifications > 0 ? `, ${unreadCounts.notifications} chưa đọc` : ""} (mở tab mới)`}
-              tooltip="Thông báo (mở tab mới)"
-              render={
-                <Link
-                  href="/notifications"
-
-                  target="_blank"
-                  rel="noopener noreferrer"
-                />
-              }
-            >
-              <BellIcon aria-hidden="true" />
-              <span className="hidden lg:inline">Thông báo</span>
-              {unreadCounts.notifications > 0 ? (
-                <Badge variant="secondary">{unreadCounts.notifications}</Badge>
-              ) : null}
-            </Button>
+            <NotificationMenu compact />
           </div>
         </header>
 

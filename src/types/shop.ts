@@ -44,6 +44,7 @@ export type ShopProduct = {
   video_url?: string | null
   stock: number
   has_variants: boolean
+  shared_stock?: boolean
   label: string | null
   image_url: string | null
   is_active: boolean
@@ -84,6 +85,7 @@ export type ShopInventoryProduct = Pick<
   | "image_url"
   | "is_active"
   | "has_variants"
+  | "shared_stock"
 > & {
   variants: Pick<
     ShopProductVariant,

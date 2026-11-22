@@ -22,12 +22,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Separator } from "@/components/ui/separator"
 import { Surface } from "@/components/ui/surface"
 import {
   productDescriptionFormatting,
   productImageId,
 } from "@/lib/product-description"
+import { cn } from "@/lib/utils"
 
 const ProductImage = Image.extend({
   addAttributes() {
@@ -62,6 +62,7 @@ type Props = Pick<
   gallery: File[]
   canUpload: boolean
   disabled: boolean
+  toolbarClassName?: string
   onChange: (value: string) => void
   onBlur: () => void
   onUpload: (file: File, insert: (image: File) => void) => void
@@ -72,6 +73,7 @@ export function ProductDescriptionEditor({
   gallery,
   canUpload,
   disabled,
+  toolbarClassName,
   onChange,
   onBlur,
   onUpload,
@@ -226,7 +228,10 @@ export function ProductDescriptionEditor({
       <div
         role="toolbar"
         aria-label="Định dạng mô tả"
-        className="flex flex-wrap items-center gap-1 p-2"
+        className={cn(
+          "sticky top-0 z-10 flex flex-wrap items-center gap-1 rounded-t-[inherit] border-b border-border bg-background p-2",
+          toolbarClassName
+        )}
       >
         {formatOptions.map(({ title, icon: Icon, active, apply }) => (
           <Button
@@ -300,7 +305,6 @@ export function ProductDescriptionEditor({
           }}
         />
       </div>
-      <Separator />
       <EditorContent editor={editor} className="cursor-text p-3" />
     </Surface>
   )

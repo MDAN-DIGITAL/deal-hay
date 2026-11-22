@@ -105,6 +105,7 @@ export async function createProductAction(
     primary_image_upload: formData.get("primary_image_upload"),
     gallery_image_uploads: formData.getAll("gallery_image_uploads"),
     has_variants: catalog.has_variants === true,
+    shared_stock: catalog.shared_stock === true,
     options: Array.isArray(catalog.options) ? catalog.options : [],
     variants: Array.isArray(catalog.variants) ? catalog.variants : [],
   })
@@ -131,7 +132,12 @@ export async function createProductAction(
   if (typeof parsed.data.old_price === "number")
     payload.set("old_price", String(parsed.data.old_price))
   if (parsed.data.video_url) payload.set("video_url", parsed.data.video_url)
-  payload.set("stock", String(parsed.data.has_variants ? 0 : parsed.data.stock))
+  const usesSharedStock = parsed.data.has_variants && parsed.data.shared_stock
+  payload.set(
+    "stock",
+    String(parsed.data.has_variants && !usesSharedStock ? 0 : parsed.data.stock)
+  )
+  if (usesSharedStock) payload.set("shared_stock", "1")
   if (parsed.data.description && parsed.data.description !== "") {
     payload.set("description", parsed.data.description)
   }
@@ -170,7 +176,8 @@ export async function createProductAction(
       if (variant.price !== "") {
         payload.set(`variants[${variantIndex}][price]`, String(variant.price))
       }
-      payload.set(`variants[${variantIndex}][stock]`, String(variant.stock))
+      if (!usesSharedStock)
+        payload.set(`variants[${variantIndex}][stock]`, String(variant.stock))
       payload.set(
         `variants[${variantIndex}][is_active]`,
         variant.is_active ? "1" : "0"

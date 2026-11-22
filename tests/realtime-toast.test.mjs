@@ -19,6 +19,8 @@ const dependencies = moduleUrl(`
   export const toast=(title,options)=>globalThis.__toastHarness.toasts.push({title,options})
   export const showRealtimeToast=(options)=>globalThis.__toastHarness.toasts.push(options)
   export const navigateToChat=(href,push)=>push(href)
+  export const notificationMenuHref='/?notifications=open'
+  export const requestNotificationMenu=()=>globalThis.__toastHarness.menuAvailable
   export const refreshUnreadCountsAction=async()=>null
   export const refreshNotificationCountAction=async()=>null
   export const loadRealtimeConfigAction=async()=>globalThis.__toastHarness.config
@@ -75,6 +77,7 @@ const imports = {
   "@/modules/realtime/hooks/use-unread-tab-title": dependencies,
   "@/lib/socket-realtime-client": dependencies,
   "@/components/realtime-toast": dependencies,
+  "@/modules/notifications/lib/notification-menu-navigation": dependencies,
   "@/modules/chats/lib/chat-navigation": dependencies,
   "@/modules/realtime/lib/toast-destination": transpile(
     "../src/modules/realtime/lib/toast-destination.ts",
@@ -388,7 +391,7 @@ test("business notifications fall back to a title and have a distinct ID from ch
   assert.equal(description, notification.body)
   assert.deepEqual(avatar, { name: "Thông báo", src: null })
   onOpen()
-  assert.deepEqual(page.destinations, ["/notifications"])
+  assert.deepEqual(page.destinations, ["/?notifications=open"])
   page.emit("notification", {
     id: "read-notification",
     read_at: "2026-11-01T00:00:00Z",
@@ -396,6 +399,14 @@ test("business notifications fall back to a title and have a distinct ID from ch
   assert.equal(page.toasts.length, 2)
   page.emit("notification", { id: "missing-title" })
   assert.equal(page.toasts.at(-1).title, "Thông báo mới")
+})
+
+test("a notification without an action opens the existing menu without navigation", async (t) => {
+  const page = await mount(t)
+  page.menuAvailable = true
+  page.emit("notification", { id: "news-id", title: "Thông báo mới" })
+  page.toasts[0].onOpen()
+  assert.deepEqual(page.destinations, [])
 })
 
 test("long Unicode message previews are bounded without splitting emoji", async (t) => {
@@ -468,10 +479,12 @@ test("toast destinations reject unsafe links and invalid chat identifiers", () =
     "/chats\n",
     "chats",
     "#chat",
+    "/notifications",
+    "/?notifications=open",
   ])
     assert.equal(
       notificationToastHref({ action_url }, origin),
-      "/notifications",
+      null,
       action_url
     )
   assert.equal(

@@ -92,6 +92,7 @@ function initialProductValues(categories: ShopCategory[]): CreateProductValues {
     image: undefined as unknown as File,
     gallery_images: [],
     has_variants: false,
+    shared_stock: false,
     options: [],
     variants: [],
   }
@@ -130,8 +131,10 @@ function variantLabel(values: Record<string, string>): string {
 
 export function CreateProductForm({
   categories,
+  descriptionToolbarClassName,
 }: {
   categories: ShopCategory[]
+  descriptionToolbarClassName?: string
 }) {
   const [isPending, startTransition] = useTransition()
   const [preparingImages, setPreparingImages] = useState(false)
@@ -154,6 +157,7 @@ export function CreateProductForm({
     control: form.control,
     name: "has_variants",
   })
+  const sharedStock = useWatch({ control: form.control, name: "shared_stock" })
   const variants = useWatch({ control: form.control, name: "variants" }) ?? []
   const primary = useWatch({ control: form.control, name: "image" })
   const gallery = useWatch({ control: form.control, name: "gallery_images" })
@@ -291,6 +295,7 @@ export function CreateProductForm({
       "catalog",
       JSON.stringify({
         has_variants: values.has_variants,
+        shared_stock: values.has_variants && values.shared_stock,
         options: values.has_variants ? values.options : [],
         variants: values.has_variants ? values.variants : [],
       })
@@ -638,6 +643,7 @@ export function CreateProductForm({
                 <FormControl>
                   <ProductDescriptionEditor
                     key={descriptionVersion}
+                    toolbarClassName={descriptionToolbarClassName}
                     primary={primary}
                     gallery={gallery}
                     canUpload={
@@ -706,13 +712,46 @@ export function CreateProductForm({
             />
           </div>
 
-          {!hasVariants ? (
+          {hasVariants ? (
+            <FormField
+              control={form.control}
+              name="shared_stock"
+              render={({ field }) => (
+                <FormItem className="rounded-lg border p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <FormLabel className="cursor-pointer">
+                      Dùng chung tồn kho
+                    </FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={Boolean(field.value)}
+                        onBlur={field.onBlur}
+                        onCheckedChange={(checked) => {
+                          field.onChange(checked)
+                          form.clearErrors(["stock", "variants"])
+                        }}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormDescription>
+                    Dùng khi các lựa chọn, như thời hạn bảo hành, cùng bán từ
+                    một số lượng sản phẩm.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+
+          {!hasVariants || sharedStock ? (
             <FormField
               control={form.control}
               name="stock"
               render={({ field }) => (
                 <FormItem className="max-w-xs">
-                  <FormLabel>Tồn kho ban đầu</FormLabel>
+                  <FormLabel>
+                    {hasVariants ? "Tồn kho chung" : "Tồn kho ban đầu"}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       startIcon={<BoxesIcon />}
@@ -730,7 +769,8 @@ export function CreateProductForm({
                 </FormItem>
               )}
             />
-          ) : (
+          ) : null}
+          {hasVariants ? (
             <Surface padding="none" className="space-y-5 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -911,35 +951,37 @@ export function CreateProductForm({
                               </FormItem>
                             )}
                           />
-                          <FormField
-                            control={form.control}
-                            name={`variants.${variantIndex}.stock`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Tồn kho</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    startIcon={<BoxesIcon />}
-                                    min={0}
-                                    inputMode="numeric"
-                                    type="number"
-                                    {...field}
-                                    value={
-                                      Number.isFinite(field.value)
-                                        ? field.value
-                                        : ""
-                                    }
-                                    onChange={(event) =>
-                                      field.onChange(
-                                        numericValue(event.target.value)
-                                      )
-                                    }
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          {!sharedStock ? (
+                            <FormField
+                              control={form.control}
+                              name={`variants.${variantIndex}.stock`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Tồn kho</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      startIcon={<BoxesIcon />}
+                                      min={0}
+                                      inputMode="numeric"
+                                      type="number"
+                                      {...field}
+                                      value={
+                                        Number.isFinite(field.value)
+                                          ? field.value
+                                          : ""
+                                      }
+                                      onChange={(event) =>
+                                        field.onChange(
+                                          numericValue(event.target.value)
+                                        )
+                                      }
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          ) : null}
                           <FormField
                             control={form.control}
                             name={`variants.${variantIndex}.is_active`}
@@ -979,8 +1021,8 @@ export function CreateProductForm({
                   className="flex items-center gap-2 p-4 text-sm text-muted-foreground"
                 >
                   <ImagePlusIcon className="size-4 shrink-0" />
-                  Nhập thuộc tính rồi tạo danh sách biến thể để khai báo giá và
-                  tồn kho riêng. SKU sẽ được hệ thống tự động tạo.
+                  Nhập thuộc tính rồi tạo danh sách biến thể. SKU sẽ được hệ
+                  thống tự động tạo.
                 </Surface>
               )}
               {variantsError ? (
@@ -989,7 +1031,7 @@ export function CreateProductForm({
                 </p>
               ) : null}
             </Surface>
-          )}
+          ) : null}
         </section>
 
         <ImageUploadProgress progress={isPending ? uploadProgress : null} />

@@ -48,6 +48,11 @@ const productStockSchema = z
   .int("Tồn kho phải là số nguyên.")
   .min(0, "Tồn kho không được âm.")
   .max(999999, "Tồn kho quá lớn.")
+const variantStockSchema = z
+  .number({ error: "Tồn kho biến thể phải là số nguyên." })
+  .int("Tồn kho biến thể phải là số nguyên.")
+  .min(0, "Tồn kho biến thể không được âm.")
+  .max(999999, "Tồn kho biến thể quá lớn.")
 const priceSchema = (label: string) =>
   z
     .number({ error: `${label} phải là số nguyên.` })
@@ -82,11 +87,7 @@ const productVariantsSchema = z
     z.object({
       option_values: z.record(z.string(), z.string()),
       price: optionalVariantPriceSchema,
-      stock: z
-        .number({ error: "Tồn kho biến thể phải là số nguyên." })
-        .int("Tồn kho biến thể phải là số nguyên.")
-        .min(0, "Tồn kho biến thể không được âm.")
-        .max(999999, "Tồn kho biến thể quá lớn."),
+      stock: z.custom<number>().optional(),
       is_active: z.boolean(),
       is_default: z.boolean(),
     })
@@ -112,6 +113,7 @@ const productFields = {
     .optional(),
   image: fileSchema("Vui lòng tải ảnh chính của sản phẩm."),
   gallery_images: productGallerySchema,
+  shared_stock: z.boolean().optional(),
 }
 
 const createProductBaseSchema = z.discriminatedUnion("has_variants", [
@@ -129,8 +131,7 @@ const createProductBaseSchema = z.discriminatedUnion("has_variants", [
   z.object({
     ...productFields,
     has_variants: z.literal(true),
-    // The simple-product stock input is hidden in variant mode.
-    stock: z.custom<number>().transform(() => 0),
+    stock: z.custom<number>(),
     options: productOptionsSchema,
     variants: productVariantsSchema,
   }),
@@ -150,6 +151,15 @@ function validateProductCatalog(
       message: "Giá gốc phải lớn hơn giá bán.",
     })
   if (!value.has_variants) return
+  if (value.shared_stock) {
+    const stock = productStockSchema.safeParse(value.stock)
+    if (!stock.success)
+      context.addIssue({
+        code: "custom",
+        path: ["stock"],
+        message: stock.error.issues[0].message,
+      })
+  }
 
   const catalog = validateProductOptions(value.options)
   if (!catalog.success) {
@@ -181,6 +191,15 @@ function validateProductCatalog(
 
   let defaultCount = 0
   value.variants.forEach((variant, variantIndex) => {
+    if (!value.shared_stock) {
+      const stock = variantStockSchema.safeParse(variant.stock)
+      if (!stock.success)
+        context.addIssue({
+          code: "custom",
+          path: ["variants", variantIndex, "stock"],
+          message: stock.error.issues[0].message,
+        })
+    }
     if (!variant.is_default) return
     defaultCount += 1
     if (!variant.is_active) {

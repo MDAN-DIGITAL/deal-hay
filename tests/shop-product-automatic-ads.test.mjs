@@ -264,6 +264,41 @@ test("staged uploads retain catalog validation and reject galleries above five i
   assert.equal(state.calls.length, 0)
 })
 
+test("warranty variants send one shared stock quantity to Laravel", async () => {
+  const form = productFormData()
+  form.set("stock", "1")
+  form.set(
+    "catalog",
+    JSON.stringify({
+      has_variants: true,
+      shared_stock: true,
+      options: [{ name: "Bảo hành", values: "6 tháng, 12 tháng" }],
+      variants: [
+        {
+          option_values: { "Bảo hành": "6 tháng" },
+          price: "",
+          is_active: true,
+          is_default: true,
+        },
+        {
+          option_values: { "Bảo hành": "12 tháng" },
+          price: 120000,
+          is_active: true,
+          is_default: false,
+        },
+      ],
+    })
+  )
+
+  const result = await actions.createProductAction(form)
+  assert.equal(result.success, true, JSON.stringify(result.errors))
+  const payload = state.calls[0].body
+  assert.equal(payload.get("shared_stock"), "1")
+  assert.equal(payload.get("stock"), "1")
+  assert.equal(payload.has("variants[0][stock]"), false)
+  assert.equal(payload.get("variants[1][price]"), "120000")
+})
+
 test("the server action rejects binary image submissions before calling Laravel", async () => {
   const cameraImage = new File(
     [new Uint8Array(6 * 1024 * 1024)],

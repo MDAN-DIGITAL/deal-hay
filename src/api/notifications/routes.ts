@@ -1,6 +1,6 @@
 export const notificationRoutes = {
   list: "/notifications",
+  readVisible: "/notifications/read-visible",
   readAll: "/notifications/read-all",
-  read: (notificationId: string) => `/notifications/${notificationId}/read`,
   tickets: "/tickets",
 } as const

@@ -3,7 +3,7 @@ export type ProductOption = { name: string; values: string[] }
 export type ProductVariantDraft = {
   option_values: Record<string, string>
   price: number | ""
-  stock: number
+  stock?: number
   is_active: boolean
   is_default: boolean
 }

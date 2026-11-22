@@ -3,7 +3,12 @@ import { notificationRoutes } from "@/api/notifications/routes"
 import type { NotificationsResponse } from "@/api/notifications/types"
 
 export function getNotifications(
-  page?: string
+  page: number,
+  signal?: AbortSignal
 ): Promise<NotificationsResponse> {
-  return apiFetch({ path: notificationRoutes.list, searchParams: { page } })
+  return apiFetch({
+    path: notificationRoutes.list,
+    searchParams: { page },
+    signal,
+  })
 }

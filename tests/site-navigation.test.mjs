@@ -19,6 +19,7 @@ const widgets = moduleUrl(`
   export const Sheet='sheet-root',SheetContent='sheet-content',SheetDescription='sheet-description',SheetHeader='sheet-header',SheetTitle='sheet-title',SheetTrigger='sheet-trigger'
   export const Button='button',Brand='brand',MobileNavigation='mobile-navigation',NotificationSoundToggle='sound-toggle',SignOutButton='sign-out',ThemeToggle='theme-toggle',UnreadCountBadge='unread-badge',UnreadNavigationLink='unread-link',UserAvatar='avatar',ServerPing='ping',Separator='separator',Card='card',CardContent='card-content'
   export const ChatPageLink='chat-link'
+  export const NotificationMenu='notification-menu'
   export const BadgeCheckIcon='badge-check',HeartHandshakeIcon='heart-handshake'
   export const LogInIcon='log-in',UserPlusIcon='user-plus',BadgePercentIcon='badge-percent',CircleHelpIcon='help',FileTextIcon='file',ReceiptTextIcon='receipt',RotateCcwIcon='rotate'
 `)
@@ -81,7 +82,12 @@ test("desktop and mobile navigation preserve role-specific links while marking t
     const mobile = nodes(MobileNavigation({ user: user(role) }))
     const headerHrefs = header.map(({ props }) => props?.href).filter(Boolean)
     const mobileHrefs = mobile.map(({ props }) => props?.href).filter(Boolean)
+    assert.equal(
+      header.filter(({ type }) => type === "notification-menu").length,
+      1
+    )
     for (const hrefs of [headerHrefs, mobileHrefs]) {
+      assert.equal(hrefs.includes("/notifications"), false)
       assert.equal(hrefs.includes("/diagnostics"), role === "administrator")
       assert.equal(hrefs.includes("/admin"), role === "administrator")
       assert.equal(hrefs.includes("/shop-manage"), role === "shop_owner")

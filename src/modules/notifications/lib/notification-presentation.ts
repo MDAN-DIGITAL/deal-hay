@@ -1,6 +1,3 @@
-import { notificationToastHref } from "@/modules/realtime/lib/toast-destination"
-import type { AppNotification } from "@/types/notification"
-
 export function notificationPresentation(category: string) {
   if (category.startsWith("order."))
     return {
@@ -37,21 +34,6 @@ export function notificationPresentation(category: string) {
     label: "Hệ thống",
     actionLabel: "Xem chi tiết",
   } as const
-}
-
-/** Keep old notifications useful while only following local destinations. */
-export function notificationActionHref(
-  notification: AppNotification,
-  origin: string
-): string | null {
-  const href = notificationToastHref(notification, origin)
-  if (href === "/notifications" || href.startsWith("/notifications?"))
-    return null
-  const url = new URL(href, origin)
-  if (url.pathname === "/shop/manage") url.pathname = "/shop-manage"
-  if (/^\/admin\/tickets\/[^/]+$/.test(url.pathname))
-    url.pathname = "/admin/tickets"
-  return `${url.pathname}${url.search}${url.hash}`
 }
 
 export function notificationTimestamp(value: string | null, now: number) {

@@ -32,6 +32,8 @@ async function writeState(state) {
   )
 }
 
+const NOTIFICATION_MENU_URL = "/?notifications=open"
+
 function safeUrl(value) {
   if (
     typeof value !== "string" ||
@@ -39,7 +41,7 @@ function safeUrl(value) {
     /[\s\\\x00-\x1f\x7f]/.test(value) ||
     value.startsWith("//")
   )
-    return "/notifications"
+    return NOTIFICATION_MENU_URL
   try {
     const url = new URL(value, self.location.origin)
     if (
@@ -48,10 +50,11 @@ function safeUrl(value) {
       url.password ||
       (!value.startsWith("/") && !value.startsWith(self.location.origin + "/"))
     )
-      return "/notifications"
+      return NOTIFICATION_MENU_URL
+    if (/^\/notifications(?:\/|$)/.test(url.pathname)) return NOTIFICATION_MENU_URL
     return url.pathname + url.search + url.hash
   } catch {
-    return "/notifications"
+    return NOTIFICATION_MENU_URL
   }
 }
 

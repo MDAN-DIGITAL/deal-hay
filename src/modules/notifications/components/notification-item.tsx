@@ -1,6 +1,5 @@
 "use client"
 
-import type { ReactNode } from "react"
 import Link from "next/link"
 import {
   ArrowUpRightIcon,
@@ -19,15 +18,19 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Button } from "@/components/ui/button"
+import { NotificationAppealForm } from "@/modules/notifications/components/notification-appeal-form"
 import { UserAvatar } from "@/components/user-avatar"
 import { cn } from "@/lib/utils"
 import { parseChatNavigationTarget } from "@/modules/chats/lib/chat-navigation"
 import {
-  notificationActionHref,
   notificationPresentation,
   notificationTimestamp,
 } from "@/modules/notifications/lib/notification-presentation"
-import { toastAvatar } from "@/modules/realtime/lib/toast-destination"
+import {
+  notificationToastHref,
+  toastAvatar,
+} from "@/modules/realtime/lib/toast-destination"
 import type { AppNotification } from "@/types/notification"
 
 const categoryIcons = {
@@ -44,28 +47,26 @@ export function NotificationItem({
   now,
   origin,
   onOpen,
-  appeal,
 }: {
   notification: AppNotification
   now: number
   origin: string
   onOpen: () => void
-  appeal: ReactNode
 }) {
   const unread = !notification.read_at
   const presentation = notificationPresentation(notification.category ?? "")
   const CategoryIcon = categoryIcons[presentation.kind]
   const timestamp = notificationTimestamp(notification.created_at, now)
   const sender = toastAvatar(notification, "Deal Hay")
-  const actionHref = notificationActionHref(notification, origin)
+  const actionHref = notificationToastHref(notification, origin)
   const DestinationLink =
     actionHref && parseChatNavigationTarget(actionHref.split(/[?#]/, 1)[0])
       ? ChatPageLink
       : Link
 
   return (
-    <li className={cn("relative px-4 py-5 sm:px-6", unread && "bg-primary/5")}>
-      <div className="flex gap-3 sm:gap-4">
+    <li className={cn("px-1 py-3", unread && "bg-primary/5")}>
+      <div className="flex gap-3">
         <div className="relative h-10 w-10 shrink-0">
           {notification.sender || sender.src ? (
             <>
@@ -100,7 +101,7 @@ export function NotificationItem({
             <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-5 text-muted-foreground">
               <span className="font-medium">{presentation.label}</span>
               <span aria-hidden="true">·</span>
-              <span className="min-w-0 break-words">{sender.name}</span>
+              <span className="wrap-anywhere">{sender.name}</span>
               <span className="ml-auto inline-flex shrink-0 items-center gap-1.5">
                 {unread ? (
                   <>
@@ -117,13 +118,13 @@ export function NotificationItem({
             </div>
             <h2
               className={cn(
-                "text-sm leading-6 break-words text-foreground sm:text-base",
+                "text-sm leading-5 wrap-anywhere text-foreground",
                 unread ? "font-semibold" : "font-medium"
               )}
             >
               {notification.title}
             </h2>
-            <p className="mt-1 text-sm leading-6 break-words whitespace-pre-line text-muted-foreground">
+            <p className="mt-1 text-sm leading-5 wrap-anywhere whitespace-pre-line text-muted-foreground">
               {notification.body}
             </p>
             <time
@@ -137,15 +138,18 @@ export function NotificationItem({
           </div>
 
           {actionHref ? (
-            <DestinationLink
+            <Button
               aria-label={`${presentation.actionLabel}: ${notification.title}`}
-              className="mt-3 inline-flex min-h-8 items-center gap-1.5 rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-              href={actionHref}
+              className="mt-2 px-0"
+              size="sm"
+              variant="link"
+              nativeButton={false}
+              render={<DestinationLink href={actionHref} />}
               onClick={onOpen}
             >
               {presentation.actionLabel}
-              <ArrowUpRightIcon aria-hidden="true" className="size-3.5" />
-            </DestinationLink>
+              <ArrowUpRightIcon aria-hidden="true" />
+            </Button>
           ) : null}
 
           <Accordion className="mt-1">
@@ -155,7 +159,7 @@ export function NotificationItem({
               </AccordionTrigger>
               <AccordionContent className="pt-2 pb-1">
                 <div className="rounded-lg border bg-background p-3 sm:p-4">
-                  {appeal}
+                  <NotificationAppealForm notificationId={notification.id} />
                 </div>
               </AccordionContent>
             </AccordionItem>

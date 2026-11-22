@@ -5,7 +5,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   ActivityIcon,
-  BellIcon,
   HouseIcon,
   LayoutDashboardIcon,
   LogInIcon,
@@ -46,12 +45,6 @@ const publicItems = [
     label: "Tin nhắn",
     icon: MessageCircleIcon,
     unreadKey: "messages",
-  },
-  {
-    href: "/notifications",
-    label: "Thông báo",
-    icon: BellIcon,
-    unreadKey: "notifications",
   },
   { href: "/profile", label: "Hồ sơ cá nhân", icon: UserRoundIcon },
 ] as const

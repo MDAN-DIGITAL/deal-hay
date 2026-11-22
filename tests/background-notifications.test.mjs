@@ -213,7 +213,9 @@ test("notification clicks focus an existing tab and navigate to the exact messag
       data: { ownerId: "viewer", url: "/notifications" },
     },
   })
-  assert.deepEqual(closedApp.opened, ["https://dealhay.test/notifications"])
+  assert.deepEqual(closedApp.opened, [
+    "https://dealhay.test/?notifications=open",
+  ])
 })
 
 test("unsafe destinations, malformed pushes and stale notification clicks cannot leave the site or reveal another account", async () => {
@@ -227,7 +229,7 @@ test("unsafe destinations, malformed pushes and stale notification clicks cannot
     "/chats\n",
   ]) {
     await worker.push(payload({ id: `message:m${worker.shown.length}`, url }))
-    assert.equal(worker.shown.at(-1).data.url, "/notifications")
+    assert.equal(worker.shown.at(-1).data.url, "/?notifications=open")
   }
   const count = worker.shown.length
   await worker.push(payload({ ownerId: "../bad" }))

@@ -25,6 +25,10 @@ import {
   loadRealtimeConfigAction,
   loadSocketSessionAction,
 } from "@/modules/realtime/actions"
+import {
+  notificationMenuHref,
+  requestNotificationMenu,
+} from "@/modules/notifications/lib/notification-menu-navigation"
 import { useNotificationSound } from "@/modules/realtime/hooks/use-notification-sound"
 import { useBackgroundNotifications } from "@/modules/realtime/hooks/use-background-notifications"
 import { useUnreadTabTitle } from "@/modules/realtime/hooks/use-unread-tab-title"
@@ -449,7 +453,7 @@ export function RealtimeProvider({
               title,
               body: description ?? "Bạn có thông báo mới.",
               avatar: avatar.src,
-              url: destination,
+              url: destination ?? notificationMenuHref,
             })
             showRealtimeToast({
               id,
@@ -457,7 +461,10 @@ export function RealtimeProvider({
               description,
               avatar,
               onOpen: () => {
-                if (
+                if (!destination) {
+                  if (!requestNotificationMenu())
+                    router.push(notificationMenuHref)
+                } else if (
                   destination === "/chats" ||
                   destination.startsWith("/chats/") ||
                   destination.startsWith("/chats?")

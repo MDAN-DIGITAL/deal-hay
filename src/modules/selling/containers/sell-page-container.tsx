@@ -47,7 +47,7 @@ export function SellPageContainer({ user }: { user: User }) {
             </Link>
           }
         />
-        <Card>
+        <Card className="overflow-clip">
           <CardHeader>
             <CardTitle>Thông tin sản phẩm</CardTitle>
             <CardDescription>
@@ -55,7 +55,10 @@ export function SellPageContainer({ user }: { user: User }) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CreateProductForm categories={data.categories ?? []} />
+            <CreateProductForm
+              categories={data.categories ?? []}
+              descriptionToolbarClassName="top-16"
+            />
           </CardContent>
         </Card>
       </div>

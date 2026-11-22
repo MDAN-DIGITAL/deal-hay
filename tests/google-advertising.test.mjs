@@ -409,7 +409,6 @@ test("private routes use a separate document root so loaded provider code cannot
     "sign-up",
     "profile",
     "chats",
-    "notifications",
     "discount-codes",
     "admin/users",
     "shop-manage",

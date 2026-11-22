@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { useState } from "react"
 import {
   ActivityIcon,
-  BellIcon,
   ChevronDownIcon,
   HouseIcon,
   LogInIcon,
@@ -41,12 +40,13 @@ import {
 } from "@/components/layout/unread-count-badge"
 import { UserAvatar } from "@/components/user-avatar"
 import { ChatPageLink } from "@/components/chat-page-link"
+import { NotificationMenu } from "@/modules/notifications/components/notification-menu"
 
 type NavigationItem = {
   href: string
   label: string
   icon: LucideIcon
-  unreadKey?: "messages" | "notifications"
+  unreadKey?: "messages"
 }
 
 const navigation: NavigationItem[] = [
@@ -56,12 +56,6 @@ const navigation: NavigationItem[] = [
     label: "Tin nhắn",
     icon: MessageCircleIcon,
     unreadKey: "messages",
-  },
-  {
-    href: "/notifications",
-    label: "Thông báo",
-    icon: BellIcon,
-    unreadKey: "notifications",
   },
 ]
 
@@ -137,105 +131,98 @@ export function SiteHeader() {
           })}
         </nav>
 
-        <div className="ml-auto hidden items-center gap-1 xl:flex">
-          <ThemeToggle />
-          {loading ? (
-            <div
-              aria-busy="true"
-              aria-label="Đang tải tài khoản"
-              className="flex h-9 items-center gap-2 px-3"
+        <div className="ml-auto flex items-center gap-0.5 xl:gap-1">
+          <div className="xl:hidden">
+            <UnreadNavigationLink
+              badgeClassName="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px]"
+              className="relative"
+              href="/chats"
+              kind="messages"
+              label="Mở tin nhắn"
+              size="icon"
             >
-              <span className="size-7 animate-pulse rounded-full bg-muted" />
-              <span className="h-4 w-24 animate-pulse rounded bg-muted" />
-            </div>
-          ) : user ? (
-            <>
-              <NotificationSoundToggle />
-              <DropdownMenu onOpenChange={setAccountOpen}>
-                <DropdownMenuTrigger
-                  render={
-                    <Button aria-label="Mở menu tài khoản" variant="ghost" />
-                  }
-                >
-                  <UserAvatar
-                    className="size-7"
-                    name={user.full_name}
-                    size="sm"
-                    src={user.avatar_url}
-                  />
-                  <span className="max-w-32 truncate">{user.full_name}</span>
-                  <ChevronDownIcon className="size-3.5 text-muted-foreground" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel className="space-y-1 text-sm">
-                      <span className="block truncate font-medium text-foreground">
-                        {user.full_name}
-                      </span>
-                      <span className="block truncate text-xs font-normal">
-                        {user.email}
-                      </span>
-                      <ServerPing active={accountOpen} />
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem render={<Link href="/profile" />}>
-                      <UserRoundIcon aria-hidden="true" />
-                      Hồ sơ cá nhân
-                    </DropdownMenuItem>
-                    {user.role === "administrator" ? (
-                      <DropdownMenuItem render={<Link href="/diagnostics" />}>
-                        <ActivityIcon aria-hidden="true" />
-                        Đo tốc độ máy chủ
-                      </DropdownMenuItem>
-                    ) : null}
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <div className="p-1">
-                    <SignOutButton className="w-full justify-start" />
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <>
-              <Link
-                href="/sign-in"
-                className={buttonVariants({ variant: "ghost" })}
-              >
-                <LogInIcon aria-hidden="true" />
-                Đăng nhập
-              </Link>
-              <Link href="/sign-up" className={buttonVariants()}>
-                <UserPlusIcon aria-hidden="true" />
-                Tạo tài khoản
-              </Link>
-            </>
-          )}
-        </div>
-
-        <div className="ml-auto flex items-center gap-0.5 xl:hidden">
-          <UnreadNavigationLink
-            badgeClassName="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px]"
-            className="relative"
-            href="/chats"
-            kind="messages"
-            label="Mở tin nhắn"
-            size="icon"
-          >
-            <MessageCircleIcon />
-          </UnreadNavigationLink>
-          <UnreadNavigationLink
-            badgeClassName="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px]"
-            className="relative"
-            href="/notifications"
-            kind="notifications"
-            label="Mở thông báo"
-            size="icon"
-          >
-            <BellIcon />
-          </UnreadNavigationLink>
+              <MessageCircleIcon />
+            </UnreadNavigationLink>
+          </div>
+          <NotificationMenu />
           <ThemeToggle />
-          <MobileNavigation sessionLoading={loading} user={user} />
+          <div className="hidden items-center gap-1 xl:flex">
+            {loading ? (
+              <div
+                aria-busy="true"
+                aria-label="Đang tải tài khoản"
+                className="flex h-9 items-center gap-2 px-3"
+              >
+                <span className="size-7 animate-pulse rounded-full bg-muted" />
+                <span className="h-4 w-24 animate-pulse rounded bg-muted" />
+              </div>
+            ) : user ? (
+              <>
+                <NotificationSoundToggle />
+                <DropdownMenu onOpenChange={setAccountOpen}>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button aria-label="Mở menu tài khoản" variant="ghost" />
+                    }
+                  >
+                    <UserAvatar
+                      className="size-7"
+                      name={user.full_name}
+                      size="sm"
+                      src={user.avatar_url}
+                    />
+                    <span className="max-w-32 truncate">{user.full_name}</span>
+                    <ChevronDownIcon className="size-3.5 text-muted-foreground" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel className="space-y-1 text-sm">
+                        <span className="block truncate font-medium text-foreground">
+                          {user.full_name}
+                        </span>
+                        <span className="block truncate text-xs font-normal">
+                          {user.email}
+                        </span>
+                        <ServerPing active={accountOpen} />
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem render={<Link href="/profile" />}>
+                        <UserRoundIcon aria-hidden="true" />
+                        Hồ sơ cá nhân
+                      </DropdownMenuItem>
+                      {user.role === "administrator" ? (
+                        <DropdownMenuItem render={<Link href="/diagnostics" />}>
+                          <ActivityIcon aria-hidden="true" />
+                          Đo tốc độ máy chủ
+                        </DropdownMenuItem>
+                      ) : null}
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <div className="p-1">
+                      <SignOutButton className="w-full justify-start" />
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/sign-in"
+                  className={buttonVariants({ variant: "ghost" })}
+                >
+                  <LogInIcon aria-hidden="true" />
+                  Đăng nhập
+                </Link>
+                <Link href="/sign-up" className={buttonVariants()}>
+                  <UserPlusIcon aria-hidden="true" />
+                  Tạo tài khoản
+                </Link>
+              </>
+            )}
+          </div>
+          <div className="xl:hidden">
+            <MobileNavigation sessionLoading={loading} user={user} />
+          </div>
         </div>
       </div>
     </header>

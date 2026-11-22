@@ -27,7 +27,7 @@ export function chatToastHref(payload: unknown): string | null {
 export function notificationToastHref(
   payload: unknown,
   origin: string
-): string {
+): string | null {
   const chat = chatToastHref(payload)
   if (chat) return chat
   const item = record(payload)
@@ -40,7 +40,7 @@ export function notificationToastHref(
     /[\\\u0000-\u0020\u007f]/.test(action) ||
     action.startsWith("//")
   )
-    return "/notifications"
+    return null
   try {
     const base = new URL(origin)
     const destination = new URL(action, base)
@@ -51,10 +51,20 @@ export function notificationToastHref(
       destination.password ||
       !(action.startsWith("/") || /^https?:\/\//.test(action))
     )
-      return "/notifications"
+      return null
+    if (/^\/notifications(?:\/|$)/.test(destination.pathname)) return null
+    if (
+      destination.pathname === "/" &&
+      destination.searchParams.get("notifications") === "open"
+    )
+      return null
+    if (destination.pathname === "/shop/manage")
+      destination.pathname = "/shop-manage"
+    if (/^\/admin\/tickets\/[^/]+$/.test(destination.pathname))
+      destination.pathname = "/admin/tickets"
     return `${destination.pathname}${destination.search}${destination.hash}`
   } catch {
-    return "/notifications"
+    return null
   }
 }
 

@@ -206,10 +206,11 @@ const orderFilterOptions: { value: OrderFilter; label: string }[] = [
 
 function ProductInventoryForm({ product }: { product: ShopInventoryProduct }) {
   const [isPending, startTransition] = useTransition()
+  const manageVariantStock = product.has_variants && !product.shared_stock
   const availableVariants = product.variants.filter(
     (variant) => variant.is_active && !variant.retired_at
   )
-  const defaultVariantId = product.has_variants
+  const defaultVariantId = manageVariantStock
     ? (availableVariants.find((variant) => variant.is_default)?.id ??
       availableVariants[0]?.id ??
       "")
@@ -225,7 +226,12 @@ function ProductInventoryForm({ product }: { product: ShopInventoryProduct }) {
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
-      const state = await adjustInventoryAction(product.id, values)
+      const state = await adjustInventoryAction(product.id, {
+        ...values,
+        shop_product_variant_id: manageVariantStock
+          ? values.shop_product_variant_id
+          : "",
+      })
       const hasFieldErrors = applyServerErrors(state.errors, form.setError)
 
       if (state.success) {
@@ -247,7 +253,7 @@ function ProductInventoryForm({ product }: { product: ShopInventoryProduct }) {
   return (
     <Form {...form}>
       <form className="space-y-4" noValidate onSubmit={onSubmit}>
-        {product.has_variants ? (
+        {manageVariantStock ? (
           <FormField
             control={form.control}
             name="shop_product_variant_id"
@@ -819,7 +825,9 @@ function ProductListItem({ product }: { product: ShopProduct }) {
             <span aria-hidden>•</span>
             <span>{formatCurrency(product.price)}</span>
             <span aria-hidden>•</span>
-            <span>tồn {product.stock}</span>
+            <span>
+              {product.shared_stock ? "tồn chung" : "tồn"} {product.stock}
+            </span>
           </div>
           {product.sku ? (
             <p
@@ -1703,8 +1711,12 @@ export function ShopManagementClient({
                               {product.name}
                             </span>
                             <span className="block truncate text-xs font-normal text-muted-foreground">
-                              Tồn hiện tại: {product.stock}
-                              {product.has_variants ? " • Có biến thể" : ""}
+                              {product.shared_stock
+                                ? `Tồn kho chung: ${product.stock}`
+                                : `Tồn hiện tại: ${product.stock}`}
+                              {product.has_variants && !product.shared_stock
+                                ? " • Có biến thể"
+                                : ""}
                             </span>
                           </span>
                         </span>

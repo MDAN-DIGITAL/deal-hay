@@ -4,7 +4,6 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  BellIcon,
   HouseIcon,
   MessageCircleIcon,
   RefreshCwIcon,
@@ -34,6 +33,7 @@ import {
 } from "@/components/ui/sidebar"
 import { invalidateQueries } from "@/lib/query-cache"
 import { AdminNavigation } from "@/modules/admin/components/admin-navigation"
+import { NotificationMenu } from "@/modules/notifications/components/notification-menu"
 import { adminSection } from "@/modules/admin/lib/admin-navigation"
 
 export function AdminWorkspace({ children }: { children: ReactNode }) {
@@ -127,42 +127,27 @@ export function AdminWorkspace({ children }: { children: ReactNode }) {
                 Quản trị hệ thống
               </span>
               <div className="flex items-center gap-1">
-                {[
-                  {
-                    href: "/chats",
-                    label: "Tin nhắn",
-                    icon: MessageCircleIcon,
-                    count: unreadCounts.messages,
-                  },
-                  {
-                    href: "/notifications",
-                    label: "Thông báo",
-                    icon: BellIcon,
-                    count: unreadCounts.notifications,
-                  },
-                ].map((item) => (
-                  <Button
-                    key={item.href}
-                    variant="ghost"
-                    size="sm"
-                    nativeButton={false}
-                    aria-label={`${item.label}${item.count > 0 ? `, ${item.count} chưa đọc` : ""} (mở tab mới)`}
-                    tooltip={`${item.label} (mở tab mới)`}
-                    render={
-                      <Link
-                        href={item.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      />
-                    }
-                  >
-                    <item.icon aria-hidden="true" />
-                    <span className="hidden lg:inline">{item.label}</span>
-                    {item.count > 0 ? (
-                      <Badge variant="secondary">{item.count}</Badge>
-                    ) : null}
-                  </Button>
-                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  nativeButton={false}
+                  aria-label={`Tin nhắn${unreadCounts.messages > 0 ? `, ${unreadCounts.messages} chưa đọc` : ""} (mở tab mới)`}
+                  tooltip="Tin nhắn (mở tab mới)"
+                  render={
+                    <Link
+                      href="/chats"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  }
+                >
+                  <MessageCircleIcon aria-hidden="true" />
+                  <span className="hidden lg:inline">Tin nhắn</span>
+                  {unreadCounts.messages > 0 ? (
+                    <Badge variant="secondary">{unreadCounts.messages}</Badge>
+                  ) : null}
+                </Button>
+                <NotificationMenu compact />
                 <ThemeToggle />
               </div>
             </header>
