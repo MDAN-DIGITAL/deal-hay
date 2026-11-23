@@ -18,7 +18,12 @@ export type HomeResponse = {
     last_page: number
   }
   categories: string[]
-  filters: { category: string }
+  filters: { category: string; q?: string }
+}
+
+export type PublicShopsResponse = {
+  shops: PaginatedResponse<FeaturedShop>
+  filters: { q: string }
 }
 
 export type ShopResponse = {

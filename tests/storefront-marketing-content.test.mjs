@@ -5,16 +5,13 @@ import test from "node:test"
 const readSource = (relativePath) =>
   readFileSync(new URL(relativePath, import.meta.url), "utf8")
 
-test("the storefront hero explains shop-funded promotions without advertising rewards", () => {
+test("the storefront guide explains shop-funded promotions without advertising rewards", () => {
   const source = readSource(
     "../src/modules/public/containers/home-page-container.tsx"
   )
 
-  assert.match(source, /Mua sắm thông minh, tiết kiệm hơn/)
-  assert.match(
-    source,
-    /Chọn sản phẩm và áp dụng ưu đãi do cửa hàng cung cấp\./
-  )
+  assert.match(source, /Cách mua hàng/)
+  assert.match(source, /Chọn sản phẩm và áp dụng ưu đãi do cửa hàng cung cấp\./)
   assert.match(source, /id="cach-thuc-hoat-dong"/)
 })
 

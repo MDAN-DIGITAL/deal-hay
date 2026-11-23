@@ -15,12 +15,14 @@ export function ProductCheckoutPageContainer({
   shopUserCode,
   productSlug,
   variantId,
+  cartQuantity,
   initialDiscountCode,
   initialShopCouponCode,
 }: {
   shopUserCode: string
   productSlug: string
   variantId?: string | string[]
+  cartQuantity?: number
   initialDiscountCode?: string
   initialShopCouponCode?: string
 }) {
@@ -62,6 +64,7 @@ export function ProductCheckoutPageContainer({
       key={JSON.stringify([
         product.id,
         variantId ?? null,
+        cartQuantity ?? null,
         initialDiscountCode ?? null,
         initialShopCouponCode ?? null,
       ])}
@@ -70,6 +73,7 @@ export function ProductCheckoutPageContainer({
       variant={variant}
       salePrice={salePrice}
       stock={stock}
+      cartQuantity={cartQuantity}
       initialDiscountCode={initialDiscountCode}
       initialShopCouponCode={initialShopCouponCode}
     />

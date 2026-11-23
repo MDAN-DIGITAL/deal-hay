@@ -72,6 +72,8 @@ import { applyServerErrors } from "@/lib/form-utils"
 import { formatCurrency, formatDate } from "@/lib/format"
 import { getAuthPageHref } from "@/lib/auth-redirect"
 import { getSessionId } from "@/lib/session"
+import { cartHref } from "@/modules/cart/lib/cart"
+import { removeCartItem } from "@/modules/cart/lib/cart-store"
 import { reserveChatPage } from "@/modules/chats/lib/chat-navigation"
 import {
   loadDiscountCodesAction,
@@ -96,6 +98,7 @@ export function ProductCheckout({
   variant,
   salePrice,
   stock,
+  cartQuantity,
   initialDiscountCode,
   initialShopCouponCode,
 }: {
@@ -104,6 +107,7 @@ export function ProductCheckout({
   variant?: PublicProductVariant
   salePrice: number
   stock: number
+  cartQuantity?: number
   initialDiscountCode?: string
   initialShopCouponCode?: string
 }) {
@@ -168,7 +172,7 @@ export function ProductCheckout({
       shipping_address: "",
       shipping_province_code: "",
       shipping_ward_code: "",
-      quantity: 1,
+      quantity: cartQuantity ?? 1,
       note: "",
     },
   })
@@ -260,6 +264,7 @@ export function ProductCheckout({
   })
   const checkoutHref = productCheckoutHref(shop.code, product.slug, {
     variantId: variant?.id,
+    cartQuantity,
     discountCode: initialDiscountCode,
     shopCouponCode: initialShopCouponCode,
   })
@@ -586,6 +591,18 @@ export function ProductCheckout({
         toast.success(
           `${state.message} Mã đơn: ${state.data.order_number}. Tổng: ${formatCurrency(state.data.total)}`
         )
+        if (cartQuantity !== undefined) {
+          try {
+            await removeCartItem(
+              { productId: product.id, variantId: variant?.id ?? null },
+              values.quantity
+            )
+          } catch {
+            toast.warning(
+              "Đơn đã được đặt. Chưa thể cập nhật giỏ hàng trên trình duyệt này."
+            )
+          }
+        }
         setCompletedOrder({
           number: state.data.order_number,
           total: state.data.total,
@@ -700,12 +717,23 @@ export function ProductCheckout({
             </Button>
           )}
         </Surface>
-        <Link
-          href={`/shops/${encodeURIComponent(shop.code)}`}
-          className="flex items-center justify-center gap-2 text-sm font-medium text-primary hover:underline"
+        <Button
+          variant="link"
+          nativeButton={false}
+          className="w-full"
+          render={
+            <Link
+              href={
+                cartQuantity !== undefined
+                  ? cartHref
+                  : `/shops/${encodeURIComponent(shop.code)}`
+              }
+            />
+          }
         >
-          Tiếp tục mua sắm <ArrowRightIcon className="size-4" />
-        </Link>
+          {cartQuantity !== undefined ? "Về giỏ hàng" : "Tiếp tục mua sắm"}
+          <ArrowRightIcon aria-hidden="true" />
+        </Button>
       </section>
     )
   }
@@ -1329,7 +1357,7 @@ export function ProductCheckout({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="h-auto min-h-10 w-full py-2 whitespace-normal"
                   aria-expanded={showShippingOffer}
                   aria-controls="checkout-shipping-offer"
                   disabled={pending || stock < 1 || shippingRewardPending}

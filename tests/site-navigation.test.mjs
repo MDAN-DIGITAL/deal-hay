@@ -9,15 +9,21 @@ const jsx = moduleUrl(
   "export const jsx=(type,props)=>({type,props});export const jsxs=jsx;export const Fragment='fragment'"
 )
 const widgets = moduleUrl(`
-  export const useState=(initial)=>[globalThis.__siteNavigation.open??initial,(next)=>{globalThis.__siteNavigation.open=next}]
+  export const useRef=(current)=>({current})
+  export const useState=(initial)=>{
+    const fixture=globalThis.__siteNavigation
+    const index=fixture.stateIndex++
+    return [fixture.state[index]??initial,(next)=>{fixture.state[index]=next}]
+  }
   export const usePathname=()=>globalThis.__siteNavigation.path
   export const useSession=()=>({user:globalThis.__siteNavigation.user,loading:globalThis.__siteNavigation.loading??false})
   export const useRealtime=()=>({unreadCounts:{messages:2,notifications:1}})
+  export const cn=(...classes)=>classes.filter(Boolean).join(' ')
+  export const StorefrontSearch='product-search'
   export const buttonVariants=({variant='default'}={})=>variant
-  export const BellIcon='bell',ChevronDownIcon='chevron',MessageCircleIcon='message',ActivityIcon='activity',HouseIcon='home',LayoutDashboardIcon='dashboard',MenuIcon='menu',ShieldCheckIcon='shield',StoreIcon='store',TicketPercentIcon='ticket',UserRoundIcon='user'
+  export const BellIcon='bell',ChevronDownIcon='chevron',MessageCircleIcon='message',ActivityIcon='activity',HouseIcon='home',LayoutDashboardIcon='dashboard',ShieldCheckIcon='shield',ShoppingCartIcon='cart',StoreIcon='store',TicketPercentIcon='ticket',UserRoundIcon='user',Volume2Icon='volume'
   export const DropdownMenu='menu-root',DropdownMenuTrigger='menu-trigger',DropdownMenuContent='menu-content',DropdownMenuGroup='menu-group',DropdownMenuLabel='menu-label',DropdownMenuItem='menu-item',DropdownMenuSeparator='separator'
-  export const Sheet='sheet-root',SheetContent='sheet-content',SheetDescription='sheet-description',SheetHeader='sheet-header',SheetTitle='sheet-title',SheetTrigger='sheet-trigger'
-  export const Button='button',Brand='brand',MobileNavigation='mobile-navigation',NotificationSoundToggle='sound-toggle',SignOutButton='sign-out',ThemeToggle='theme-toggle',UnreadCountBadge='unread-badge',UnreadNavigationLink='unread-link',UserAvatar='avatar',ServerPing='ping',Separator='separator',Card='card',CardContent='card-content'
+  export const Button='button',Brand='brand',NotificationSoundDialog='sound-dialog',SignOutButton='sign-out',ThemeToggle='theme-toggle',UnreadCountBadge='unread-badge',UnreadNavigationLink='unread-link',UserAvatar='avatar',ServerPing='ping',Separator='separator',Card='card',CardContent='card-content'
   export const ChatPageLink='chat-link'
   export const NotificationMenu='notification-menu'
   export const BadgeCheckIcon='badge-check',HeartHandshakeIcon='heart-handshake'
@@ -45,9 +51,6 @@ function load(file) {
   )
 }
 const { SiteHeader } = await load("../src/components/layout/site-header.tsx")
-const { MobileNavigation } = await load(
-  "../src/components/layout/mobile-navigation.tsx"
-)
 const { SiteFooter } = await load("../src/components/layout/site-footer.tsx")
 function nodes(node) {
   if (!node || typeof node !== "object") return []
@@ -71,65 +74,107 @@ const user = (role) =>
       }
     : null
 
-test("desktop and mobile navigation preserve role-specific links while marking the current destination", () => {
-  for (const role of [null, "customer", "shop_owner", "administrator"]) {
-    globalThis.__siteNavigation = {
-      user: user(role),
-      path: "/admin/shops",
-      open: false,
-    }
-    const header = nodes(SiteHeader())
-    const mobile = nodes(MobileNavigation({ user: user(role) }))
-    const headerHrefs = header.map(({ props }) => props?.href).filter(Boolean)
-    const mobileHrefs = mobile.map(({ props }) => props?.href).filter(Boolean)
-    assert.equal(
-      header.filter(({ type }) => type === "notification-menu").length,
-      1
-    )
-    for (const hrefs of [headerHrefs, mobileHrefs]) {
-      assert.equal(hrefs.includes("/notifications"), false)
+function renderHeader(options) {
+  globalThis.__siteNavigation.state ??= []
+  globalThis.__siteNavigation.stateIndex = 0
+  const header = nodes(SiteHeader(options))
+  const menu = nodes(header.find(({ type }) => type === "menu-content"))
+  const links = menu.filter(({ props }) => props?.href)
+  return {
+    header,
+    menu,
+    links,
+    toolbar: header.filter((node) => !menu.includes(node)),
+  }
+}
+
+test("secondary navigation lives in one account dropdown on the storefront and other public pages", () => {
+  for (const storefront of [false, true]) {
+    for (const role of [null, "customer", "shop_owner", "administrator"]) {
+      globalThis.__siteNavigation = {
+        user: user(role),
+        path: "/admin/shops",
+      }
+      const { header, menu, links, toolbar } = renderHeader({ storefront })
+      const hrefs = links.map(({ props }) => props.href)
+      assert.equal(
+        header.filter(({ type }) => type === "menu-trigger").length,
+        1
+      )
+      assert.equal(
+        header.filter(({ type }) => type === "product-search").length,
+        Number(storefront)
+      )
+      assert.deepEqual(
+        toolbar
+          .filter(({ type }) =>
+            ["unread-link", "notification-menu", "theme-toggle"].includes(type)
+          )
+          .map(({ type }) => type),
+        ["unread-link", "notification-menu", "theme-toggle"]
+      )
+      assert.deepEqual(
+        toolbar.map(({ props }) => props?.href).filter(Boolean),
+        ["/", "/chats"]
+      )
+      assert.ok(hrefs.includes("/shops"))
+      assert.ok(hrefs.includes("/cart"))
+      assert.ok(!hrefs.includes("/notifications"))
+      assert.ok(!hrefs.includes("/chats"))
+      assert.equal(hrefs.includes("/profile"), !!role)
+      assert.equal(hrefs.includes("/discount-codes"), !!role)
       assert.equal(hrefs.includes("/diagnostics"), role === "administrator")
       assert.equal(hrefs.includes("/admin"), role === "administrator")
       assert.equal(hrefs.includes("/shop-manage"), role === "shop_owner")
-      assert.equal(hrefs.includes("/discount-codes"), !!role)
-    }
-    if (role === "administrator") {
-      for (const tree of [header, mobile])
+      assert.equal(hrefs.includes("/sign-in"), !role)
+      assert.equal(hrefs.includes("/sign-up"), !role)
+      assert.equal(
+        menu.some(({ type }) => type === "sign-out"),
+        !!role
+      )
+      if (role === "administrator") {
         assert.equal(
-          tree.find(({ props }) => props?.href === "/admin").props[
+          links.find(({ props }) => props.href === "/admin").props[
             "aria-current"
           ],
           "page"
         )
-    }
-    if (!role) {
-      assert.ok(headerHrefs.includes("/sign-in"))
-      assert.ok(mobileHrefs.includes("/sign-up"))
+      }
     }
   }
 })
 
-test("account and mobile menus activate only their ping probe and retain sound and logout controls", () => {
+test("the account dropdown starts the ping probe and opens the notification settings dialog", () => {
   globalThis.__siteNavigation = {
     user: user("customer"),
     path: "/profile",
-    open: false,
   }
-  let tree = nodes(SiteHeader())
-  assert.equal(tree.find(({ type }) => type === "ping").props.active, false)
-  tree.find(({ type }) => type === "menu-root").props.onOpenChange(true)
-  tree = nodes(SiteHeader())
-  assert.equal(tree.find(({ type }) => type === "ping").props.active, true)
-  assert.ok(tree.some(({ type }) => type === "sound-toggle"))
-  assert.ok(tree.some(({ type }) => type === "sign-out"))
-  globalThis.__siteNavigation.open = false
-  tree = nodes(MobileNavigation({ user: user("customer") }))
-  assert.equal(tree.find(({ type }) => type === "ping").props.active, false)
-  tree.find(({ type }) => type === "sheet-root").props.onOpenChange(true)
-  tree = nodes(MobileNavigation({ user: user("customer") }))
-  assert.equal(tree.find(({ type }) => type === "ping").props.active, true)
-  assert.ok(tree.some(({ type }) => type === "sound-toggle"))
-  assert.ok(tree.some(({ type }) => type === "sign-out"))
+  const closed = renderHeader()
+  assert.equal(
+    closed.header.find(({ type }) => type === "ping").props.active,
+    false
+  )
+  assert.equal(
+    closed.header.find(({ type }) => type === "sound-dialog").props.open,
+    false
+  )
+  closed.header
+    .find(({ type }) => type === "menu-root")
+    .props.onOpenChange(true)
+  const opened = renderHeader()
+  assert.equal(
+    opened.header.find(({ type }) => type === "ping").props.active,
+    true
+  )
+  const settingsItem = opened.menu.find(
+    ({ type, props }) => type === "menu-item" && props.onClick
+  )
+  settingsItem.props.onClick()
+  assert.equal(
+    renderHeader().header.find(({ type }) => type === "sound-dialog").props
+      .open,
+    true
+  )
 })
 
 test("pending account hydration never flashes signed-out actions", () => {
@@ -137,12 +182,13 @@ test("pending account hydration never flashes signed-out actions", () => {
     user: null,
     loading: true,
     path: "/",
-    open: false,
   }
-  const header = nodes(SiteHeader())
-  const headerHrefs = header.map(({ props }) => props?.href).filter(Boolean)
-  assert.equal(headerHrefs.includes("/sign-in"), false)
-  assert.equal(headerHrefs.includes("/sign-up"), false)
+  const { header, links } = renderHeader()
+  assert.equal(links.length, 0)
+  assert.equal(
+    header.some(({ type }) => type === "menu-trigger"),
+    false
+  )
   assert.ok(
     header.some(
       ({ props }) =>
@@ -150,42 +196,35 @@ test("pending account hydration never flashes signed-out actions", () => {
         props?.["aria-label"] === "Đang tải tài khoản"
     )
   )
-
-  const mobile = nodes(MobileNavigation({ user: null, sessionLoading: true }))
-  const mobileHrefs = mobile.map(({ props }) => props?.href).filter(Boolean)
-  assert.equal(mobileHrefs.includes("/sign-in"), false)
-  assert.equal(mobileHrefs.includes("/sign-up"), false)
-  assert.ok(mobile.some(({ props }) => props?.["aria-busy"] === "true"))
 })
 
-test("desktop, mobile and footer chat entries use the shared new-tab link", () => {
+test("the header shows the unread chat shortcut and the footer uses the shared new-tab link", () => {
   globalThis.__siteNavigation = {
     user: user("customer"),
     path: "/",
-    open: false,
   }
-  for (const tree of [
-    nodes(SiteHeader()),
-    nodes(MobileNavigation({ user: user("customer") })),
-    nodes(SiteFooter()),
-  ]) {
-    const entry = tree.find((node) => node.props?.href === "/chats")
-    assert.equal(entry.type, "chat-link")
-  }
+  const { toolbar } = renderHeader()
+  const shortcut = toolbar.find(({ props }) => props?.href === "/chats")
+  assert.equal(shortcut.type, "unread-link")
+  assert.equal(shortcut.props.kind, "messages")
+  const footer = nodes(SiteFooter()).find(
+    ({ props }) => props?.href === "/chats"
+  )
+  assert.equal(footer.type, "chat-link")
 })
 
-test("seller entries open a separate authenticated tab on desktop, mobile and footer", () => {
+test("seller links in the account dropdown and footer open a separate authenticated tab", () => {
   globalThis.__siteNavigation = {
     user: user("shop_owner"),
-    path: "/",
-    open: false,
+    path: "/shops",
   }
-  for (const tree of [
-    nodes(SiteHeader()),
-    nodes(MobileNavigation({ user: user("shop_owner") })),
-    nodes(SiteFooter()),
-  ]) {
-    const entry = tree.find((node) => node.props?.href === "/shop-manage")
+  const { links } = renderHeader({ storefront: true })
+  assert.equal(
+    links.find(({ props }) => props.href === "/shops").props["aria-current"],
+    "page"
+  )
+  for (const tree of [links, nodes(SiteFooter())]) {
+    const entry = tree.find(({ props }) => props?.href === "/shop-manage")
     assert.equal(entry.props.target, "_blank")
     assert.equal(entry.props.rel, "noopener noreferrer")
     assert.equal(entry.props.onAuxClick, undefined)

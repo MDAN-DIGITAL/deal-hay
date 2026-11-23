@@ -39,8 +39,9 @@ const runtime = moduleUrl(`
  export const productCheckoutHref=()=>"/checkout",productOfferHref=()=>"/offer"
  export const productPricing=()=>({salePrice:10000,originalPrice:null}),formatCurrency=String
  export const ImageIcon="icon", SendIcon="icon", StarIcon="icon", MessageSquareIcon="icon", Undo2Icon="icon"
- export const BadgeCheckIcon="icon",CirclePlayIcon="icon",PackageCheckIcon="icon",Trash2Icon="icon",ShoppingBagIcon="icon",TicketPercentIcon="icon"
+ export const BadgeCheckIcon="icon",CirclePlayIcon="icon",EyeIcon="icon",PackageCheckIcon="icon",Trash2Icon="icon",ShoppingBagIcon="icon",TicketPercentIcon="icon",AddToCartButton="add-to-cart"
  export const FormSelect="select",FormSubmitButton="submit",ImagePreview="image-preview",SelectedFilePreview="selected-file",Badge="badge",Button="button",Card="card",CardContent="content",CardDescription="description",CardHeader="header",CardTitle="title",Form="form-provider",FormControl="control",FormField="field",FormItem="item",FormLabel="label",FormMessage="message",Input="input",Separator="separator",Surface="surface",Textarea="textarea",UserAvatar="avatar",ImageUploadProgress="progress",ShopEngagement="engagement"
+ export const ItemActions="item-actions"
 `)
 const imports = { "@/lib/form-utils": transpile("../src/lib/form-utils.ts") }
 for (const name of [
@@ -61,6 +62,7 @@ for (const name of [
   "@/components/ui/card",
   "@/components/ui/form",
   "@/components/ui/input",
+  "@/components/ui/item",
   "@/components/ui/separator",
   "@/components/ui/surface",
   "@/components/ui/textarea",
@@ -72,6 +74,7 @@ for (const name of [
   "@/lib/format",
   "@/modules/public/actions",
   "@/modules/public/components/shop-engagement",
+  "@/modules/cart/components/add-to-cart-button",
   "@/modules/public/schemas/reviews",
   "@/modules/public/lib/variant-selection",
   "@/modules/public/lib/product-checkout",

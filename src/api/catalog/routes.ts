@@ -1,5 +1,6 @@
 export const catalogRoutes = {
   home: "/",
+  shops: "/shops",
   shop: (shopUserCode: string) => `/shops/${shopUserCode}`,
   product: (shopUserCode: string, productSlug: string) =>
     `/shops/${shopUserCode}/products/${productSlug}`,

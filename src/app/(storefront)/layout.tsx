@@ -5,7 +5,7 @@ export default function StorefrontLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <SiteDocument advertising={<StorefrontAdvertising />}>
+    <SiteDocument storefront advertising={<StorefrontAdvertising />}>
       {children}
     </SiteDocument>
   )

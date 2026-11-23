@@ -51,7 +51,7 @@ const ChatsPanel = dynamic(
   }
 )
 
-const mobileQuery = "(max-width: 639px)"
+const mobileQuery = "(width < 40rem)"
 function subscribeToScreen(change: () => void) {
   const query = window.matchMedia(mobileQuery)
   query.addEventListener("change", change)
@@ -131,7 +131,7 @@ function FloatingChatWidget({
                   ? `Mở chat, ${unread} tin nhắn chưa đọc`
                   : "Mở chat với Deal Hay"
               }
-              className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 size-14 rounded-full shadow-xl ring-4 ring-background sm:right-6 sm:bottom-6 sm:size-16 [&_svg]:size-7"
+              className="fixed right-6 bottom-6 z-40 size-16 rounded-full shadow-xl ring-4 ring-background max-sm:hidden [&_svg]:size-7 [@media(max-height:30rem)]:hidden"
               title="Tin nhắn & hỗ trợ Deal Hay"
               tooltip="Tin nhắn & hỗ trợ Deal Hay"
             />

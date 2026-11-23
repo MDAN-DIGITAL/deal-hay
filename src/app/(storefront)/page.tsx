@@ -9,6 +9,7 @@ import {
   siteStructuredData,
 } from "@/lib/seo"
 import { HomePageContainer } from "@/modules/public/containers/home-page-container"
+import { catalogPage, catalogSearch } from "@/modules/public/lib/catalog-query"
 
 export const metadata: Metadata = {
   title: { absolute: "Deal Hay – Săn deal tốt từ các shop uy tín" },
@@ -44,18 +45,17 @@ export default async function Page({
   searchParams: Promise<{
     category?: string | string[]
     page?: string | string[]
+    q?: string | string[]
   }>
 }) {
   const query = await searchParams
   const category =
-    typeof query.category === "string" ? query.category : undefined
-  const page =
-    typeof query.page === "string" &&
-    /^[1-9]\d*$/.test(query.page) &&
-    Number.isSafeInteger(Number(query.page))
-      ? query.page
+    typeof query.category === "string"
+      ? query.category.trim().slice(0, 120) || undefined
       : undefined
-  const result = await getPublicHome(category, page)
+  const page = catalogPage(query.page)
+  const search = catalogSearch(query.q)
+  const result = await getPublicHome(category, page, search)
   return (
     <>
       <script
@@ -67,6 +67,7 @@ export default async function Page({
       <HomePageContainer
         category={category}
         page={page}
+        search={search}
         initialData={result.status === "ready" ? result.data : undefined}
         initialError={
           result.status === "ready" ? undefined : PUBLIC_CATALOG_ERROR

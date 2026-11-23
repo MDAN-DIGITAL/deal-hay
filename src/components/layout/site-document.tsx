@@ -63,9 +63,11 @@ export const siteMetadata: Metadata = {
 export function SiteDocument({
   children,
   advertising,
+  storefront,
 }: Readonly<{
   children: React.ReactNode
   advertising?: React.ReactNode
+  storefront?: boolean
 }>) {
   return (
     <html
@@ -81,7 +83,9 @@ export function SiteDocument({
                 <Suspense fallback={null}>
                   <NavigationScroll />
                 </Suspense>
-                <SiteShell advertising={advertising}>{children}</SiteShell>
+                <SiteShell advertising={advertising} storefront={storefront}>
+                  {children}
+                </SiteShell>
                 <Toaster position="top-right" richColors />
               </RealtimeRoot>
             </SessionProvider>

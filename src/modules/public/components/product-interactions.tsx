@@ -11,6 +11,7 @@ import {
   SendIcon,
   BadgeCheckIcon,
   CirclePlayIcon,
+  EyeIcon,
   PackageCheckIcon,
   Trash2Icon,
   ShoppingBagIcon,
@@ -42,6 +43,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { ItemActions } from "@/components/ui/item"
 import { Separator } from "@/components/ui/separator"
 import { Surface } from "@/components/ui/surface"
 import { Textarea } from "@/components/ui/textarea"
@@ -56,6 +58,7 @@ import { getSessionId } from "@/lib/session"
 import { ImageUploadProgress } from "@/components/image-upload-progress"
 import { useImageUpload } from "@/hooks/use-image-upload"
 import { formatCurrency } from "@/lib/format"
+import { AddToCartButton } from "@/modules/cart/components/add-to-cart-button"
 import {
   deleteReviewAction,
   reviewProductAction,
@@ -314,6 +317,8 @@ export function ProductInteractions({
   })
   const checkoutDisabled =
     isPending || displayedStock < 1 || (hasVariants && !selectedVariant)
+  const cartActionClassName =
+    "h-auto min-h-9 min-w-0 gap-1 px-2 py-1.5 text-center whitespace-normal"
 
   const runAction = (
     action: () => Promise<unknown>,
@@ -507,6 +512,27 @@ export function ProductInteractions({
                 : "Sản phẩm chưa có biến thể đang bán."}
             </p>
           ) : null}
+
+          <ItemActions className="grid auto-rows-fr grid-cols-2 items-stretch">
+            <Button
+              size="sm"
+              variant="outline"
+              startIcon={<EyeIcon />}
+              className={cartActionClassName}
+              nativeButton={false}
+              render={<Link href="#chi-tiet-san-pham" />}
+            >
+              Xem chi tiết
+            </Button>
+            <AddToCartButton
+              shopCode={shop.code}
+              productSlug={product.slug}
+              productId={product.id}
+              variantId={selectedVariant?.id}
+              disabled={checkoutDisabled}
+              className={cartActionClassName}
+            />
+          </ItemActions>
 
           {checkoutDisabled ? (
             <div className="space-y-3">

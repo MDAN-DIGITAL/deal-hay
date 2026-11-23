@@ -8,7 +8,11 @@ import {
   type ApiRequestOptions,
 } from "@/api/client"
 import { catalogRoutes } from "@/api/catalog/routes"
-import type { HomeResponse, ProductResponse } from "@/api/catalog/types"
+import type {
+  HomeResponse,
+  ProductResponse,
+  PublicShopsResponse,
+} from "@/api/catalog/types"
 
 export type PublicCatalogResult<T> =
   | { status: "ready"; data: T }
@@ -63,6 +67,17 @@ function isProduct(value: unknown): value is ProductResponse {
   )
 }
 
+function isPublicShops(value: unknown): value is PublicShopsResponse {
+  return (
+    object(value) &&
+    object(value.shops) &&
+    Array.isArray(value.shops.data) &&
+    typeof value.shops.total === "number" &&
+    object(value.filters) &&
+    typeof value.filters.q === "string"
+  )
+}
+
 async function readPublicCatalog<T>(
   request: Pick<ApiRequestOptions, "path" | "searchParams">,
   valid: (value: unknown) => value is T
@@ -87,10 +102,21 @@ async function readPublicCatalog<T>(
 }
 
 // React cache deduplicates metadata/page reads only within the current request.
-export const getPublicHome = cache((category?: string, page?: string) =>
+export const getPublicHome = cache(
+  (category?: string, page?: string, q?: string) =>
+    readPublicCatalog(
+      {
+        path: catalogRoutes.home,
+        searchParams: { category, page, ...(q ? { q } : {}) },
+      },
+      isHome
+    )
+)
+
+export const getPublicShops = cache((q?: string, page?: string) =>
   readPublicCatalog(
-    { path: catalogRoutes.home, searchParams: { category, page } },
-    isHome
+    { path: catalogRoutes.shops, searchParams: { q, page } },
+    isPublicShops
   )
 )
 

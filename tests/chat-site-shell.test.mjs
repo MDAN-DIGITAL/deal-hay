@@ -5,7 +5,7 @@ import ts from "typescript"
 const url = (source) =>
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
 const widgets = url(
-  "export const usePathname=()=>globalThis.__shellPath;export const SiteHeader='site-header',SiteFooter='site-footer'"
+  "export const usePathname=()=>globalThis.__shellPath;export const SiteHeader='site-header',SiteFooter='site-footer';export const cn=(...classes)=>classes.filter(Boolean).join(' ')"
 )
 const source = ts.transpileModule(
   readFileSync(
@@ -35,6 +35,12 @@ test("shop management owns its full-width workspace without storefront navigatio
     const shell = SiteShell({ children: "workspace", advertising: "ad" })
     assert.equal(shell.props.children, "workspace")
   }
+})
+
+test("the storefront document enables catalog search in its header", () => {
+  globalThis.__shellPath = "/shops/example"
+  const shell = SiteShell({ children: "product", storefront: true })
+  assert.equal(shell.props.children[0].props.storefront, true)
 })
 test("administration owns its workspace for the overview and every management route", () => {
   for (const path of [

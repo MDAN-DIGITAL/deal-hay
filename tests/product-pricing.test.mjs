@@ -161,7 +161,9 @@ const { ProductCheckoutPageContainer } = await import(
       "next/link": moduleUrl('export default "a"'),
       "lucide-react": moduleUrl('export const ArrowLeftIcon = "arrow"'),
       "@/hooks/use-api-query": queryUrl,
-      "@/api/catalog/queries": moduleUrl("export function getCheckoutProduct() {}"),
+      "@/api/catalog/queries": moduleUrl(
+        "export function getCheckoutProduct() {}"
+      ),
       "@/components/layout/empty-state": moduleUrl(
         'export const EmptyState = "empty-state"'
       ),
@@ -233,7 +235,7 @@ const uiUrl = moduleUrl(`
     Form = "form", FormControl = "control", FormField = "field", FormItem = "item",
     FormLabel = "label", FormMessage = "message", Input = "input", Separator = "separator",
     Surface = "surface", Textarea = "textarea", UserAvatar = "avatar", ImageUploadProgress = "progress",
-    ImagePreview = "image-preview", ShopEngagement = "shop-engagement"
+    ImagePreview = "image-preview", ShopEngagement = "shop-engagement", ItemActions = "item-actions"
   export const buttonVariants = () => "button"
 `)
 const noopUrl = moduleUrl(`
@@ -264,7 +266,7 @@ const { ProductInteractions } = await import(
     "next/link": moduleUrl('export default "a"'),
     "lucide-react": moduleUrl(`
       export const ImageIcon = "icon", SendIcon = "icon", StarIcon = "icon", MessageSquareIcon = "icon", Undo2Icon = "icon"
-      export const BadgeCheckIcon = "icon", CirclePlayIcon = "icon", HeartIcon = "icon",
+      export const BadgeCheckIcon = "icon", CirclePlayIcon = "icon", EyeIcon = "icon", HeartIcon = "icon",
         PackageCheckIcon = "icon", PaperclipIcon = "icon", ThumbsDownIcon = "icon",
         ThumbsUpIcon = "icon", ShoppingBagIcon = "icon", TicketPercentIcon = "icon", Trash2Icon = "icon"
     `),
@@ -282,6 +284,7 @@ const { ProductInteractions } = await import(
         "ui/card",
         "ui/form",
         "ui/input",
+        "ui/item",
         "ui/separator",
         "ui/surface",
         "ui/textarea",
@@ -290,6 +293,9 @@ const { ProductInteractions } = await import(
       ].map((path) => [`@/components/${path}`, uiUrl])
     ),
     "@/modules/public/components/shop-engagement": uiUrl,
+    "@/modules/cart/components/add-to-cart-button": moduleUrl(
+      'export const AddToCartButton = "add-to-cart"'
+    ),
     "@/lib/form-utils": noopUrl,
     "@/lib/validation": noopUrl,
     "@/lib/session": noopUrl,

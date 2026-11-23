@@ -3,6 +3,7 @@
 import { useParams, useSearchParams } from "next/navigation"
 
 import { routeQueryValue, singleRouteQueryValue } from "@/lib/route-query"
+import { parseCartQuantity } from "@/modules/cart/lib/cart"
 import { ProductCheckoutPageContainer } from "@/modules/public/containers/product-checkout-page-container"
 import { normalizeShopCouponCode } from "@/modules/public/lib/product-checkout"
 
@@ -19,6 +20,9 @@ export function ProductCheckoutPageContent() {
       shopUserCode={shopUserCode}
       productSlug={productSlug}
       variantId={routeQueryValue(query, "variant_id")}
+      cartQuantity={parseCartQuantity(
+        singleRouteQueryValue(query, "cart_quantity")
+      )}
       initialDiscountCode={
         discountCode && discountCode.length <= 80 ? discountCode : undefined
       }

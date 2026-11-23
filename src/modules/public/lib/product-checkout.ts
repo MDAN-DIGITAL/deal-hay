@@ -41,9 +41,12 @@ export function productDetailHref(
 export function productCheckoutHref(
   shopUserCode: string,
   productSlug: string,
-  options: ProductNavigationOptions = {}
+  options: ProductNavigationOptions & { cartQuantity?: number } = {}
 ): string {
-  const query = productQuery(options)
+  const params = new URLSearchParams(productQuery(options))
+  if (options.cartQuantity !== undefined)
+    params.set("cart_quantity", String(options.cartQuantity))
+  const query = params.toString()
   const path = `${productPath(shopUserCode, productSlug)}/checkout`
   return query ? `${path}?${query}` : path
 }

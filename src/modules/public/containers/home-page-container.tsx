@@ -1,14 +1,15 @@
 "use client"
 
-import { useApiQuery, QueryPlaceholder } from "@/hooks/use-api-query"
+import Image from "next/image"
 import Link from "next/link"
 import {
-  ArrowLeftIcon,
   ArrowRightIcon,
   BadgeCheckIcon,
-  MapPinIcon,
-  PackageSearchIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  LayoutGridIcon,
   ShoppingBagIcon,
+  StoreIcon,
   TicketPercentIcon,
 } from "lucide-react"
 
@@ -16,16 +17,26 @@ import { getHome } from "@/api/catalog/queries"
 import type { HomeResponse } from "@/api/catalog/types"
 import { DataPagination } from "@/components/layout/data-pagination"
 import { EmptyState } from "@/components/layout/empty-state"
-import { Badge } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Item,
   ItemContent,
@@ -35,312 +46,349 @@ import {
   ItemTitle,
 } from "@/components/ui/item"
 import { Separator } from "@/components/ui/separator"
-import { Surface } from "@/components/ui/surface"
-import { UserAvatar } from "@/components/user-avatar"
+import { QueryPlaceholder, useApiQuery } from "@/hooks/use-api-query"
+import { cn } from "@/lib/utils"
 import { ProductCard } from "@/modules/public/components/product-card"
+import type { HomeProduct } from "@/types/catalog"
 
 const shoppingSteps = [
   {
     icon: ShoppingBagIcon,
-    title: "1. Chọn sản phẩm",
-    description: "Tìm sản phẩm bạn yêu thích.",
+    title: "Chọn sản phẩm",
+    description: "Xem thông tin rồi chọn sản phẩm phù hợp.",
   },
   {
     icon: TicketPercentIcon,
-    title: "2. Chọn ưu đãi từ shop",
+    title: "Chọn ưu đãi từ shop",
     description: "Áp dụng mã giảm giá phù hợp với sản phẩm.",
   },
   {
     icon: BadgeCheckIcon,
-    title: "3. Kiểm tra và đặt hàng",
+    title: "Kiểm tra và đặt hàng",
     description: "Xác nhận giá và thông tin giao hàng.",
   },
 ]
 
+function catalogHref(search: string, category = "") {
+  const params = new URLSearchParams()
+  if (search) params.set("q", search)
+  if (category) params.set("category", category)
+  const query = params.toString()
+  return query ? `/?${query}#san-pham` : "/#san-pham"
+}
+
+function productHref(product: HomeProduct) {
+  return `/shops/${encodeURIComponent(product.shop.code)}/products/${encodeURIComponent(product.slug)}`
+}
+
+function CatalogCategories({
+  categories,
+  category,
+  search,
+}: {
+  categories: string[]
+  category: string
+  search: string
+}) {
+  const options = ["", ...categories]
+
+  return (
+    <nav aria-label="Danh mục sản phẩm" className="min-w-0">
+      <Card size="sm" className="gap-3 py-2.5 lg:py-4">
+        <CardHeader className="hidden lg:grid">
+          <CardTitle as="h2" className="flex items-center gap-2">
+            <LayoutGridIcon
+              aria-hidden="true"
+              className="size-4 text-primary"
+            />
+            Danh mục
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-row flex-wrap items-center justify-between gap-2 px-2.5 lg:flex-col lg:items-stretch">
+          <div className="hidden max-h-96 flex-col gap-1 overflow-y-auto p-0.5 lg:flex">
+            {options.map((item) => (
+              <Link
+                key={item}
+                href={catalogHref(search, item)}
+                prefetch={false}
+                aria-current={item === category ? "true" : undefined}
+                className={buttonVariants({
+                  size: "sm",
+                  variant: item === category ? "secondary" : "ghost",
+                  className: "min-w-0 justify-start",
+                })}
+              >
+                <span className="truncate">{item || "Tất cả sản phẩm"}</span>
+              </Link>
+            ))}
+          </div>
+          <div className="max-w-full min-w-0 lg:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    size="sm"
+                    variant={category ? "secondary" : "outline"}
+                    className="max-w-full min-w-0 max-sm:px-2"
+                    aria-label={
+                      category ? `Danh mục hiện tại: ${category}` : "Danh mục"
+                    }
+                  />
+                }
+              >
+                <span className="truncate">{category || "Danh mục"}</span>
+                <ChevronDownIcon aria-hidden="true" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64 max-w-[calc(100vw-2rem)]">
+                {options.map((item) => (
+                  <DropdownMenuItem
+                    key={item}
+                    render={
+                      <Link
+                        href={catalogHref(search, item)}
+                        aria-current={item === category ? "true" : undefined}
+                        prefetch={false}
+                      />
+                    }
+                  >
+                    <span className="min-w-0 flex-1 wrap-anywhere">
+                      {item || "Tất cả sản phẩm"}
+                    </span>
+                    {item === category ? (
+                      <CheckIcon aria-hidden="true" />
+                    ) : null}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <Separator className="hidden lg:block" />
+          <Link
+            href="/shops"
+            className={buttonVariants({
+              size: "sm",
+              variant: "outline",
+              className: "justify-start max-sm:px-2",
+            })}
+          >
+            <StoreIcon aria-hidden="true" />
+            Xem toàn bộ shop
+            <ArrowRightIcon
+              aria-hidden="true"
+              className="ml-auto hidden lg:block"
+            />
+          </Link>
+        </CardContent>
+      </Card>
+    </nav>
+  )
+}
+
 export function HomePageContainer({
   category,
   page,
+  search,
   initialData,
   initialError,
 }: {
   category?: string
   page?: string
+  search?: string
   initialData?: HomeResponse
   initialError?: string
 }) {
-  const { data: data, error } = useApiQuery(
-    JSON.stringify(["home", category, page]),
-    () => getHome(category, page),
+  const { data, error } = useApiQuery(
+    JSON.stringify(["home", category, page, search]),
+    () => getHome(category, page, search),
     {
       initialData,
       initialError,
-      // Home snapshots are anonymous and already contain the complete payload.
-      // Keep them across session restoration and only refetch after a mutation.
       revalidateOnMount: false,
       sessionSensitive: false,
     }
   )
+
   if (!data) return <QueryPlaceholder error={error} />
+
   const activeCategory = data.filters.category
-  const firstPageHref = activeCategory
-    ? `/?${new URLSearchParams({ category: activeCategory })}#san-pham`
-    : "/#san-pham"
+  const activeSearch = data.filters.q ?? search ?? ""
+  const filtered = Boolean(activeCategory || activeSearch)
+  const products = data.products
+  const isFirstBrowsePage = !filtered && products.current_page === 1
+  const singleProduct = products.total === 1
 
   return (
     <div
-      className="min-w-0 space-y-10"
+      className="min-w-0 space-y-6 sm:space-y-8"
       data-catalog-content="ready"
-      data-ad-eligible={
-        data.products.total > 0 && data.products.data.length > 0
-          ? "true"
-          : undefined
-      }
+      data-ad-eligible={products.data.length > 0 ? "true" : undefined}
     >
-      <Card
-        id="cach-thuc-hoat-dong"
-        role="region"
-        aria-labelledby="home-banner-title"
-        className="scroll-mt-28 bg-accent/40 py-0"
-      >
-        <CardContent className="grid gap-6 p-5 sm:p-8 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:items-center lg:gap-10">
-          <div className="min-w-0 space-y-5">
-            <Badge>
-              <TicketPercentIcon aria-hidden="true" />
-              Ưu đãi theo cách của bạn
-            </Badge>
-            <CardHeader className="gap-3 px-0">
-              <CardTitle
-                as="h1"
-                id="home-banner-title"
-                className="max-w-xl text-2xl leading-tight text-balance sm:text-3xl"
-              >
-                Mua sắm thông minh, tiết kiệm hơn
-              </CardTitle>
-              <CardDescription className="max-w-lg leading-6 sm:text-base sm:leading-7">
-                Chọn sản phẩm và áp dụng ưu đãi do cửa hàng cung cấp.
-              </CardDescription>
-            </CardHeader>
-            <Link
-              href="#san-pham"
-              className={buttonVariants({
-                size: "lg",
-                className: "w-full sm:w-auto",
-              })}
-            >
-              Khám phá sản phẩm
-              <ArrowRightIcon aria-hidden="true" data-icon="inline-end" />
-            </Link>
-          </div>
-          <Surface padding="sm" className="md:ml-auto md:w-full md:max-w-md">
-            <ItemGroup
-              className="gap-1"
-              aria-label="Ba bước mua sắm với ưu đãi"
-            >
-              {shoppingSteps.map(({ icon: Icon, title, description }) => (
-                <Item
-                  key={title}
-                  role="listitem"
-                  size="sm"
-                  className="flex-nowrap items-start"
+      {isFirstBrowsePage ? (
+        <Card
+          role="region"
+          aria-labelledby="home-banner-title"
+          className="border-primary/15 bg-accent/60 py-0"
+        >
+          <CardContent className="grid items-center p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.55fr)] sm:gap-6 sm:px-7 sm:py-3 lg:px-9">
+            <div className="space-y-3">
+              <CardHeader className="gap-1.5 px-0">
+                <CardTitle
+                  as="h1"
+                  id="home-banner-title"
+                  className="text-xl leading-tight sm:text-2xl lg:text-3xl"
                 >
-                  <ItemMedia
-                    variant="icon"
-                    className="size-9 rounded-lg bg-accent text-primary"
-                  >
-                    <Icon aria-hidden="true" />
-                  </ItemMedia>
-                  <ItemContent className="min-w-0">
-                    <ItemTitle className="line-clamp-none">{title}</ItemTitle>
-                    <ItemDescription className="line-clamp-none text-xs leading-5">
-                      {description}
-                    </ItemDescription>
-                  </ItemContent>
-                </Item>
-              ))}
-            </ItemGroup>
-          </Surface>
-        </CardContent>
-      </Card>
-
-      <section className="space-y-5" aria-labelledby="category-heading">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="mb-1 text-sm font-medium text-primary">
-              Mua sắm theo nhu cầu
-            </p>
-            <h2
-              id="category-heading"
-              className="font-heading text-2xl font-semibold tracking-tight"
-            >
-              Danh mục nổi bật
-            </h2>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Chọn danh mục để thu hẹp kết quả
-          </p>
-        </div>
-        <Card size="sm">
-          <CardContent className="flex-row flex-wrap">
-            <Link
-              href="/#san-pham"
-              className={buttonVariants({
-                variant: !activeCategory ? "default" : "outline",
-              })}
-            >
-              <PackageSearchIcon /> Tất cả
-            </Link>
-            {data.categories.map((item) => (
-              <Link
-                key={item}
-                href={`/?${new URLSearchParams({ category: item })}#san-pham`}
-                className={buttonVariants({
-                  variant: activeCategory === item ? "default" : "outline",
-                })}
-              >
-                {item}
+                  Mua sắm thông minh, tiết kiệm hơn
+                </CardTitle>
+                <CardDescription className="max-w-md leading-relaxed sm:text-base">
+                  Chọn sản phẩm và áp dụng ưu đãi do cửa hàng cung cấp.
+                </CardDescription>
+              </CardHeader>
+              <Link href="#san-pham" className={buttonVariants({ size: "sm" })}>
+                Khám phá sản phẩm
+                <ArrowRightIcon aria-hidden="true" />
               </Link>
-            ))}
+            </div>
+            <Image
+              src="/dealhay-home-banner.webp"
+              alt=""
+              width={768}
+              height={384}
+              unoptimized
+              className="hidden h-auto w-full max-w-88 justify-self-end sm:block"
+            />
           </CardContent>
         </Card>
-      </section>
+      ) : null}
 
-      <section className="space-y-5" aria-labelledby="shops-heading">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="mb-1 text-sm font-medium text-primary">
-              Được cộng đồng quan tâm
-            </p>
-            <h2
-              id="shops-heading"
-              className="font-heading text-2xl font-semibold tracking-tight"
-            >
-              Gian hàng nổi bật
-            </h2>
-          </div>
-          <Badge variant="secondary">
-            {data.featuredShops.length} gian hàng
-          </Badge>
-        </div>
-
-        {data.featuredShops.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {data.featuredShops.map((shop) => (
-              <Link
-                key={shop.code}
-                className="group min-w-0"
-                href={`/shops/${shop.code}`}
-              >
-                <Card className="h-full">
-                  <CardHeader className="grid-cols-[minmax(0,1fr)_auto]!">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <UserAvatar
-                        className="size-12 shrink-0 ring-2 ring-primary/10"
-                        name={shop.name}
-                        size="lg"
-                        src={shop.avatar_url}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <CardTitle className="flex min-w-0 items-center gap-1.5">
-                          <span className="truncate">{shop.name}</span>
-                          <BadgeCheckIcon className="size-4 shrink-0 text-primary" />
-                        </CardTitle>
-                        <CardDescription>
-                          {shop.products_count} sản phẩm
-                        </CardDescription>
-                      </div>
-                    </div>
-                    <CardAction>
-                      <ArrowRightIcon className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
-                    </CardAction>
-                  </CardHeader>
-                  <CardContent>
-                    <Separator />
-                    <p className="flex min-w-0 items-start gap-2 text-sm text-muted-foreground">
-                      <MapPinIcon className="mt-0.5 size-4 shrink-0" />
-                      <span className="min-w-0 wrap-anywhere">
-                        {shop.address || "Cửa hàng chưa cập nhật địa chỉ."}
-                      </span>
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="Chưa có gian hàng nổi bật"
-            description="Các gian hàng nổi bật sẽ xuất hiện tại đây khi có dữ liệu."
-          />
-        )}
-      </section>
-
-      <section
+      <div
         id="san-pham"
-        className="scroll-mt-28 space-y-5"
-        aria-labelledby="products-heading"
+        className="grid min-w-0 scroll-mt-32 items-start gap-4 sm:scroll-mt-20 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-6"
       >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="mb-1 text-sm font-medium text-primary">
-              {activeCategory || "Gợi ý dành cho bạn"}
-            </p>
-            <h2
-              id="products-heading"
-              className="font-heading text-2xl font-semibold tracking-tight"
-            >
-              Sản phẩm mới lên kệ
-            </h2>
-          </div>
-          <p aria-live="polite" className="text-sm text-muted-foreground">
-            {data.products.data.length > 0
-              ? `Hiển thị ${data.products.from ?? 1}–${data.products.to ?? data.products.data.length} trên ${data.products.total} sản phẩm`
-              : `${data.products.total} sản phẩm phù hợp`}
-          </p>
-        </div>
-
-        {data.products.data.length > 0 ? (
-          <>
-            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
-              {data.products.data.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  eyebrow={product.shop.name}
-                  href={`/shops/${product.shop.code}/products/${product.slug}`}
-                  product={product}
-                />
-              ))}
-            </div>
-            <DataPagination
-              currentPage={data.products.current_page}
-              lastPage={data.products.last_page}
-            />
-          </>
-        ) : (
-          <EmptyState
-            title={
-              data.products.total > 0
-                ? "Trang này không có sản phẩm"
-                : "Chưa tìm thấy sản phẩm"
-            }
-            description={
-              data.products.total > 0
-                ? "Hãy quay lại trang đầu để xem các sản phẩm hiện có."
-                : "Danh mục này chưa có sản phẩm công khai. Hãy thử chọn một danh mục khác."
-            }
-            action={
-              <Link
-                href={data.products.total > 0 ? firstPageHref : "/#san-pham"}
-                className={buttonVariants()}
+        <CatalogCategories
+          categories={data.categories}
+          category={activeCategory}
+          search={activeSearch}
+        />
+        <section
+          className="min-w-0 space-y-4"
+          aria-labelledby="products-heading"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+            <div className="min-w-0 space-y-1">
+              <CardTitle
+                as={isFirstBrowsePage ? "h2" : "h1"}
+                id="products-heading"
+                className="font-heading text-xl font-semibold tracking-tight wrap-anywhere sm:text-2xl"
               >
-                <ArrowLeftIcon aria-hidden="true" />
-                {data.products.total > 0
-                  ? "Về trang đầu"
-                  : "Xem tất cả sản phẩm"}
+                {activeSearch
+                  ? `Kết quả cho “${activeSearch}”`
+                  : activeCategory || "Tất cả sản phẩm"}
+              </CardTitle>
+              <p aria-live="polite" className="text-sm text-muted-foreground">
+                {products.from && products.to && products.last_page > 1
+                  ? `${products.from}–${products.to} trong ${products.total} sản phẩm`
+                  : `${products.total} sản phẩm`}
+              </p>
+            </div>
+            {filtered ? (
+              <Link
+                href="/#san-pham"
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+              >
+                Xóa bộ lọc
               </Link>
-            }
-          />
-        )}
-      </section>
+            ) : null}
+          </div>
+
+          {products.data.length > 0 ? (
+            <>
+              <div
+                className={cn(
+                  "grid gap-3 sm:gap-4",
+                  !singleProduct && "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4"
+                )}
+              >
+                {products.data.map((product, index) => (
+                  <ProductCard
+                    key={product.id}
+                    cartShopCode={product.shop.code}
+                    layout={singleProduct ? "single" : "grid"}
+                    eyebrow={product.shop.name}
+                    href={productHref(product)}
+                    priorityImage={index === 0}
+                    product={product}
+                  />
+                ))}
+              </div>
+              <DataPagination
+                currentPage={products.current_page}
+                lastPage={products.last_page}
+                anchor="san-pham"
+              />
+            </>
+          ) : (
+            <EmptyState
+              title={
+                products.total > 0
+                  ? "Trang này không có sản phẩm"
+                  : filtered
+                    ? "Chưa tìm thấy sản phẩm"
+                    : "Chưa có sản phẩm"
+              }
+              description={
+                products.total > 0
+                  ? "Quay lại trang đầu để xem các sản phẩm phù hợp."
+                  : filtered
+                    ? "Thử từ khóa ngắn hơn hoặc chọn danh mục khác."
+                    : "Các sản phẩm đang bán sẽ xuất hiện tại đây."
+              }
+              action={
+                products.total > 0 ? (
+                  <Link
+                    href={catalogHref(activeSearch, activeCategory)}
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    Về trang đầu
+                  </Link>
+                ) : undefined
+              }
+            />
+          )}
+        </section>
+      </div>
+
+      {isFirstBrowsePage ? (
+        <Accordion
+          id="cach-thuc-hoat-dong"
+          className="scroll-mt-32 border-t sm:scroll-mt-20"
+        >
+          <AccordionItem value="shopping-guide">
+            <AccordionTrigger>Cách mua hàng</AccordionTrigger>
+            <AccordionContent>
+              <p className="text-muted-foreground">
+                Chọn sản phẩm và áp dụng ưu đãi do cửa hàng cung cấp.
+              </p>
+              <ItemGroup className="grid gap-2 md:grid-cols-3">
+                {shoppingSteps.map(({ icon: Icon, title, description }) => (
+                  <Item
+                    key={title}
+                    size="sm"
+                    className="flex-nowrap items-start"
+                  >
+                    <ItemMedia variant="icon" className="text-primary">
+                      <Icon aria-hidden="true" />
+                    </ItemMedia>
+                    <ItemContent className="min-w-0">
+                      <ItemTitle>{title}</ItemTitle>
+                      <ItemDescription>{description}</ItemDescription>
+                    </ItemContent>
+                  </Item>
+                ))}
+              </ItemGroup>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      ) : null}
     </div>
   )
 }

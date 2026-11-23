@@ -365,7 +365,7 @@ export function CreateProductForm({
               Tên, mã quản lý, danh mục và giá bán công khai.
             </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <FormField
               control={form.control}
               name="name"
@@ -515,7 +515,7 @@ export function CreateProductForm({
               bị.
             </p>
           </div>
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <FormField
               control={form.control}
               name="image"
@@ -924,7 +924,7 @@ export function CreateProductForm({
                             {optionValuesError || defaultError}
                           </p>
                         ) : null}
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                           <FormField
                             control={form.control}
                             name={`variants.${variantIndex}.price`}

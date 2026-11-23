@@ -123,7 +123,7 @@ export function ProductPageContainer({
       </section>
 
       <section className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
-        <Card>
+        <Card id="chi-tiet-san-pham" className="scroll-mt-32 md:scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-xl">Mô tả sản phẩm</CardTitle>
             <CardDescription>

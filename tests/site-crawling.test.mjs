@@ -41,6 +41,7 @@ const { default: robots } = await load("../src/app/robots.ts", {
 })
 const staticUrls = [
   "https://dealhay.example.test/",
+  "https://dealhay.example.test/shops",
   "https://dealhay.example.test/privacy",
   "https://dealhay.example.test/terms",
 ]

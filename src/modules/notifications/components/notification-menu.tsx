@@ -94,6 +94,7 @@ export function NotificationMenu({ compact = false }: { compact?: boolean }) {
               compact ? "relative" : "relative size-10 xl:w-auto xl:px-3"
             }
             aria-label={label}
+            tooltip={label}
           />
         }
       >

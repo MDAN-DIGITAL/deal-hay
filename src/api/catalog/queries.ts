@@ -9,11 +9,12 @@ import type {
 
 export function getHome(
   category?: string,
-  page?: string
+  page?: string,
+  q?: string
 ): Promise<HomeResponse> {
   return apiFetch({
     path: catalogRoutes.home,
-    searchParams: { category, page },
+    searchParams: { category, page, ...(q ? { q } : {}) },
   })
 }
 
@@ -40,7 +41,10 @@ export function getCheckoutProduct(
   productSlug: string
 ): Promise<CheckoutProductResponse> {
   return apiFetch({
-    path: catalogRoutes.product(shopUserCode, productSlug),
+    path: catalogRoutes.product(
+      encodeURIComponent(shopUserCode),
+      encodeURIComponent(productSlug)
+    ),
     searchParams: { view: "checkout" },
   })
 }

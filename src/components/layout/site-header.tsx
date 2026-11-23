@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import {
   ActivityIcon,
   ChevronDownIcon,
@@ -10,172 +10,172 @@ import {
   LogInIcon,
   MessageCircleIcon,
   ShieldCheckIcon,
+  ShoppingCartIcon,
   StoreIcon,
   TicketPercentIcon,
   UserPlusIcon,
   UserRoundIcon,
+  Volume2Icon,
   type LucideIcon,
 } from "lucide-react"
 
 import { useSession } from "@/components/session-provider"
+import { NotificationSoundDialog } from "@/components/layout/notification-sound-toggle"
 import { ServerPing } from "@/components/layout/server-ping"
+import { SignOutButton } from "@/components/layout/sign-out-button"
+import { StorefrontSearch } from "@/components/layout/storefront-search"
+import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { UnreadNavigationLink } from "@/components/layout/unread-count-badge"
+import { Brand } from "@/components/ui/brand"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuGroup,
-  DropdownMenuLabel,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Brand } from "@/components/ui/brand"
-import { MobileNavigation } from "@/components/layout/mobile-navigation"
-import { NotificationSoundToggle } from "@/components/layout/notification-sound-toggle"
-import { SignOutButton } from "@/components/layout/sign-out-button"
-import { ThemeToggle } from "@/components/layout/theme-toggle"
-import {
-  UnreadCountBadge,
-  UnreadNavigationLink,
-} from "@/components/layout/unread-count-badge"
 import { UserAvatar } from "@/components/user-avatar"
-import { ChatPageLink } from "@/components/chat-page-link"
+import { cn } from "@/lib/utils"
 import { NotificationMenu } from "@/modules/notifications/components/notification-menu"
 
-type NavigationItem = {
+type AccountLink = {
   href: string
   label: string
   icon: LucideIcon
-  unreadKey?: "messages"
+  newTab?: boolean
 }
 
-const navigation: NavigationItem[] = [
-  { href: "/", label: "Khám phá", icon: HouseIcon },
+const browseItems: AccountLink[] = [
+  { href: "/", label: "Khám phá sản phẩm", icon: HouseIcon },
+  { href: "/cart", label: "Giỏ hàng", icon: ShoppingCartIcon },
+  { href: "/shops", label: "Cửa hàng", icon: StoreIcon },
+]
+
+const memberItems: AccountLink[] = [
+  { href: "/profile", label: "Hồ sơ cá nhân", icon: UserRoundIcon },
+  { href: "/discount-codes", label: "Mã giảm giá", icon: TicketPercentIcon },
+]
+
+const guestItems: AccountLink[] = [
+  { href: "/sign-in", label: "Đăng nhập", icon: LogInIcon },
+  { href: "/sign-up", label: "Tạo tài khoản", icon: UserPlusIcon },
+]
+
+const sellerItems: AccountLink[] = [
   {
-    href: "/chats",
-    label: "Tin nhắn",
-    icon: MessageCircleIcon,
-    unreadKey: "messages",
+    href: "/shop-manage",
+    label: "Kênh người bán",
+    icon: StoreIcon,
+    newTab: true,
   },
 ]
 
-export function SiteHeader() {
+const adminItems: AccountLink[] = [
+  { href: "/admin", label: "Quản trị", icon: ShieldCheckIcon },
+  { href: "/diagnostics", label: "Đo tốc độ máy chủ", icon: ActivityIcon },
+]
+
+export function SiteHeader({
+  storefront = false,
+}: { storefront?: boolean } = {}) {
   const { user, loading } = useSession()
   const pathname = usePathname()
+  const accountTriggerRef = useRef<HTMLButtonElement>(null)
   const [accountOpen, setAccountOpen] = useState(false)
-  const items: NavigationItem[] = [
-    ...navigation,
-    ...(user
-      ? [
-          {
-            href: "/discount-codes",
-            label: "Mã giảm giá",
-            icon: TicketPercentIcon,
-          },
-        ]
-      : []),
-    ...(user?.role === "shop_owner"
-      ? [{ href: "/shop-manage", label: "Kênh người bán", icon: StoreIcon }]
-      : []),
-    ...(user?.role === "administrator"
-      ? [{ href: "/admin", label: "Quản trị", icon: ShieldCheckIcon }]
-      : []),
+  const [soundSettingsOpen, setSoundSettingsOpen] = useState(false)
+  const items = [
+    ...browseItems,
+    ...(user ? memberItems : guestItems),
+    ...(user?.role === "shop_owner" ? sellerItems : []),
+    ...(user?.role === "administrator" ? adminItems : []),
   ]
-  const active = (href: string) =>
-    href === "/"
-      ? pathname === "/"
-      : href === "/admin" || href.startsWith("/admin/")
-        ? pathname === "/admin" || pathname.startsWith("/admin/")
-        : pathname === href || pathname.startsWith(`${href}/`)
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur supports-backdrop-filter:bg-card/90">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+      <div
+        className={cn(
+          "mx-auto max-w-7xl items-center px-4 sm:px-6 lg:px-8",
+          storefront
+            ? "grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-6"
+            : "flex h-16 gap-4"
+        )}
+      >
         <Link href="/" aria-label="Deal Hay - Trang chủ">
           <Brand compact />
         </Link>
 
-        <nav
-          className="ml-3 hidden items-center gap-1 xl:flex"
-          aria-label="Điều hướng chính"
-        >
-          {items.map((item) => {
-            const NavigationLink = item.href === "/chats" ? ChatPageLink : Link
-            return (
-              <NavigationLink
-                key={item.href}
-                href={item.href}
-                target={item.href === "/shop-manage" ? "_blank" : undefined}
-                rel={
-                  item.href === "/shop-manage"
-                    ? "noopener noreferrer"
-                    : undefined
-                }
-                title={
-                  item.href === "/shop-manage"
-                    ? "Kênh người bán (mở trong tab mới)"
-                    : undefined
-                }
-                aria-current={active(item.href) ? "page" : undefined}
-                className={buttonVariants({
-                  variant: active(item.href) ? "secondary" : "ghost",
-                })}
-              >
-                <item.icon aria-hidden="true" />
-                {item.label}
-                {item.unreadKey ? (
-                  <UnreadCountBadge kind={item.unreadKey} />
-                ) : null}
-              </NavigationLink>
-            )
-          })}
-        </nav>
-
-        <div className="ml-auto flex items-center gap-0.5 xl:gap-1">
-          <div className="xl:hidden">
-            <UnreadNavigationLink
-              badgeClassName="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px]"
-              className="relative"
-              href="/chats"
-              kind="messages"
-              label="Mở tin nhắn"
-              size="icon"
-            >
-              <MessageCircleIcon />
-            </UnreadNavigationLink>
+        {storefront ? (
+          <div className="col-span-2 row-start-2 min-w-0 pb-3 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:pb-0">
+            <StorefrontSearch />
           </div>
-          <NotificationMenu />
+        ) : null}
+
+        <div
+          className={cn(
+            "ml-auto flex items-center gap-0.5 xl:gap-1",
+            storefront && "col-start-2 row-start-1 h-16 sm:col-start-3"
+          )}
+        >
+          <UnreadNavigationLink
+            badgeClassName="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px]"
+            className="relative"
+            href="/chats"
+            kind="messages"
+            label="Mở tin nhắn"
+            size="icon"
+          >
+            <MessageCircleIcon aria-hidden="true" />
+          </UnreadNavigationLink>
+          <NotificationMenu compact />
           <ThemeToggle />
-          <div className="hidden items-center gap-1 xl:flex">
-            {loading ? (
-              <div
-                aria-busy="true"
-                aria-label="Đang tải tài khoản"
-                className="flex h-9 items-center gap-2 px-3"
+
+          {loading ? (
+            <div
+              aria-busy="true"
+              aria-label="Đang tải tài khoản"
+              className="flex size-10 shrink-0 items-center justify-center"
+            >
+              <span className="size-7 animate-pulse rounded-full bg-muted" />
+            </div>
+          ) : (
+            <DropdownMenu onOpenChange={setAccountOpen}>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    ref={accountTriggerRef}
+                    aria-label="Mở menu tài khoản"
+                    className="px-1.5 xl:px-3"
+                    variant="ghost"
+                  />
+                }
               >
-                <span className="size-7 animate-pulse rounded-full bg-muted" />
-                <span className="h-4 w-24 animate-pulse rounded bg-muted" />
-              </div>
-            ) : user ? (
-              <>
-                <NotificationSoundToggle />
-                <DropdownMenu onOpenChange={setAccountOpen}>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button aria-label="Mở menu tài khoản" variant="ghost" />
-                    }
-                  >
+                {user ? (
+                  <>
                     <UserAvatar
                       className="size-7"
                       name={user.full_name}
                       size="sm"
                       src={user.avatar_url}
                     />
-                    <span className="max-w-32 truncate">{user.full_name}</span>
-                    <ChevronDownIcon className="size-3.5 text-muted-foreground" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64">
-                    <DropdownMenuGroup>
+                    <span className="hidden max-w-32 truncate xl:block">
+                      {user.full_name}
+                    </span>
+                    <ChevronDownIcon
+                      aria-hidden="true"
+                      className="hidden size-3.5 text-muted-foreground xl:block"
+                    />
+                  </>
+                ) : (
+                  <UserRoundIcon aria-hidden="true" className="size-5" />
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuGroup>
+                  {user ? (
+                    <>
                       <DropdownMenuLabel className="space-y-1 text-sm">
                         <span className="block truncate font-medium text-foreground">
                           {user.full_name}
@@ -186,45 +186,58 @@ export function SiteHeader() {
                         <ServerPing active={accountOpen} />
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem render={<Link href="/profile" />}>
-                        <UserRoundIcon aria-hidden="true" />
-                        Hồ sơ cá nhân
-                      </DropdownMenuItem>
-                      {user.role === "administrator" ? (
-                        <DropdownMenuItem render={<Link href="/diagnostics" />}>
-                          <ActivityIcon aria-hidden="true" />
-                          Đo tốc độ máy chủ
-                        </DropdownMenuItem>
-                      ) : null}
-                    </DropdownMenuGroup>
+                    </>
+                  ) : null}
+                  {items.map(({ href, icon: Icon, label, newTab }) => (
+                    <DropdownMenuItem
+                      key={href}
+                      render={
+                        <Link
+                          href={href}
+                          aria-current={
+                            pathname === href ||
+                            (href !== "/" && pathname.startsWith(`${href}/`))
+                              ? "page"
+                              : undefined
+                          }
+                          target={newTab ? "_blank" : undefined}
+                          rel={newTab ? "noopener noreferrer" : undefined}
+                          title={
+                            newTab ? `${label} (mở trong tab mới)` : undefined
+                          }
+                        />
+                      }
+                    >
+                      <Icon aria-hidden="true" /> {label}
+                    </DropdownMenuItem>
+                  ))}
+                  {user ? (
+                    <DropdownMenuItem
+                      onClick={() => setSoundSettingsOpen(true)}
+                    >
+                      <Volume2Icon aria-hidden="true" /> Âm thanh và thông báo
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuGroup>
+                {user ? (
+                  <>
                     <DropdownMenuSeparator />
-                    <div className="p-1">
-                      <SignOutButton className="w-full justify-start" />
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/sign-in"
-                  className={buttonVariants({ variant: "ghost" })}
-                >
-                  <LogInIcon aria-hidden="true" />
-                  Đăng nhập
-                </Link>
-                <Link href="/sign-up" className={buttonVariants()}>
-                  <UserPlusIcon aria-hidden="true" />
-                  Tạo tài khoản
-                </Link>
-              </>
-            )}
-          </div>
-          <div className="xl:hidden">
-            <MobileNavigation sessionLoading={loading} user={user} />
-          </div>
+                    <SignOutButton inMenu />
+                  </>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
+
+      {user ? (
+        <NotificationSoundDialog
+          open={soundSettingsOpen}
+          onOpenChange={setSoundSettingsOpen}
+          finalFocus={accountTriggerRef}
+        />
+      ) : null}
     </header>
   )
 }

@@ -76,7 +76,7 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div className={cn("space-y-2", className)} {...props} />
+      <div className={cn("min-w-0 space-y-2", className)} {...props} />
     </FormItemContext.Provider>
   )
 }

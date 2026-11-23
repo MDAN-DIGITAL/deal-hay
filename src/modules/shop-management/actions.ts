@@ -133,10 +133,7 @@ export async function createProductAction(
     payload.set("old_price", String(parsed.data.old_price))
   if (parsed.data.video_url) payload.set("video_url", parsed.data.video_url)
   const usesSharedStock = parsed.data.has_variants && parsed.data.shared_stock
-  payload.set(
-    "stock",
-    String(parsed.data.has_variants && !usesSharedStock ? 0 : parsed.data.stock)
-  )
+  payload.set("stock", String(parsed.data.stock))
   if (usesSharedStock) payload.set("shared_stock", "1")
   if (parsed.data.description && parsed.data.description !== "") {
     payload.set("description", parsed.data.description)

@@ -64,11 +64,14 @@ const { default: HomePage } = await import(
     "react/jsx-runtime": jsx,
     "@/api/catalog/server": moduleUrl(`
       export const PUBLIC_CATALOG_ERROR="Không thể tải"
-      export async function getPublicHome(category,page){
-        globalThis.__catalogPageRequest={category,page}
+      export async function getPublicHome(category,page,q){
+        globalThis.__catalogPageRequest={category,page,q}
         return {status:"ready",data:{products:{current_page:Number(page||1)}}}
       }
     `),
+    "@/modules/public/lib/catalog-query": loadSource(
+      "../src/modules/public/lib/catalog-query.ts"
+    ),
     "@/lib/seo": moduleUrl(`
       export const BRAND_OPEN_GRAPH_IMAGE="/brand.png",BRAND_TWITTER_IMAGE="/brand.png",SITE_DESCRIPTION="Catalog"
       export const siteStructuredData=()=>({})
@@ -91,24 +94,34 @@ function hrefs(html) {
   )
 }
 
-test("browser catalog pagination forwards the page and selected category to the API", async () => {
-  await getHome("Công nghệ & Phụ kiện", "6")
+test("browser catalog pagination forwards the page, category and product search to the API", async () => {
+  await getHome("Công nghệ & Phụ kiện", "6", "iPhone 15")
   assert.deepEqual(globalThis.__catalogRequest, {
     path: "/",
-    searchParams: { category: "Công nghệ & Phụ kiện", page: "6" },
+    searchParams: {
+      category: "Công nghệ & Phụ kiện",
+      page: "6",
+      q: "iPhone 15",
+    },
   })
 })
 
 test("direct homepage navigation reads page 6 for both its server snapshot and client query", async () => {
   const page = await HomePage({
-    searchParams: Promise.resolve({ category: "Thời trang", page: "6" }),
+    searchParams: Promise.resolve({
+      category: "Thời trang",
+      page: "6",
+      q: "  Áo  khoác ",
+    }),
   })
   renderToStaticMarkup(page)
   assert.deepEqual(globalThis.__catalogPageRequest, {
     category: "Thời trang",
     page: "6",
+    q: "Áo khoác",
   })
   assert.equal(globalThis.__catalogPageProps.page, "6")
+  assert.equal(globalThis.__catalogPageProps.search, "Áo khoác")
   assert.equal(
     globalThis.__catalogPageProps.initialData.products.current_page,
     6
@@ -138,7 +151,7 @@ test("invalid or ambiguous homepage page parameters recover the first page", asy
 test("page links retain filters and scroll back to the product collection", () => {
   const html = renderPagination(
     { currentPage: 3, lastPage: 6, anchor: "san-pham" },
-    "category=Th%E1%BB%9Di+trang&page=3&search=abc"
+    "category=Th%E1%BB%9Di+trang&page=3&q=abc"
   )
   const links = hrefs(html)
   assert.ok(links.some((url) => url.searchParams.get("page") === "4"))
@@ -146,7 +159,7 @@ test("page links retain filters and scroll back to the product collection", () =
   for (const url of links) {
     assert.equal(url.pathname, "/")
     assert.equal(url.searchParams.get("category"), "Thời trang")
-    assert.equal(url.searchParams.get("search"), "abc")
+    assert.equal(url.searchParams.get("q"), "abc")
     assert.equal(url.hash, "#san-pham")
   }
   assert.match(html, /aria-label="Trang 3"/)

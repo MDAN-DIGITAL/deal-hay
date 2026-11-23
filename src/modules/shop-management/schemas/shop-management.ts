@@ -220,9 +220,17 @@ function validateProductCatalog(
   }
 }
 
-export const createProductSchema = createProductBaseSchema.superRefine(
-  validateProductCatalog
-)
+function normalizeHiddenProductStock<
+  T extends { has_variants: boolean; stock: number; shared_stock?: boolean },
+>(product: T): T {
+  return product.has_variants && !product.shared_stock
+    ? { ...product, stock: 0 }
+    : product
+}
+
+export const createProductSchema = createProductBaseSchema
+  .superRefine(validateProductCatalog)
+  .transform(normalizeHiddenProductStock)
 
 const stagedImageFields = {
   primary_image_upload: z
@@ -244,6 +252,7 @@ export const createProductStagedUploadSchema = z
       .extend(stagedImageFields),
   ])
   .superRefine(validateProductCatalog)
+  .transform(normalizeHiddenProductStock)
 
 export const adjustInventorySchema = z.object({
   quantity_delta: z

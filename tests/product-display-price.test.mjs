@@ -34,14 +34,21 @@ const uiUrl = moduleUrl(`
   const wrapper = ({ children }) => createElement("div", null, children)
   export default wrapper
   export const Badge = wrapper
+  export const Button = wrapper
+  export const AddToCartButton = () => createElement("button", null, "Thêm vào giỏ hàng")
   export const Card = wrapper
   export const CardContent = wrapper
   export const CardFooter = wrapper
   export const MediaImage = () => null
   export const ArrowUpRightIcon = () => null
+  export const EyeIcon = () => null
   export const PackageCheckIcon = () => null
 `)
 const formatUrl = transpileModule("../src/lib/format.ts")
+const utilsUrl = transpileModule("../src/lib/utils.ts", {
+  clsx: import.meta.resolve("clsx"),
+  "tailwind-merge": import.meta.resolve("tailwind-merge"),
+})
 const pricingUrl = transpileModule(
   "../src/modules/public/lib/product-pricing.ts"
 )
@@ -53,16 +60,20 @@ const { ProductCard } = await import(
     "lucide-react": uiUrl,
     "@/components/media-image": uiUrl,
     "@/components/ui/badge": uiUrl,
+    "@/components/ui/button": uiUrl,
     "@/components/ui/card": uiUrl,
     "@/lib/format": formatUrl,
+    "@/lib/utils": utilsUrl,
+    "@/modules/cart/components/add-to-cart-button": uiUrl,
     "@/modules/public/lib/product-pricing": pricingUrl,
   })
 )
 
-function renderCard(prices) {
+function renderCard(prices, cartShopCode) {
   return renderToStaticMarkup(
     createElement(ProductCard, {
       href: "/shops/test-shop/products/test-product",
+      cartShopCode,
       product: {
         id: "product-1",
         name: "Variant product",
@@ -75,6 +86,13 @@ function renderCard(prices) {
     })
   )
 }
+
+test("homepage cards show both purchase actions and the remaining stock", () => {
+  const rendered = renderCard({ stock: 2 }, "test-shop")
+  assert.match(rendered, /Xem chi tiết/)
+  assert.match(rendered, /Thêm vào giỏ hàng/)
+  assert.match(rendered, /Còn 2 sản phẩm/)
+})
 
 test("catalog cards show the initial variant price instead of the base price", () => {
   const rendered = renderCard({ display_price: 80000 })

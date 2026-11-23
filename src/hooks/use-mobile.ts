@@ -2,9 +2,7 @@
 
 import { useSyncExternalStore } from "react"
 
-const MOBILE_BREAKPOINT = 768
-
-const query = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`
+const query = "(width < 48rem)"
 function subscribe(change: () => void) {
   const media = window.matchMedia(query)
   media.addEventListener("change", change)

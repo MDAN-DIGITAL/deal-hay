@@ -29,7 +29,7 @@ function pathSegment(value: unknown): string | null {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const paths = new Set(["/", "/privacy", "/terms"])
+  const paths = new Set(["/", "/shops", "/privacy", "/terms"])
   const shops = new Set<string>()
   const signal = AbortSignal.timeout(CATALOG_BUDGET_MS)
   const request = <T>(path: string, page?: number) =>
