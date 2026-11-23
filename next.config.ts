@@ -50,7 +50,6 @@ const nextConfig: NextConfig = {
     ]
   },
   experimental: {
-    cpus: 1,
     globalNotFound: true,
   },
 }
