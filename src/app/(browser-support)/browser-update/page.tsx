@@ -44,7 +44,7 @@ const guides: Record<BrowserFamily, { steps: string; href?: string }> = {
   },
   ios: {
     steps:
-      "Mở Cài đặt → Cài đặt chung → Cập nhật phần mềm. Cài iOS hoặc iPadOS phiên bản 18 trở lên, rồi mở lại trình duyệt.",
+      "Mở Cài đặt → Cài đặt chung → Cập nhật phần mềm. Cập nhật iOS hoặc iPadOS lên phiên bản 17.2 trở lên, rồi mở lại trình duyệt.",
     href: "https://support.apple.com/vi-vn/102665",
   },
   chromium: {
@@ -55,32 +55,54 @@ const guides: Record<BrowserFamily, { steps: string; href?: string }> = {
     steps:
       "Mở một trình duyệt còn được cập nhật, chẳng hạn Chrome, Edge hoặc Firefox, rồi truy cập lại Deal Hay.",
   },
+  unknown: {
+    steps:
+      "Deal Hay chưa nhận diện được trình duyệt của bạn. Hãy sử dụng một trình duyệt phổ biến và được cập nhật như Google Chrome, Microsoft Edge, Firefox hoặc Safari.",
+    href: "https://www.google.com/chrome/",
+  },
 }
 
 export default async function BrowserUpdatePage() {
   const result = browserSupport(await headers())
+
   const blocked = result.status !== "allowed"
   const guide = blocked ? guides[result.browser] : guides.chromium
-  const steps =
-    blocked && result.android
-      ? result.name === "Android System WebView"
+
+  let steps = guide.steps
+  let guideHref = guide.href
+
+  // Unknown browser.
+  if (blocked && result.browser === "unknown") {
+    steps = result.android
+      ? "Deal Hay chưa xác minh được trình duyệt Android của bạn. Hãy cập nhật Google Chrome trên Google Play hoặc sử dụng trình duyệt Chrome mới nhất."
+      : guide.steps
+
+    guideHref = result.android
+      ? "https://play.google.com/store/apps/details?id=com.android.chrome"
+      : guide.href
+  }
+  // Android browsers.
+  else if (blocked && result.android) {
+    steps =
+      result.name === "Android System WebView"
         ? "Mở Google Play và cập nhật Android System WebView cùng Google Chrome. Sau đó, mở lại ứng dụng hoặc mở Deal Hay bằng Chrome."
         : `Mở Google Play, tìm ${result.name} và chọn Cập nhật. Sau đó, mở lại trình duyệt.`
-      : guide.steps
-  const guideHref =
-    blocked && result.android
-      ? "https://support.google.com/googleplay/answer/113412?hl=vi"
-      : guide.href
+
+    guideHref = "https://support.google.com/googleplay/answer/113412?hl=vi"
+  }
+
   let description = "Cài phiên bản trình duyệt mới nhất để sử dụng Deal Hay."
+
   if (result.status === "unverified") {
-    description = `Deal Hay chưa xác minh được bản vá của Chrome 128. Phiên bản yêu cầu là ${result.minimum} trở lên.`
+    description =
+      "Deal Hay chưa thể xác minh trình duyệt của bạn. Vui lòng sử dụng trình duyệt tương thích và được cập nhật."
   } else if (result.status === "update") {
     if (result.browser === "legacy") {
       description = `Deal Hay đã ngừng hỗ trợ ${result.name}.`
     } else if (result.browser === "chromium") {
-      description = `${result.name} sử dụng nền Chromium ${result.version}. Deal Hay yêu cầu Chromium ${result.minimum} trở lên.`
+      description = `${result.name} đang sử dụng phiên bản Chromium ${result.version}. Deal Hay yêu cầu Chromium ${result.minimum} trở lên.`
     } else {
-      description = `Bạn đang dùng ${result.name} ${result.version}. Deal Hay yêu cầu ${result.name} ${result.minimum} trở lên.`
+      description = `Bạn đang sử dụng ${result.name} ${result.version}. Deal Hay yêu cầu ${result.name} ${result.minimum} trở lên.`
     }
   }
 
@@ -89,25 +111,32 @@ export default async function BrowserUpdatePage() {
       <Empty>
         <EmptyHeader>
           <Brand />
+
           <EmptyMedia variant="icon">
             <MonitorUpIcon aria-hidden="true" />
           </EmptyMedia>
+
           <EmptyTitle>
             <h1>Cập nhật trình duyệt để tiếp tục</h1>
           </EmptyTitle>
+
           <EmptyDescription>{description}</EmptyDescription>
         </EmptyHeader>
+
         <EmptyContent>
           <Alert role="note">
             <AlertTitle>Cách cập nhật</AlertTitle>
+
             <AlertDescription>
               <p>{steps}</p>
+
               <p>
                 Nếu thiết bị đã hết cập nhật, hãy dùng trình duyệt tương thích
                 khác hoặc mở Deal Hay trên một thiết bị mới hơn.
               </p>
             </AlertDescription>
           </Alert>
+
           <ButtonGroup>
             <Button
               nativeButton={false}
@@ -115,6 +144,7 @@ export default async function BrowserUpdatePage() {
             >
               {blocked ? "Kiểm tra lại" : "Về Deal Hay"}
             </Button>
+
             {guideHref ? (
               <Button
                 variant="outline"
