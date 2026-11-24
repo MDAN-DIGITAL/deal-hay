@@ -2,17 +2,6 @@ import { apiFetch } from "@/api/client"
 import { catalogRoutes } from "@/api/catalog/routes"
 import type { ApiMessageResponse } from "@/types/common"
 
-export function startChat(
-  shopUserCode: string,
-  payload: { client_message_id?: string; product?: string; variant?: string }
-): Promise<{ conversation: { slug: string }; replayed: boolean }> {
-  return apiFetch({
-    method: "POST",
-    path: catalogRoutes.startChat(shopUserCode),
-    body: payload,
-  })
-}
-
 export function followShop(shopUserCode: string): Promise<ApiMessageResponse> {
   return apiFetch({ method: "POST", path: catalogRoutes.follow(shopUserCode) })
 }

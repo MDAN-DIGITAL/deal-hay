@@ -21,8 +21,8 @@ const dependencies = moduleUrl(`
   export const navigateToChat=(href,push)=>push(href)
   export const notificationMenuHref='/?notifications=open'
   export const requestNotificationMenu=()=>globalThis.__toastHarness.menuAvailable
-  export const refreshUnreadCountsAction=async()=>null
-  export const refreshNotificationCountAction=async()=>null
+  export const refreshUnreadCountsAction=()=>globalThis.__toastHarness.refreshUnread("messages")
+  export const refreshNotificationCountAction=()=>globalThis.__toastHarness.refreshUnread("notifications")
   export const loadRealtimeConfigAction=async()=>globalThis.__toastHarness.config
   export const loadSocketSessionAction=async()=>null
   export const useUnreadTabTitle=()=>{}
@@ -106,6 +106,12 @@ async function mount(t, { muted = false } = {}) {
   const channels = new Map()
   const state = {
     muted,
+    unreadRequests: [],
+    unreadResponses: { messages: () => null, notifications: () => null },
+    refreshUnread(kind) {
+      state.unreadRequests.push(kind)
+      return state.unreadResponses[kind]()
+    },
     background: { enabled: false },
     backgroundCards: [],
     previews: 0,
@@ -124,7 +130,8 @@ async function mount(t, { muted = false } = {}) {
               this.listeners.set(event, listener)
               return this
             },
-            subscribed() {
+            subscribed(listener) {
+              this.onSubscribed = listener
               return this
             },
             error() {
@@ -188,6 +195,11 @@ async function mount(t, { muted = false } = {}) {
       for (const effect of effects) effect()
       return rendered.props.value
     },
+    acknowledgeSubscription(kind) {
+      const channel =
+        kind === "messages" ? "user-chat.viewer" : "user-notifications.viewer"
+      channels.get(channel).onSubscribed()
+    },
     emit(kind, payload) {
       const channel =
         kind === "message" ? "user-chat.viewer" : "user-notifications.viewer"
@@ -221,6 +233,64 @@ const message = (overrides = {}) => ({
   attachment: null,
   product: null,
   ...overrides,
+})
+
+test("each realtime subscription refreshes only its own unread count on load and reconnect", async (t) => {
+  const page = await mount(t)
+  page.unreadResponses.messages = () => ({ messages: 3 })
+  page.unreadResponses.notifications = () => 7
+
+  page.acknowledgeSubscription("messages")
+  await settle()
+  assert.deepEqual(page.unreadRequests, ["messages"])
+  assert.deepEqual(page.render().unreadCounts, { messages: 3, notifications: 0 })
+
+  page.acknowledgeSubscription("notifications")
+  await settle()
+  assert.deepEqual(page.unreadRequests, ["messages", "notifications"])
+  assert.deepEqual(page.render().unreadCounts, { messages: 3, notifications: 7 })
+
+  page.acknowledgeSubscription("notifications")
+  page.acknowledgeSubscription("messages")
+  await settle()
+  assert.deepEqual(page.unreadRequests, [
+    "messages",
+    "notifications",
+    "notifications",
+    "messages",
+  ])
+})
+
+test("a notification refresh leaves the pending chat refresh valid and a chat event supersedes a stale count", async (t) => {
+  const page = await mount(t)
+  const chatRefresh = Promise.withResolvers()
+  page.unreadResponses.messages = () => chatRefresh.promise
+  page.unreadResponses.notifications = () => 2
+  page.acknowledgeSubscription("messages")
+  await settle()
+
+  page.acknowledgeSubscription("notifications")
+  await settle()
+  chatRefresh.resolve({ messages: 4 })
+  await settle()
+  assert.deepEqual(page.unreadRequests, ["messages", "notifications"])
+  assert.deepEqual(page.render().unreadCounts, { messages: 4, notifications: 2 })
+
+  const staleRefresh = Promise.withResolvers()
+  const latestRefresh = Promise.withResolvers()
+  page.unreadResponses.messages = () => staleRefresh.promise
+  page.acknowledgeSubscription("messages")
+  await settle()
+  page.emit("message", message())
+  page.unreadResponses.messages = () => latestRefresh.promise
+  staleRefresh.resolve({ messages: 4 })
+  await settle()
+  assert.deepEqual(page.unreadRequests.slice(2), ["messages", "messages"])
+  assert.deepEqual(page.render().unreadCounts, { messages: 5, notifications: 2 })
+
+  latestRefresh.resolve({ messages: 0 })
+  await settle()
+  assert.deepEqual(page.render().unreadCounts, { messages: 0, notifications: 2 })
 })
 
 test("socket events use the Deal Hay sound with background notifications enabled or disabled", async (t) => {

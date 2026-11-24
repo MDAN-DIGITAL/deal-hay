@@ -9,7 +9,6 @@ import {
   useRef,
   useState,
 } from "react"
-import type { Dispatch, SetStateAction } from "react"
 import type { RealtimeClient } from "@/lib/realtime-client"
 import type { ConnectionStatus } from "@/lib/realtime-client"
 import { useRouter } from "next/navigation"
@@ -54,8 +53,7 @@ type RealtimeContextValue = RealtimeConnection & {
   reconnect: () => void
   heartbeatIntervalSeconds: number
   unreadCounts: UnreadCounts
-  setUnreadCounts: Dispatch<SetStateAction<UnreadCounts>>
-  synchronizeUnreadCounts: () => Promise<void>
+  synchronizeUnreadCounts: (kind: keyof UnreadCounts) => Promise<void>
   notificationSoundEnabled: boolean
   toggleNotificationSound: () => void
   testNotificationSound: () => Promise<boolean>
@@ -69,6 +67,8 @@ type ConfigOverride = {
   source: RealtimeConfig | null
   value: RealtimeConfig | null
 }
+
+type UnreadRefresh = { revision: number; pending: Promise<void> | null }
 
 function toastPreview(value: unknown): string | undefined {
   if (typeof value !== "string" || !value.trim()) return undefined
@@ -142,60 +142,38 @@ export function RealtimeProvider({
   useUnreadTabTitle(
     currentUserId ? unreadCounts.messages + unreadCounts.notifications : 0
   )
-  const unreadRevision = useRef(0)
   const mounted = useRef(false)
-  const unreadRefreshRequested = useRef(false)
-  const unreadSynchronization = useRef<Promise<void> | null>(null)
-  const notificationRevision = useRef(0)
-  const setUnreadCounts = useCallback<Dispatch<SetStateAction<UnreadCounts>>>(
-    (nextCounts) => {
-      unreadRevision.current += 1
-      updateUnreadCounts(nextCounts)
-    },
-    []
-  )
-  const synchronizeUnreadCounts = useCallback((): Promise<void> => {
-    // Business notification refresh must never block WSS-owned chat counts.
-    const notificationRequest = ++notificationRevision.current
-    void refreshNotificationCountAction().then((count) => {
-      if (
-        mounted.current &&
-        notificationRevision.current === notificationRequest &&
-        count !== null
-      )
-        setUnreadCounts((previous) => ({ ...previous, notifications: count }))
-    })
-    unreadRevision.current += 1
-    unreadRefreshRequested.current = true
-    if (unreadSynchronization.current) return unreadSynchronization.current
+  const unreadRefresh = useRef<Record<keyof UnreadCounts, UnreadRefresh>>({
+    messages: { revision: 0, pending: null },
+    notifications: { revision: 0, pending: null },
+  })
+  const synchronizeUnreadCounts = useCallback((kind: keyof UnreadCounts) => {
+    const refresh = unreadRefresh.current[kind]
+    refresh.revision += 1
+    if (refresh.pending) return refresh.pending
 
-    const synchronize = async () => {
+    refresh.pending = Promise.resolve().then(async () => {
       try {
-        while (unreadRefreshRequested.current && mounted.current) {
-          unreadRefreshRequested.current = false
-          const revision = unreadRevision.current
-          const counts = await refreshUnreadCountsAction()
+        while (mounted.current) {
+          const revision = refresh.revision
+          const count =
+            kind === "messages"
+              ? (await refreshUnreadCountsAction())?.messages
+              : await refreshNotificationCountAction()
           if (!mounted.current) return
 
-          // A newer event or read invalidates the response already in flight.
-          if (revision !== unreadRevision.current) {
-            unreadRefreshRequested.current = true
-            continue
-          }
-          if (counts)
-            setUnreadCounts((previous) => ({ ...previous, ...counts }))
+          // Another event for this counter may have made the response stale.
+          if (revision !== refresh.revision) continue
+          if (count != null)
+            updateUnreadCounts((previous) => ({ ...previous, [kind]: count }))
+          return
         }
-      } catch {
-        // Keep the current counters when an individual synchronization fails.
       } finally {
-        unreadSynchronization.current = null
+        refresh.pending = null
       }
-    }
-
-    const request = Promise.resolve().then(synchronize)
-    unreadSynchronization.current = request
-    return request
-  }, [setUnreadCounts])
+    })
+    return refresh.pending
+  }, [])
   const [connection, setConnection] = useState<RealtimeConnection>(() => ({
     echo: null,
     status: currentUserId ? (config ? "connecting" : "failed") : "disconnected",
@@ -238,7 +216,6 @@ export function RealtimeProvider({
     mounted.current = true
     return () => {
       mounted.current = false
-      unreadRefreshRequested.current = false
     }
   }, [])
 
@@ -302,6 +279,11 @@ export function RealtimeProvider({
             subscriptionFailed = false
           }
 
+          if (transportStatus === "failed") {
+            void synchronizeUnreadCounts("messages")
+            void synchronizeUnreadCounts("notifications")
+          }
+
           let status = transportStatus
           if (transportStatus === "connected") {
             status = subscriptionFailed
@@ -347,7 +329,7 @@ export function RealtimeProvider({
               return
             }
 
-            setUnreadCounts((previous) => ({
+            updateUnreadCounts((previous) => ({
               ...previous,
               messages: previous.messages + 1,
             }))
@@ -377,7 +359,7 @@ export function RealtimeProvider({
               onOpen: () =>
                 navigateToChat(destination, (href) => router.push(href)),
             })
-            void synchronizeUnreadCounts()
+            void synchronizeUnreadCounts("messages")
           })
           .listen(".messages.read", (payload: unknown) => {
             if (
@@ -387,7 +369,7 @@ export function RealtimeProvider({
               "reader_id" in payload &&
               payload.reader_id === currentUserId
             ) {
-              void synchronizeUnreadCounts()
+              void synchronizeUnreadCounts("messages")
             }
           })
           .subscribed(() => {
@@ -402,13 +384,14 @@ export function RealtimeProvider({
               socketId: instance?.socketId(),
               subscriptionVersion: previous.subscriptionVersion + 1,
             }))
-            void synchronizeUnreadCounts()
+            void synchronizeUnreadCounts("messages")
           })
           .error(() => {
             if (disposed) return
 
             accountSubscribed = false
             subscriptionFailed = true
+            void synchronizeUnreadCounts("messages")
             setConnection((previous) => ({
               ...previous,
               echo: instance ?? null,
@@ -432,7 +415,7 @@ export function RealtimeProvider({
               return
             }
 
-            setUnreadCounts((previous) => ({
+            updateUnreadCounts((previous) => ({
               ...previous,
               notifications: previous.notifications + 1,
             }))
@@ -473,10 +456,17 @@ export function RealtimeProvider({
                 else router.push(destination)
               },
             })
-            void synchronizeUnreadCounts()
+            void synchronizeUnreadCounts("notifications")
           })
-          .listen(".notifications.read", () => void synchronizeUnreadCounts())
-          .subscribed(() => void synchronizeUnreadCounts())
+          .listen(".notifications.read", () => {
+            if (!disposed) void synchronizeUnreadCounts("notifications")
+          })
+          .subscribed(() => {
+            if (!disposed) void synchronizeUnreadCounts("notifications")
+          })
+          .error(() => {
+            if (!disposed) void synchronizeUnreadCounts("notifications")
+          })
 
         unsubscribeConnection = instance.connector.onConnectionChange(
           synchronizeConnection
@@ -485,6 +475,8 @@ export function RealtimeProvider({
       })
       .catch(() => {
         if (disposed) return
+        void synchronizeUnreadCounts("messages")
+        void synchronizeUnreadCounts("notifications")
         setConnection((previous) => ({
           ...previous,
           echo: null,
@@ -505,7 +497,6 @@ export function RealtimeProvider({
     playNotificationSound,
     socketUrl,
     router,
-    setUnreadCounts,
     synchronizeUnreadCounts,
   ])
 
@@ -515,7 +506,6 @@ export function RealtimeProvider({
       reconnect,
       heartbeatIntervalSeconds,
       unreadCounts,
-      setUnreadCounts,
       synchronizeUnreadCounts,
       notificationSoundEnabled,
       toggleNotificationSound,
@@ -528,7 +518,6 @@ export function RealtimeProvider({
       reconnect,
       heartbeatIntervalSeconds,
       unreadCounts,
-      setUnreadCounts,
       synchronizeUnreadCounts,
       notificationSoundEnabled,
       toggleNotificationSound,

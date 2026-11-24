@@ -43,6 +43,6 @@ export async function getCachedChatSession(): Promise<SessionResponse | null> {
   }
   return {
     user,
-    unreadCounts: { messages: session.unreadCounts.messages, notifications: 0 },
+    unreadCounts: session.unreadCounts,
   }
 }

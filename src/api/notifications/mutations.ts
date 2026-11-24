@@ -1,15 +1,18 @@
 import { apiFetch } from "@/api/client"
+import { wssFetch } from "@/api/wss-client"
 import { notificationRoutes } from "@/api/notifications/routes"
 import type { ApiMessageResponse } from "@/types/common"
 
-export function markAllNotificationsRead(): Promise<ApiMessageResponse> {
-  return apiFetch({ method: "PATCH", path: notificationRoutes.readAll })
+type NotificationReadResponse = ApiMessageResponse & { read_at: string }
+
+export function markAllNotificationsRead(): Promise<NotificationReadResponse> {
+  return wssFetch({ method: "PATCH", path: notificationRoutes.readAll })
 }
 
 export function markVisibleNotificationsRead(
   notificationIds: string[]
-): Promise<ApiMessageResponse> {
-  return apiFetch({
+): Promise<NotificationReadResponse> {
+  return wssFetch({
     method: "PATCH",
     path: notificationRoutes.readVisible,
     body: { notification_ids: notificationIds },

@@ -3,12 +3,12 @@ import { invalidateQueries } from "@/lib/query-cache"
 import { ApiError } from "@/api/client"
 import { apiFetch } from "@/api/client"
 import { getSessionId } from "@/lib/session"
+import { startShopChat } from "@/api/chats/browser"
 import {
   deleteReview,
   clearShopReaction,
   followShop,
   reactToShop,
-  startChat,
   unfollowShop,
   upsertReview,
 } from "@/api/catalog/mutations"
@@ -122,7 +122,7 @@ export async function startChatAction(
   variantId?: string
 ): Promise<ActionState & { data?: { conversationSlug: string } }> {
   try {
-    const response = await startChat(shopUserCode, {
+    const response = await startShopChat(shopUserCode, {
       client_message_id: crypto.randomUUID(),
       product: productId,
       variant: variantId,

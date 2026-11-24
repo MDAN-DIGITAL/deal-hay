@@ -25,6 +25,7 @@ const api = moduleUrl(`
   export const requests = []
   export const state = { invalidations: 0, token: "account-a", response: null }
   export const getSessionId = () => state.token
+  export const startShopChat = () => { throw new Error("Unexpected chat request") }
   export const invalidateQueries = () => { state.invalidations++ }
   export async function apiFetch(request) {
     requests.push(request)
@@ -48,6 +49,7 @@ const { reactShopAction, reviewProductAction } = await import(
   transpile("../src/modules/public/actions.ts", {
     "@/api/client": api,
     "@/api/catalog/mutations": mutations,
+    "@/api/chats/browser": api,
     "@/lib/query-cache": api,
     "@/lib/session": api,
     "@/modules/public/schemas/reviews": schemas,

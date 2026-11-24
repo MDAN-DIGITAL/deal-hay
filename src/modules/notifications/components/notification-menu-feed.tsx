@@ -177,10 +177,12 @@ export function NotificationMenuFeed({
           index += 50
         ) {
           const batch = needed.slice(index, index + 50)
-          await markVisibleNotificationsRead(batch)
-          if (active.current) applyRead(batch, new Date().toISOString())
+          const { read_at } = await markVisibleNotificationsRead(batch)
+          if (active.current && getSessionId() === session)
+            applyRead(batch, read_at)
         }
-        if (getSessionId() === session) void synchronizeUnreadCounts()
+        if (getSessionId() === session)
+          void synchronizeUnreadCounts("notifications")
       } finally {
         needed.forEach((id) => pendingReads.current.delete(id))
       }
@@ -200,9 +202,10 @@ export function NotificationMenuFeed({
     const ids = items.filter((item) => !item.read_at).map((item) => item.id)
     setMarkingAll(true)
     try {
-      await markAllNotificationsRead()
-      if (active.current) applyRead(ids, new Date().toISOString())
-      if (getSessionId() === session) void synchronizeUnreadCounts()
+      const { read_at } = await markAllNotificationsRead()
+      if (active.current && getSessionId() === session) applyRead(ids, read_at)
+      if (getSessionId() === session)
+        void synchronizeUnreadCounts("notifications")
     } catch {
       if (active.current) toast.error("Chưa thể đánh dấu thông báo đã đọc.")
     } finally {

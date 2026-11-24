@@ -1,12 +1,12 @@
 import { invalidateQueries } from "@/lib/query-cache"
 
 import { ApiError } from "@/api/client"
+import { startAdminChat } from "@/api/chats/browser"
 import {
   createCategory,
   deleteCategory,
   deleteShopProduct,
   reviewTicket,
-  startAdminChat,
   toggleUserLock,
   updateCategory,
 } from "@/api/admin/mutations"

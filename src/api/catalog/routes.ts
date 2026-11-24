@@ -4,7 +4,6 @@ export const catalogRoutes = {
   shop: (shopUserCode: string) => `/shops/${shopUserCode}`,
   product: (shopUserCode: string, productSlug: string) =>
     `/shops/${shopUserCode}/products/${productSlug}`,
-  startChat: (shopUserCode: string) => `/shops/${shopUserCode}/chat`,
   follow: (shopUserCode: string) => `/shops/${shopUserCode}/follow`,
   reaction: (shopUserCode: string) => `/shops/${shopUserCode}/reaction`,
   review: (shopUserCode: string, productSlug: string) =>

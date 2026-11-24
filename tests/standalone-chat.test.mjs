@@ -37,6 +37,7 @@ const sessions = await import(sessionUrl)
 const clientUrl = transpile("../src/api/wss-client.ts", {
   "@/api/client": mocks,
   "@/lib/wss-session": sessionUrl,
+  "@/lib/session": mocks,
 })
 const { wssFetch } = await import(clientUrl)
 const routesUrl = transpile("../src/api/chats/routes.ts")
@@ -48,6 +49,14 @@ const browserUrl = transpile("../src/api/chats/browser.ts", {
   ),
 })
 const browser = await import(browserUrl)
+const notificationRoutesUrl = transpile("../src/api/notifications/routes.ts")
+const notificationImports = {
+  "@/api/client": mocks,
+  "@/api/wss-client": clientUrl,
+  "@/api/notifications/routes": notificationRoutesUrl,
+}
+const notifications = await import(transpile("../src/api/notifications/queries.ts", notificationImports))
+const notificationMutations = await import(transpile("../src/api/notifications/mutations.ts", notificationImports))
 const queries = await import(
   transpile("../src/api/chats/queries.ts", {
     "@/api/wss-client": clientUrl,
@@ -136,6 +145,35 @@ test("concurrent initial chat operations share one bootstrap request", async () 
   ])
   assert.equal(state.apiCalls.length, 1)
   assert.equal(new Set(result.map(({ token }) => token)).size, 1)
+})
+
+test("notifications and chat entry points use WSS without Laravel after ticket issuance", async (t) => {
+  await sessions.getWssSession()
+  state.apiError = new Error("API is offline")
+  const calls = []
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(options.headers.get("Authorization"), `Bearer ${state.response.token}`)
+    assert.equal(options.credentials, "omit")
+    calls.push([options.method, url])
+    return Response.json({ notifications: 3 })
+  })
+
+  await notifications.getNotifications(2)
+  assert.equal(await notifications.getUnreadNotificationCount(), 3)
+  await notificationMutations.markVisibleNotificationsRead(["notification"])
+  await notificationMutations.markAllNotificationsRead()
+  await browser.startShopChat("shop-code", {})
+  await browser.startAdminChat("user-id")
+
+  assert.deepEqual(calls, [
+    ["GET", "https://wss.example.test/notifications?page=2"],
+    ["GET", "https://wss.example.test/notifications/unread-count"],
+    ["PATCH", "https://wss.example.test/notifications/read-visible"],
+    ["PATCH", "https://wss.example.test/notifications/read-all"],
+    ["POST", "https://wss.example.test/chats/shops/shop-code/start"],
+    ["POST", "https://wss.example.test/chats/users/user-id/start"],
+  ])
+  assert.equal(state.apiCalls.length, 1)
 })
 
 test("chat history, writes, read receipts and presence go directly to WSS during API outage", async (t) => {

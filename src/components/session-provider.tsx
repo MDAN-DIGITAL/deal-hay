@@ -68,16 +68,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           .catch(() => null)
           .then((fallback) => {
             if (fallback && !accountResolved && current())
-              setSession((previous) => ({
+              setSession({
                 ...fallback,
-                unreadCounts: {
-                  ...fallback.unreadCounts,
-                  notifications: previous.unreadCounts.notifications,
-                },
                 loading: false,
                 offlineChat: true,
                 accountLoading: true,
-              }))
+              })
           })
       void getCurrentSession()
         .then((data) => {
@@ -107,10 +103,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
               fallback
                 ? {
                     ...fallback,
-                    unreadCounts: {
-                      ...fallback.unreadCounts,
-                      notifications: previous.unreadCounts.notifications,
-                    },
                     loading: false,
                     offlineChat: true,
                     accountLoading: false,

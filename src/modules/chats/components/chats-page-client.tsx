@@ -268,7 +268,7 @@ export function ChatsPageClient({
         ) {
           markAsReadRef.current()
         }
-        await synchronizeUnreadCounts()
+        await synchronizeUnreadCounts("messages")
       }
     })().finally(() => {
       synchronization.current = null
@@ -337,7 +337,7 @@ export function ChatsPageClient({
         } else {
           synchronize()
         }
-        await synchronizeUnreadCounts()
+        await synchronizeUnreadCounts("messages")
         if (showConfirmation) toast.success(result.message)
       })
     },
@@ -394,7 +394,8 @@ export function ChatsPageClient({
         (revisions.get(event.conversation_id) ?? 0) + 1
       )
       setState((current) => receiveReadReceipt(current, event, currentUserId))
-      if (event.reader_id === currentUserId) void synchronizeUnreadCounts()
+      if (event.reader_id === currentUserId)
+        void synchronizeUnreadCounts("messages")
     },
     [currentUserId, synchronizeUnreadCounts]
   )

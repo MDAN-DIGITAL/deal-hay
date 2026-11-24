@@ -30,7 +30,7 @@ const apiUrl = moduleUrl(`
   export function invalidateQueries(path) { state.revalidated.push(path) }
   export const getSessionId = () => null
   export const deleteReview = () => {}; export const followShop = () => {}; export const reactToShop = () => {}; export const clearShopReaction = () => {};
-  export const startChat = () => {}; export const unfollowShop = () => {}; export const upsertReview = () => {};
+  export const startShopChat = () => {}; export const unfollowShop = () => {}; export const upsertReview = () => {};
 `)
 const validationUrl = transpileModule("../src/lib/validation.ts", {
   zod: import.meta.resolve("zod"),
@@ -52,6 +52,7 @@ const actions = await import(
     "@/lib/session": apiUrl,
     "@/api/client": apiUrl,
     "@/api/catalog/mutations": apiUrl,
+    "@/api/chats/browser": apiUrl,
     "@/modules/public/schemas/reviews": reviewUrl,
     "@/modules/public/schemas/checkout": checkoutUrl,
   })

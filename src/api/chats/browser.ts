@@ -9,6 +9,23 @@ import type {
 import type { ChatMessage } from "@/types/chat"
 import type { SessionUser } from "@/types/auth"
 
+export function startShopChat(
+  shopCode: string,
+  payload: { client_message_id?: string; product?: string; variant?: string }
+): Promise<{ conversation: { id: string; slug: string }; replayed: boolean }> {
+  return wssFetch({
+    method: "POST",
+    path: chatRoutes.startShop(shopCode),
+    body: payload,
+  })
+}
+
+export function startAdminChat(
+  userId: string
+): Promise<{ conversation: { id: string; slug: string } }> {
+  return wssFetch({ method: "POST", path: chatRoutes.startAdmin(userId) })
+}
+
 export async function getUnreadMessageCount(): Promise<number | null> {
   const data = await wssFetch<{ messages: number } | SessionUser>({
     path: "/auth/me",

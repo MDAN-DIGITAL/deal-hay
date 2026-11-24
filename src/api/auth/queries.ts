@@ -2,16 +2,6 @@ import { apiFetch, ApiError } from "@/api/client"
 import { authRoutes } from "@/api/auth/routes"
 import type { SessionResponse, MeResponse } from "@/api/auth/types"
 
-export async function getUnreadNotificationCount(): Promise<number> {
-  const data = await apiFetch<{ notifications: number } | MeResponse>({
-    path: authRoutes.me,
-    searchParams: { view: "unread-notifications" },
-  })
-  return "notifications" in data
-    ? data.notifications
-    : data.meta.unread_notifications_count
-}
-
 export async function getCurrentSession(): Promise<
   SessionResponse & { session: string | null }
 > {
@@ -22,14 +12,14 @@ export async function getCurrentSession(): Promise<
   }
 
   try {
-    const response = await apiFetch<MeResponse>({ path: authRoutes.me })
+    const response = await apiFetch<MeResponse>({
+      path: authRoutes.me,
+      searchParams: { view: "identity" },
+    })
     return {
       user: response.data,
       session: response.session,
-      unreadCounts: {
-        messages: response.meta.unread_messages_count,
-        notifications: response.meta.unread_notifications_count,
-      },
+      unreadCounts: guestSession.unreadCounts,
     }
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {

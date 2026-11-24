@@ -25,10 +25,6 @@ export type ResetPasswordPayload = {
 export type MeResponse = {
   data: User
   session: string
-  meta: {
-    unread_messages_count: number
-    unread_notifications_count: number
-  }
 }
 export type LoginResponse = AuthPayload
 export type PasswordChangeResponse = Omit<AuthPayload, "session"> & {

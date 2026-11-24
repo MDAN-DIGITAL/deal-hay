@@ -1,4 +1,5 @@
 import { ApiError } from "@/api/client"
+import { getSessionId } from "@/lib/session"
 import { clearWssSession, getWssSession } from "@/lib/wss-session"
 import type { ApiRequestOptions } from "@/api/client"
 
@@ -6,7 +7,12 @@ export function wssFetch<T>(
   options: ApiRequestOptions,
   isCurrent?: () => boolean
 ): Promise<T> {
-  return requestWss<T>(options, true, isCurrent)
+  const sessionId = getSessionId()
+  return requestWss<T>(
+    options,
+    true,
+    () => getSessionId() === sessionId && (isCurrent?.() ?? true)
+  )
 }
 
 async function requestWss<T>(
@@ -19,13 +25,13 @@ async function requestWss<T>(
     signal,
   }: ApiRequestOptions,
   renewSession: boolean,
-  isCurrent?: () => boolean
+  isCurrent: () => boolean
 ): Promise<T> {
   if (!path.startsWith("/") || path.startsWith("//") || /[?#\\]/.test(path))
     throw new Error("Invalid WSS request path")
-  if (isCurrent && !isCurrent()) throw new Error("Phiên đăng nhập đã thay đổi.")
+  if (!isCurrent()) throw new Error("Phiên đăng nhập đã thay đổi.")
   const session = await getWssSession()
-  if (isCurrent && !isCurrent()) throw new Error("Phiên đăng nhập đã thay đổi.")
+  if (!isCurrent()) throw new Error("Phiên đăng nhập đã thay đổi.")
   const query = new URLSearchParams()
   for (const [key, value] of Object.entries(searchParams ?? {}))
     if (value !== undefined && value !== null && value !== "")
@@ -62,7 +68,7 @@ async function requestWss<T>(
   )
   const data =
     response.status === 204 ? {} : await response.json().catch(() => ({}))
-  if (isCurrent && !isCurrent()) throw new Error("Phiên đăng nhập đã thay đổi.")
+  if (!isCurrent()) throw new Error("Phiên đăng nhập đã thay đổi.")
   if (!response.ok) {
     if (response.status === 401) {
       clearWssSession(session.token)
@@ -77,8 +83,7 @@ async function requestWss<T>(
     }
     throw new ApiError(response.status, {
       ...data,
-      message:
-        data.message ?? "Không thể xử lý yêu cầu chat. Vui lòng thử lại.",
+      message: data.message ?? "Không thể xử lý yêu cầu. Vui lòng thử lại.",
     })
   }
   return data as T

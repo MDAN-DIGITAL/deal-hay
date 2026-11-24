@@ -12,7 +12,7 @@ import type { UnreadCounts } from "@/types/auth"
 import type { ActionState } from "@/types/forms"
 import { sendMessageUploadSchema } from "@/modules/chats/schemas/chats"
 import type { ChatMessage } from "@/types/chat"
-import { getUnreadNotificationCount } from "@/api/auth/queries"
+import { getUnreadNotificationCount } from "@/api/notifications/queries"
 
 export type SendMessageActionState = ActionState & { data?: ChatMessage }
 export type ChatHistoryActionState = ActionState & {

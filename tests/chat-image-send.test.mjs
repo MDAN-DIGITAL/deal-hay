@@ -51,7 +51,7 @@ const { sendMessageAction, refreshUnreadCountsAction } = await import(
   transpileModule("../src/modules/chats/actions.ts", {
     "@/api/live-client": apiUrl,
     "@/api/chats/browser": apiUrl,
-    "@/api/auth/queries": apiUrl,
+    "@/api/notifications/queries": apiUrl,
     "@/modules/chats/schemas/chats": schemaUrl,
   })
 )
