@@ -100,7 +100,10 @@ export async function signUpAction(
     return { success: false, message: "Không thể đăng ký. Vui lòng thử lại." }
   }
 
-  window.location.assign(getSafeAuthRedirect(redirectTo))
+  const destination = getSafeAuthRedirect(redirectTo)
+  window.location.replace(
+    "/profile/interests?welcome=1&redirect=" + encodeURIComponent(destination)
+  )
   return { success: true, message: "" }
 }
 

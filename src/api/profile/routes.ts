@@ -1,5 +1,6 @@
 export const profileRoutes = {
   me: "/private/profile/me",
+  interests: "/private/profile/interests",
   updateMe: "/private/profile/me",
   updatePassword: "/private/me/password",
   avatar: "/private/me/avatar",

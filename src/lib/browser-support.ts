@@ -5,200 +5,170 @@ const minimumVersions = {
   safari: "17.2",
   ios: "17.2",
   chromium: "120",
-}
+} as const
 
-export type BrowserFamily = keyof typeof minimumVersions | "legacy" | "unknown"
+type SupportedBrowser = keyof typeof minimumVersions
+export type BrowserFamily = SupportedBrowser | "legacy" | "unknown"
+type Platform = "android" | "desktop" | "ios"
 
-type BrowserCheck = (
+type BrowserCheck =
   | { status: "allowed" }
   | {
-      status: "update" | "unverified"
-      browser: BrowserFamily
+      status: "update"
+      browser: SupportedBrowser
       name: string
       version: string
       minimum: string
-      android: boolean
+      platform: Platform
     }
-) & { fullVersionHint?: true }
+  | { status: "update"; browser: "legacy"; name: string; platform: Platform }
+  | { status: "unverified"; browser: "unknown"; platform: Platform }
 
-export const FULL_BROWSER_VERSION_HINT = "Sec-CH-UA-Full-Version-List"
+const iosBrowsers = [
+  [/\bCriOS\/(\d+(?:\.\d+)*)\b/i, "chrome", "Google Chrome"],
+  [/\bEdgiOS\/(\d+(?:\.\d+)*)\b/i, "edge", "Microsoft Edge"],
+  [/\bFxiOS\/(\d+(?:\.\d+)*)\b/i, "firefox", "Firefox"],
+] as const
 
-function versionToken(userAgent: string, token: string): string | undefined {
-  return userAgent.match(
-    new RegExp(`\\b(?:${token})/([0-9]+(?:\\.[0-9]+){0,3})`, "i")
-  )?.[1]
-}
+const chromiumBrands = [
+  [/\b(?:OPR|Opera)\//i, "opera", "Opera"],
+  [/\bSamsungBrowser\//i, "samsung internet", "Samsung Internet"],
+  [/\bVivaldi\//i, "vivaldi", "Vivaldi"],
+  [/\bBrave\//i, "brave", "Brave"],
+  [/\bYaBrowser\//i, "yandex", "Yandex Browser"],
+  [/\bcoc_coc_browser\//i, "cốc cốc", "Cốc Cốc"],
+] as const
 
-function brandVersions(header: string) {
-  return new Map(
-    Array.from(
-      header.matchAll(/"([^"]+)";\s*v="(\d+(?:\.\d+){0,3})"/g),
-      ([, brand, version]) => [brand.toLowerCase(), version]
-    )
+const crawlerToken =
+  /\b(?:Googlebot(?:-Image|-News|-Video)?|Mediapartners-Google|AdsBot-Google(?:-Mobile)?|bingbot|DuckDuckBot|YandexBot|Baiduspider|Slurp|facebookexternalhit|Twitterbot|LinkedInBot|Discordbot)\b/i
+
+function isOlder(version: string, minimum: string): boolean {
+  const [major, minor = "0"] = version.split(".", 2)
+  const [minimumMajor, minimumMinor = "0"] = minimum.split(".")
+  const majorDifference = Number(major) - Number(minimumMajor)
+
+  return (
+    majorDifference < 0 ||
+    (majorDifference === 0 && Number(minor) < Number(minimumMinor))
   )
 }
 
-function isOlder(version: string, minimum: string): boolean {
-  const actualParts = version.split(".").map(Number)
-  const minimumParts = minimum.split(".").map(Number)
-
-  for (let index = 0; index < 4; index++) {
-    const difference = (actualParts[index] ?? 0) - (minimumParts[index] ?? 0)
-
-    if (difference !== 0) return difference < 0
-  }
-
-  return false
-}
-
-const chromiumBrands = [
-  ["OPR|Opera", "Opera", "opera"],
-  ["SamsungBrowser", "Samsung Internet", "samsung internet"],
-  ["Vivaldi", "Vivaldi", "vivaldi"],
-  ["Brave", "Brave", "brave"],
-  ["YaBrowser", "Yandex Browser", "yandex"],
-  ["coc_coc_browser", "Cốc Cốc", "cốc cốc"],
-] as const
-
 export function browserSupport(headers: Pick<Headers, "get">): BrowserCheck {
   const userAgent = headers.get("user-agent") ?? ""
+  const ios =
+    /\b(?:iPhone|iPad|iPod|CriOS|EdgiOS|FxiOS)\b|\bCPU OS \d|\bMacintosh\b.*\bMobile\//i.test(
+      userAgent
+    )
+  const platform: Platform = ios
+    ? "ios"
+    : /\bAndroid\b/i.test(userAgent)
+      ? "android"
+      : "desktop"
+  const unverified = {
+    status: "unverified",
+    browser: "unknown",
+    platform,
+  } as const
 
-  // Allow search engine bots and crawlers.
-  if (/bot\b|crawler\b|spider\b|slurp\b|facebookexternalhit/i.test(userAgent)) {
-    return { status: "allowed" }
-  }
-
-  const android = /\bAndroid\b/i.test(userAgent)
-
-  const check = (
-    browser: keyof typeof minimumVersions,
+  const update = (
+    browser: SupportedBrowser,
     name: string,
     version: string
-  ): BrowserCheck => {
-    const minimum = minimumVersions[browser]
+  ): BrowserCheck => ({
+    status: "update",
+    browser,
+    name,
+    version,
+    minimum: minimumVersions[browser],
+    platform,
+  })
 
-    return isOlder(version, minimum)
-      ? {
-          status: "update",
-          browser,
-          name,
-          version,
-          minimum,
-          android,
-        }
+  const check = (
+    browser: SupportedBrowser,
+    name: string,
+    version: string
+  ): BrowserCheck =>
+    isOlder(version, minimumVersions[browser])
+      ? update(browser, name, version)
       : { status: "allowed" }
-  }
 
-  // Detect iOS/iPadOS version.
-  // Browser versions on iOS do not identify the OS WebKit release.
-  const iosVersion = userAgent.match(
-    /\b(?:CPU(?: iPhone)? OS|iPhone OS) (\d+(?:_\d+)*)/i
-  )?.[1]
+  const safariVersion = userAgent.match(/\bVersion\/(\d+(?:\.\d+)*)\b/i)?.[1]
+  if (platform === "ios") {
+    // On iOS/iPadOS, the OS version identifies the available WebKit features.
+    const osVersion = userAgent.match(
+      /\b(?:CPU(?: iPhone)? OS|iPhone OS) (\d+(?:_\d+)*)/i
+    )?.[1]
+    const webkitVersion = osVersion?.replace(/_/g, ".") ?? safariVersion
+    if (!webkitVersion) return unverified
 
-  const safariVersion = versionToken(userAgent, "Version")
+    const webkit = check("ios", "iOS/iPadOS", webkitVersion)
+    if (webkit.status !== "allowed") return webkit
 
-  if (iosVersion) {
-    return check("ios", "iOS/iPadOS", iosVersion.replace(/_/g, "."))
-  }
-
-  // Detect iPadOS desktop mode.
-  if (safariVersion && /\bMacintosh\b.*\bMobile\//i.test(userAgent)) {
-    return check("ios", "iOS/iPadOS", safariVersion)
-  }
-
-  // Microsoft Edge.
-  const edge = versionToken(userAgent, "Edg|EdgA")
-
-  if (edge) {
-    return check("edge", "Microsoft Edge", edge)
-  }
-
-  // Mozilla Firefox.
-  const firefox = versionToken(userAgent, "Firefox")
-
-  if (firefox) {
-    return check("firefox", "Firefox", firefox)
-  }
-
-  // Legacy Microsoft Edge.
-  const legacyEdge = versionToken(userAgent, "Edge")
-
-  if (legacyEdge) {
-    return check("edge", "Microsoft Edge", legacyEdge)
-  }
-
-  // Chrome, Chromium and Chromium-based browsers.
-  const chrome = versionToken(userAgent, "Chrome|Chromium|HeadlessChrome")
-
-  if (chrome) {
-    const brands = brandVersions(headers.get("sec-ch-ua") ?? "")
-
-    const fullVersions = brandVersions(
-      headers.get(FULL_BROWSER_VERSION_HINT) ?? ""
-    )
-
-    // Detect Chromium-based browsers.
-    for (const [token, name, brand] of chromiumBrands) {
-      if (
-        versionToken(userAgent, token) ||
-        brands.has(brand) ||
-        fullVersions.has(brand)
-      ) {
-        return check("chromium", name, chrome)
-      }
+    for (const [pattern, browser, name] of iosBrowsers) {
+      const version = userAgent.match(pattern)?.[1]
+      if (version) return check(browser, name, version)
     }
-
-    // Android System WebView.
-    if (android && /; wv\)|\bVersion\/4\.0\b/.test(userAgent)) {
-      return check("chromium", "Android System WebView", chrome)
-    }
-
-    // Detect Chromium.
-    if (
-      /\bChromium\//.test(userAgent) ||
-      (brands.has("chromium") &&
-        !brands.has("google chrome") &&
-        !brands.has("headlesschrome") &&
-        !fullVersions.has("google chrome") &&
-        !/\bHeadlessChrome\//.test(userAgent))
-    ) {
-      return check("chromium", "Chromium", chrome)
-    }
-
-    // Google Chrome.
-    // Major version 120 or higher is sufficient.
-    return check("chrome", "Google Chrome", chrome)
+    return webkit
   }
 
-  // Safari on macOS.
-  if (safariVersion && /\bSafari\//.test(userAgent)) {
-    return check("safari", "Safari", safariVersion)
-  }
-
-  // Internet Explorer.
-  const legacy = userAgent
-    .match(/\bMSIE (\d+(?:\.\d+)?)|\bTrident\/.*\brv:(\d+(?:\.\d+)?)/)
-    ?.slice(1)
-    .find(Boolean)
-
-  if (legacy) {
+  if (/\b(?:MSIE |Trident\/)/i.test(userAgent)) {
     return {
       status: "update",
       browser: "legacy",
       name: "Internet Explorer",
-      version: legacy,
-      minimum: "120",
-      android,
+      platform,
     }
   }
 
-  // Unknown or unsupported browser.
-  return {
-    status: "unverified",
-    browser: "unknown",
-    name: "Unknown browser",
-    version: "Unknown",
-    minimum: "120",
-    android,
+  const edge = userAgent.match(/\b(?:EdgA?|Edge)\/(\d+(?:\.\d+)*)\b/i)?.[1]
+  if (edge) return check("edge", "Microsoft Edge", edge)
+
+  const firefox = userAgent.match(/\bFirefox\/(\d+(?:\.\d+)*)\b/i)?.[1]
+  if (firefox) return check("firefox", "Firefox", firefox)
+
+  const chrome = userAgent.match(
+    /\b(Chrome|Chromium|HeadlessChrome)\/(\d+(?:\.\d+)*)\b/i
+  )
+  if (chrome) {
+    const [, token, version] = chrome
+    // Chromium forks and Android WebViews share the Chrome engine version.
+    // The major version is available in both the full and reduced User-Agent.
+    if (!isOlder(version, minimumVersions.chromium))
+      return { status: "allowed" }
+
+    const brands = (headers.get("sec-ch-ua") ?? "").toLowerCase()
+    for (const [pattern, brand, name] of chromiumBrands) {
+      if (pattern.test(userAgent) || brands.includes(`"${brand}"`)) {
+        return update("chromium", name, version)
+      }
+    }
+
+    if (platform === "android" && /; wv\)|\bVersion\/4\.0\b/i.test(userAgent)) {
+      return update("chromium", "Android System WebView", version)
+    }
+
+    if (
+      token.toLowerCase() === "chromium" ||
+      (token.toLowerCase() === "chrome" &&
+        brands.includes('"chromium"') &&
+        !brands.includes('"google chrome"'))
+    ) {
+      return update("chromium", "Chromium", version)
+    }
+
+    return update("chrome", "Google Chrome", version)
   }
+
+  if (
+    platform === "desktop" &&
+    safariVersion &&
+    /\bSafari\//i.test(userAgent)
+  ) {
+    return check("safari", "Safari", safariVersion)
+  }
+
+  // Search crawlers and link previews may omit a browser version altogether.
+  if (crawlerToken.test(userAgent)) return { status: "allowed" }
+
+  return unverified
 }

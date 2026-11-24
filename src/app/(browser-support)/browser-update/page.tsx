@@ -4,7 +4,7 @@ import { MonitorUpIcon } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Brand } from "@/components/ui/brand"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import {
   Empty,
@@ -44,7 +44,7 @@ const guides: Record<BrowserFamily, { steps: string; href?: string }> = {
   },
   ios: {
     steps:
-      "Mở Cài đặt → Cài đặt chung → Cập nhật phần mềm. Cập nhật iOS hoặc iPadOS lên phiên bản 17.2 trở lên, rồi mở lại trình duyệt.",
+      "Mở Cài đặt → Cài đặt chung → Cập nhật phần mềm. Cài bản cập nhật iOS hoặc iPadOS được cung cấp rồi mở lại trình duyệt.",
     href: "https://support.apple.com/vi-vn/102665",
   },
   chromium: {
@@ -71,24 +71,27 @@ export default async function BrowserUpdatePage() {
   let steps = guide.steps
   let guideHref = guide.href
 
-  // Unknown browser.
-  if (blocked && result.browser === "unknown") {
-    steps = result.android
-      ? "Deal Hay chưa xác minh được trình duyệt Android của bạn. Hãy cập nhật Google Chrome trên Google Play hoặc sử dụng trình duyệt Chrome mới nhất."
-      : guide.steps
-
-    guideHref = result.android
-      ? "https://play.google.com/store/apps/details?id=com.android.chrome"
-      : guide.href
-  }
-  // Android browsers.
-  else if (blocked && result.android) {
-    steps =
-      result.name === "Android System WebView"
-        ? "Mở Google Play và cập nhật Android System WebView cùng Google Chrome. Sau đó, mở lại ứng dụng hoặc mở Deal Hay bằng Chrome."
-        : `Mở Google Play, tìm ${result.name} và chọn Cập nhật. Sau đó, mở lại trình duyệt.`
-
-    guideHref = "https://support.google.com/googleplay/answer/113412?hl=vi"
+  if (blocked && result.platform === "android") {
+    if (result.browser === "unknown") {
+      steps =
+        "Deal Hay chưa xác minh được trình duyệt Android của bạn. Hãy cập nhật Google Chrome trên Google Play và thử lại."
+      guideHref =
+        "https://play.google.com/store/apps/details?id=com.android.chrome"
+    } else {
+      steps =
+        result.name === "Android System WebView"
+          ? "Mở Google Play và cập nhật Android System WebView cùng Google Chrome. Sau đó, mở lại ứng dụng hoặc mở Deal Hay bằng Chrome."
+          : `Mở Google Play, tìm ${result.name} và chọn Cập nhật. Sau đó, mở lại trình duyệt.`
+      guideHref = "https://support.google.com/googleplay/answer/113412?hl=vi"
+    }
+  } else if (blocked && result.platform === "ios" && result.browser !== "ios") {
+    if (result.browser === "unknown") {
+      steps = guides.ios.steps
+      guideHref = guides.ios.href
+    } else {
+      steps = `Mở App Store, chạm vào ảnh tài khoản rồi chọn Cập nhật bên cạnh ${result.name}. Sau đó, mở lại trình duyệt.`
+      guideHref = "https://support.apple.com/vi-vn/102629"
+    }
   }
 
   let description = "Cài phiên bản trình duyệt mới nhất để sử dụng Deal Hay."
@@ -138,21 +141,23 @@ export default async function BrowserUpdatePage() {
           </Alert>
 
           <ButtonGroup>
-            <Button
-              nativeButton={false}
-              render={<a href={blocked ? "" : "/"} />}
+            <a
+              data-slot="button"
+              className={buttonVariants()}
+              href={blocked ? "" : "/"}
             >
               {blocked ? "Kiểm tra lại" : "Về Deal Hay"}
-            </Button>
+            </a>
 
             {guideHref ? (
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={<a href={guideHref} rel="noreferrer" />}
+              <a
+                data-slot="button"
+                className={buttonVariants({ variant: "outline" })}
+                href={guideHref}
+                rel="noreferrer"
               >
                 Hướng dẫn chính thức
-              </Button>
+              </a>
             ) : null}
           </ButtonGroup>
         </EmptyContent>

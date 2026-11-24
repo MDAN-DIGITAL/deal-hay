@@ -1,27 +1,25 @@
 import { NextResponse, type NextRequest } from "next/server"
 
-import {
-  browserSupport,
-  FULL_BROWSER_VERSION_HINT,
-} from "@/lib/browser-support"
+import { browserSupport } from "@/lib/browser-support"
 
 export function proxy(request: NextRequest) {
   const browser = browserSupport(request.headers)
-  const response =
-    browser.status === "allowed"
-      ? NextResponse.next()
-      : NextResponse.rewrite(new URL("/browser-update", request.url))
-  if (browser.status !== "allowed")
-    response.headers.set("Cache-Control", "private, no-store")
-  if (browser.fullVersionHint)
-    response.headers.set("Accept-CH", FULL_BROWSER_VERSION_HINT)
-  if (browser.status === "unverified")
-    response.headers.set("Critical-CH", FULL_BROWSER_VERSION_HINT)
-  return response
+
+  if (browser.status === "allowed") return NextResponse.next()
+
+  const headers = { "Cache-Control": "private, no-store" }
+  if (request.method === "GET" || request.method === "HEAD") {
+    return NextResponse.rewrite(new URL("/browser-update", request.url), {
+      headers,
+    })
+  }
+
+  return new NextResponse(null, { status: 403, headers })
 }
 
 export const config = {
   matcher: [
-    "/((?!_next(?:/|$)|api(?:/|$)|browser-update(?:/|$)|.*\\.(?:svg|png|ico|txt|xml|js|webmanifest)$).*)",
+    // Exclude exact public asset paths so a file-like product slug is still checked.
+    "/((?!_next/(?:static|image|webpack-hmr)(?:/|$)|(?:browser-update|ads\\.txt|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|favicon\\.ico|apple-icon\\.png|icon\\.svg|notification-(?:worker\\.js|badge\\.png|icon-(?:192|512)\\.png)|dealhay-(?:logo\\.svg|home-banner\\.webp|social\\.png))$).*)",
   ],
 }

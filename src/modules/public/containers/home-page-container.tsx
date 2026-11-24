@@ -197,18 +197,20 @@ export function HomePageContainer({
   initialData?: HomeResponse
   initialError?: string
 }) {
-  const { data, error } = useApiQuery(
+  const canPersonalize = !category && !search
+  const query = useApiQuery(
     JSON.stringify(["home", category, page, search]),
     () => getHome(category, page, search),
     {
       initialData,
       initialError,
-      revalidateOnMount: false,
-      sessionSensitive: false,
+      revalidateOnMount: canPersonalize ? "authenticated" : false,
+      sessionSensitive: canPersonalize,
     }
   )
 
-  if (!data) return <QueryPlaceholder error={error} />
+  const data = query.data ?? initialData
+  if (!data) return <QueryPlaceholder error={query.error} />
 
   const activeCategory = data.filters.category
   const activeSearch = data.filters.q ?? search ?? ""
@@ -282,7 +284,10 @@ export function HomePageContainer({
               >
                 {activeSearch
                   ? `Kết quả cho “${activeSearch}”`
-                  : activeCategory || "Tất cả sản phẩm"}
+                  : activeCategory ||
+                    (data.personalized
+                      ? "Sản phẩm dành cho bạn"
+                      : "Tất cả sản phẩm")}
               </CardTitle>
               <p aria-live="polite" className="text-sm text-muted-foreground">
                 {products.from && products.to && products.last_page > 1

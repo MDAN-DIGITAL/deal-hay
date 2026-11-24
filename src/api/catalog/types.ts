@@ -19,6 +19,7 @@ export type HomeResponse = {
   }
   categories: string[]
   filters: { category: string; q?: string }
+  personalized?: boolean
 }
 
 export type PublicShopsResponse = {

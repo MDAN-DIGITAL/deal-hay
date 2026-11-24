@@ -14,6 +14,12 @@ import type {
 } from "@/types/shop"
 
 export type ProfileResponse = { auth: { user: User } }
+
+export type ProductInterestsResponse = {
+  categories: { id: string; name: string }[]
+  interested_category_ids: string[]
+}
+
 export type ShopManageResponse = {
   categories?: ShopCategory[]
   products?: ShopProduct[]

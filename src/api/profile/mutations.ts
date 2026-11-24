@@ -3,6 +3,18 @@ import { profileRoutes } from "@/api/profile/routes"
 import type { ApiMessageResponse } from "@/types/common"
 import type { PasswordChangeResponse } from "@/api/auth/types"
 
+export function updateProductInterests(
+  categoryIds: string[],
+  expectedSession: string
+): Promise<void> {
+  return apiFetch({
+    method: "PUT",
+    path: profileRoutes.interests,
+    body: { interested_category_ids: categoryIds },
+    expectedSession,
+  })
+}
+
 export function updateProfile(
   payload: Record<string, unknown>
 ): Promise<ApiMessageResponse<Record<string, unknown>>> {
