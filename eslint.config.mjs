@@ -40,6 +40,14 @@ const eslintConfig = defineConfig([
           message:
             "Use DatePicker from @/components/ui/date-picker instead of a browser date/time picker.",
         },
+        {
+          selector:
+            "JSXOpeningElement[name.name=/^(Input|Textarea|PasswordInput|InputGroupInput|InputGroupTextarea|SidebarInput|CommandInput|ComboboxInput|ComboboxChipsInput|QuestionnaireInput|InputOTP|FormSelect|AppSelect|DatePicker|SelectValue)$/]" +
+            ":not([name.name='Input']:has(> JSXAttribute[name.name='type'][value.value=/^(button|checkbox|color|file|hidden|image|radio|range|reset|submit)$/]))" +
+            ":not(:has(> JSXAttribute[name.name='placeholder'][value]:not([value.value=/^\\s*$/])))",
+          message:
+            "Provide a placeholder that describes what to enter or select.",
+        },
       ],
     },
   },

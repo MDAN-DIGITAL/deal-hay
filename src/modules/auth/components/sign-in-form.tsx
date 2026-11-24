@@ -136,6 +136,7 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
                     <PasswordInput
                       autoComplete="current-password"
                       maxLength={255}
+                      placeholder="Nhập mật khẩu"
                       {...field}
                       disabled={isPending}
                       onChange={(event) => {
@@ -190,6 +191,7 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
                           disabled={isPending}
                           inputMode="numeric"
                           maxLength={6}
+                          placeholder="Nhập mã gồm 6 chữ số"
                           type="text"
                           {...field}
                         />

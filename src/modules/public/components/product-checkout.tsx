@@ -850,6 +850,8 @@ export function ProductCheckout({
                               {...field}
                               type="number"
                               inputMode="numeric"
+                              placeholder="1"
+                              value={field.value === 0 ? "" : field.value}
                               min={1}
                               max={maxQuantity}
                               className="w-16 [appearance:textfield] text-center shadow-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"

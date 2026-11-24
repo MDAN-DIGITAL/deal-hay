@@ -182,6 +182,7 @@ export async function shopOwnerUpgradeAction(
   try {
     const response = await createShopOwnerUpgrade({
       ...parsed.data,
+      shop_description: parsed.data.shop_description || undefined,
       message: parsed.data.message || undefined,
     })
     return { success: true, message: response.message }

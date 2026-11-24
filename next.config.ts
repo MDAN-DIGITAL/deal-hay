@@ -8,6 +8,7 @@ const publicMediaPattern = publicMediaRemotePattern(
 )
 
 const nextConfig: NextConfig = {
+  reactStrictMode: false,
   images: {
     remotePatterns: publicMediaPattern ? [publicMediaPattern] : [],
     qualities: [75],

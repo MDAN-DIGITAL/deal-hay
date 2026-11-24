@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 export function PasswordInput({
   className,
   disabled,
+  placeholder,
   ...props
 }: Omit<ComponentProps<"input">, "type">) {
   const [visible, setVisible] = useState(false)
@@ -21,6 +22,7 @@ export function PasswordInput({
         startIcon={<LockKeyholeIcon />}
         className={cn("pr-11", className)}
         disabled={disabled}
+        placeholder={placeholder}
         type={visible ? "text" : "password"}
       />
       <Button

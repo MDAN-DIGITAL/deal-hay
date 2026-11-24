@@ -275,7 +275,11 @@ function ProductInventoryForm({ product }: { product: ShopInventoryProduct }) {
                       value: variant.id,
                     }
                   })}
-                  placeholder="Không có biến thể đang hoạt động"
+                  placeholder={
+                    availableVariants.length > 0
+                      ? "Chọn biến thể sản phẩm"
+                      : "Không có biến thể đang hoạt động"
+                  }
                   value={field.value}
                   onBlur={field.onBlur}
                   onValueChange={field.onChange}
@@ -296,6 +300,7 @@ function ProductInventoryForm({ product }: { product: ShopInventoryProduct }) {
                   <Input
                     startIcon={<HashIcon />}
                     inputMode="numeric"
+                    placeholder="Ví dụ: 10 hoặc -5"
                     type="number"
                     {...field}
                     value={Number.isFinite(field.value) ? field.value : ""}
@@ -617,7 +622,12 @@ function ShopProfileForm({ user }: { user: ShopManagementUser }) {
               <FormItem>
                 <FormLabel>Tên shop</FormLabel>
                 <FormControl>
-                  <Input startIcon={<StoreIcon />} type="text" {...field} />
+                  <Input
+                    startIcon={<StoreIcon />}
+                    placeholder="Nhập tên shop"
+                    type="text"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -634,6 +644,7 @@ function ShopProfileForm({ user }: { user: ShopManagementUser }) {
                     startIcon={<MailIcon />}
                     autoComplete="email"
                     inputMode="email"
+                    placeholder="shop@example.com"
                     type="text"
                     {...field}
                     disabled={isPending}
@@ -698,6 +709,7 @@ function ShopProfileForm({ user }: { user: ShopManagementUser }) {
                   <Input
                     startIcon={<PhoneIcon />}
                     inputMode="tel"
+                    placeholder="Nhập số điện thoại shop"
                     type="text"
                     {...field}
                   />
@@ -718,7 +730,12 @@ function ShopProfileForm({ user }: { user: ShopManagementUser }) {
               <FormItem className="md:col-span-2">
                 <FormLabel>Địa chỉ chi tiết</FormLabel>
                 <FormControl>
-                  <Input startIcon={<MapPinIcon />} type="text" {...field} />
+                  <Input
+                    startIcon={<MapPinIcon />}
+                    placeholder="Số nhà, tên đường hoặc thôn/xóm"
+                    type="text"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -1575,7 +1592,7 @@ export function ShopManagementClient({
                     aria-label="Trạng thái sản phẩm"
                     className="w-full sm:w-52"
                   >
-                    <SelectValue />
+                    <SelectValue placeholder="Chọn trạng thái sản phẩm" />
                   </SelectTrigger>
                   <SelectContent>
                     {productFilterOptions.map((option) => (
@@ -1675,7 +1692,7 @@ export function ShopManagementClient({
                       aria-label="Lọc tồn kho"
                       className="w-full sm:w-48"
                     >
-                      <SelectValue />
+                      <SelectValue placeholder="Chọn mức tồn kho" />
                     </SelectTrigger>
                     <SelectContent>
                       {inventoryFilterOptions.map((option) => (
@@ -1782,7 +1799,7 @@ export function ShopManagementClient({
                   aria-label="Lọc đánh giá"
                   className="w-full sm:w-60"
                 >
-                  <SelectValue />
+                  <SelectValue placeholder="Chọn mức đánh giá" />
                 </SelectTrigger>
                 <SelectContent>
                   {reviewFilterOptions.map((option) => (
@@ -1844,7 +1861,7 @@ export function ShopManagementClient({
                     aria-label="Trạng thái đơn hàng"
                     className="w-full sm:w-52"
                   >
-                    <SelectValue />
+                    <SelectValue placeholder="Chọn trạng thái đơn hàng" />
                   </SelectTrigger>
                   <SelectContent>
                     {orderFilterOptions.map((option) => (

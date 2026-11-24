@@ -86,7 +86,7 @@ export function AdminFilterBar({
               aria-label={field.label}
               className="w-full sm:w-auto sm:min-w-40"
             >
-              <SelectValue />
+              <SelectValue placeholder={field.label} />
             </SelectTrigger>
             <SelectContent>
               {field.options.map((option) => (

@@ -160,6 +160,7 @@ export function ShopCouponManager({
   const field = (
     name: string,
     label: string,
+    placeholder: string,
     defaultValue: string | number,
     type: "number" | "text" = "number",
     optional = false
@@ -180,6 +181,7 @@ export function ShopCouponManager({
         }
         id={`${prefix}-${name}`}
         name={name}
+        placeholder={placeholder}
         type={type}
         defaultValue={defaultValue}
         required={!optional}
@@ -204,6 +206,11 @@ export function ShopCouponManager({
         withTime
         id={`${prefix}-${name}`}
         name={name}
+        placeholder={
+          name === "starts_at"
+            ? "Chọn ngày giờ bắt đầu"
+            : "Chọn ngày giờ kết thúc"
+        }
         defaultValue={toLocalDateTimeValue(editing?.[name] ?? null)}
         disabled={pending}
         aria-invalid={Boolean(errors[name])}
@@ -271,7 +278,13 @@ export function ShopCouponManager({
                     <code className="break-all">{editing.code}</code>
                   </Surface>
                 ) : null}
-                {field("name", "Tên hiển thị", editing?.name ?? "", "text")}
+                {field(
+                  "name",
+                  "Tên hiển thị",
+                  "Ví dụ: Ưu đãi cuối tuần",
+                  editing?.name ?? "",
+                  "text"
+                )}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor={`${prefix}-discount-type`}>
@@ -281,6 +294,7 @@ export function ShopCouponManager({
                       startIcon={<TicketPercentIcon />}
                       id={`${prefix}-discount-type`}
                       name="discount_type"
+                      placeholder="Chọn hình thức giảm"
                       defaultValue={editing?.discount_type ?? "fixed"}
                       disabled={pending}
                       required
@@ -308,16 +322,19 @@ export function ShopCouponManager({
                   {field(
                     "discount_value",
                     "Giá trị giảm",
+                    "Nhập số tiền hoặc phần trăm giảm",
                     editing?.discount_value ?? ""
                   )}
                   {field(
                     "minimum_order_amount",
                     "Tiền hàng tối thiểu (đ)",
+                    "Nhập tiền hàng tối thiểu (đ)",
                     editing?.minimum_order_amount ?? 0
                   )}
                   {field(
                     "maximum_discount_amount",
                     "Giảm tối đa (đ, tùy chọn)",
+                    "Nhập mức giảm tối đa (đ)",
                     editing?.maximum_discount_amount ?? "",
                     "number",
                     true
@@ -325,6 +342,7 @@ export function ShopCouponManager({
                   {field(
                     "usage_limit",
                     "Tổng lượt sử dụng (tùy chọn)",
+                    "Nhập số lượt sử dụng tối đa",
                     editing?.usage_limit ?? "",
                     "number",
                     true

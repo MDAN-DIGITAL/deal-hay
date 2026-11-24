@@ -78,6 +78,7 @@ export function ForgotPasswordForm() {
                       startIcon={<MailIcon />}
                       autoComplete="email"
                       inputMode="email"
+                      placeholder="you@example.com"
                       type="text"
                       {...field}
                     />

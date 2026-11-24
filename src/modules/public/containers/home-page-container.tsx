@@ -255,6 +255,7 @@ export function HomePageContainer({
               alt=""
               width={768}
               height={384}
+              loading="eager"
               unoptimized
               className="hidden h-auto w-full max-w-88 justify-self-end sm:block"
             />

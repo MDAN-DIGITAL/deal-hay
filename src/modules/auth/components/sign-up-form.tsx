@@ -77,6 +77,7 @@ export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                       startIcon={<MailIcon />}
                       autoComplete="email"
                       inputMode="email"
+                      placeholder="you@example.com"
                       type="text"
                       {...field}
                     />
@@ -98,6 +99,7 @@ export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                       autoComplete="new-password"
                       maxLength={72}
                       minLength={6}
+                      placeholder="Tạo mật khẩu"
                       spellCheck={false}
                       {...field}
                     />
@@ -121,6 +123,7 @@ export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                       autoComplete="new-password"
                       maxLength={72}
                       minLength={6}
+                      placeholder="Nhập lại mật khẩu"
                       spellCheck={false}
                       {...field}
                     />

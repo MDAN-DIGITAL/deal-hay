@@ -28,6 +28,11 @@ export function PublicShopCard({ shop }: { shop: FeaturedShop }) {
               className="size-4 shrink-0 text-muted-foreground"
             />
           </div>
+          {shop.description ? (
+            <p className="text-sm wrap-anywhere text-muted-foreground">
+              {shop.description}
+            </p>
+          ) : null}
           {shop.address ? (
             <p className="flex items-start gap-2 text-xs text-muted-foreground">
               <MapPinIcon

@@ -79,6 +79,7 @@ function TicketContext({ ticket }: { ticket: Ticket }) {
   const labels: Record<string, string> = {
     full_name: "Họ tên",
     shop_name: "Tên cửa hàng",
+    shop_description: "Mô tả cửa hàng",
     email: "Email cá nhân",
     shop_email: "Email cửa hàng",
     phone_number: "Điện thoại cá nhân",
@@ -262,6 +263,7 @@ export function TicketForm({ ticket }: { ticket: Ticket }) {
                       <FormLabel>Quyết định</FormLabel>
                       <FormSelect
                         startIcon={<ClipboardCheckIcon />}
+                        placeholder="Chọn quyết định xử lý"
                         ref={field.ref}
                         name={field.name}
                         options={[

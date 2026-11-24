@@ -129,7 +129,12 @@ function ProfileInfoForm({ user }: { user: User }) {
               <FormItem>
                 <FormLabel>Họ tên</FormLabel>
                 <FormControl>
-                  <Input startIcon={<UserRoundIcon />} type="text" {...field} />
+                  <Input
+                    startIcon={<UserRoundIcon />}
+                    placeholder="Nhập họ và tên"
+                    type="text"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -146,6 +151,7 @@ function ProfileInfoForm({ user }: { user: User }) {
                     startIcon={<MailIcon />}
                     autoComplete="email"
                     inputMode="email"
+                    placeholder="you@example.com"
                     type="text"
                     {...field}
                     disabled={isPending}
@@ -209,6 +215,7 @@ function ProfileInfoForm({ user }: { user: User }) {
                   <Input
                     startIcon={<PhoneIcon />}
                     inputMode="tel"
+                    placeholder="Nhập số điện thoại"
                     type="text"
                     {...field}
                     value={field.value ?? ""}
@@ -228,6 +235,7 @@ function ProfileInfoForm({ user }: { user: User }) {
                 <FormControl>
                   <Input
                     startIcon={<MapPinIcon />}
+                    placeholder="Số nhà, tên đường hoặc thôn/xóm"
                     type="text"
                     {...field}
                     value={field.value ?? ""}
@@ -290,6 +298,7 @@ function PasswordForm() {
                 <PasswordInput
                   autoComplete="current-password"
                   maxLength={255}
+                  placeholder="Nhập mật khẩu hiện tại"
                   {...field}
                 />
               </FormControl>
@@ -310,6 +319,7 @@ function PasswordForm() {
                   autoComplete="new-password"
                   maxLength={72}
                   minLength={6}
+                  placeholder="Nhập mật khẩu mới"
                   spellCheck={false}
                   {...field}
                 />
@@ -333,6 +343,7 @@ function PasswordForm() {
                   autoComplete="new-password"
                   maxLength={72}
                   minLength={6}
+                  placeholder="Nhập lại mật khẩu mới"
                   spellCheck={false}
                   {...field}
                 />

@@ -6,6 +6,7 @@ import {
   UserRoundIcon,
   PhoneIcon,
   MapPinIcon,
+  FileTextIcon,
   MessageSquareIcon,
   SendIcon,
 } from "lucide-react"
@@ -19,6 +20,7 @@ import { AddressFields } from "@/components/address-fields"
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -48,6 +50,7 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
       province: user.province ?? "",
       ward: user.ward ?? "",
       address_detail: user.address_detail ?? "",
+      shop_description: "",
       message: "",
     },
   })
@@ -79,7 +82,12 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
             <FormItem>
               <FormLabel>Tên shop</FormLabel>
               <FormControl>
-                <Input startIcon={<StoreIcon />} type="text" {...field} />
+                <Input
+                  startIcon={<StoreIcon />}
+                  placeholder="Nhập tên shop"
+                  type="text"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -95,6 +103,7 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
                 <Input
                   startIcon={<MailIcon />}
                   inputMode="email"
+                  placeholder="shop@example.com"
                   type="text"
                   {...field}
                 />
@@ -111,7 +120,12 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
               <FormItem>
                 <FormLabel>Họ tên</FormLabel>
                 <FormControl>
-                  <Input startIcon={<UserRoundIcon />} type="text" {...field} />
+                  <Input
+                    startIcon={<UserRoundIcon />}
+                    placeholder="Nhập họ và tên"
+                    type="text"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -127,6 +141,7 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
                   <Input
                     startIcon={<MailIcon />}
                     inputMode="email"
+                    placeholder="you@example.com"
                     type="text"
                     {...field}
                   />
@@ -145,6 +160,7 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
                   <Input
                     startIcon={<PhoneIcon />}
                     inputMode="tel"
+                    placeholder="Nhập số điện thoại cá nhân"
                     type="text"
                     {...field}
                   />
@@ -163,6 +179,7 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
                   <Input
                     startIcon={<PhoneIcon />}
                     inputMode="tel"
+                    placeholder="Nhập số điện thoại shop"
                     type="text"
                     {...field}
                   />
@@ -180,8 +197,35 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
             <FormItem>
               <FormLabel>Địa chỉ chi tiết</FormLabel>
               <FormControl>
-                <Input startIcon={<MapPinIcon />} type="text" {...field} />
+                <Input
+                  startIcon={<MapPinIcon />}
+                  placeholder="Số nhà, tên đường hoặc thôn/xóm"
+                  type="text"
+                  {...field}
+                />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="shop_description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Mô tả cửa hàng (không bắt buộc)</FormLabel>
+              <FormControl>
+                <Textarea
+                  startIcon={<FileTextIcon />}
+                  placeholder="Giới thiệu ngắn về cửa hàng và sản phẩm của bạn"
+                  {...field}
+                  value={field.value ?? ""}
+                />
+              </FormControl>
+              <FormDescription>
+                Tối đa 300 ký tự. Mô tả sẽ hiển thị trên danh sách cửa hàng sau
+                khi yêu cầu được duyệt.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -195,6 +239,7 @@ export function ShopOwnerUpgradeForm({ user }: { user: User }) {
               <FormControl>
                 <Textarea
                   startIcon={<MessageSquareIcon />}
+                  placeholder="Nhập lời nhắn cho quản trị viên"
                   {...field}
                   value={field.value ?? ""}
                 />

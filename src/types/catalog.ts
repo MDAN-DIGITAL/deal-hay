@@ -137,6 +137,7 @@ export type HomeProduct = PublicProductSummary & {
 export type FeaturedShop = {
   code: string
   name: string
+  description: string | null
   avatar_url: string | null
   address: string
   products_count: number

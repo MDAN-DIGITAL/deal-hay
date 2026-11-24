@@ -14,6 +14,7 @@ export type TicketReviewer = {
 export type ShopOwnerUpgradeDetails = {
   full_name: string
   shop_name: string
+  shop_description?: string | null
   email: string
   shop_email: string
   phone_number: string

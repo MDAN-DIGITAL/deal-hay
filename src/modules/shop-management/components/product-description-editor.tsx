@@ -53,6 +53,7 @@ const extensions = [
   }),
   ProductImage.configure({ allowBase64: false }),
 ]
+const descriptionPlaceholder = "Nhập thông tin nổi bật và chi tiết sản phẩm"
 
 type Props = Pick<
   React.ComponentProps<"div">,
@@ -95,6 +96,7 @@ export function ProductDescriptionEditor({
         role: "textbox",
         "aria-label": "Nội dung mô tả",
         "aria-multiline": "true",
+        "aria-placeholder": descriptionPlaceholder,
         class: `min-h-40 outline-none ${productDescriptionFormatting}`,
       },
     },
@@ -148,6 +150,7 @@ export function ProductDescriptionEditor({
   const active = useEditorState({
     editor,
     selector: ({ editor }) => ({
+      isEmpty: editor?.isEmpty ?? true,
       bold: editor?.isActive("bold") ?? false,
       italic: editor?.isActive("italic") ?? false,
       underline: editor?.isActive("underline") ?? false,
@@ -305,7 +308,17 @@ export function ProductDescriptionEditor({
           }}
         />
       </div>
-      <EditorContent editor={editor} className="cursor-text p-3" />
+      <div className="relative">
+        <EditorContent editor={editor} className="cursor-text p-3" />
+        {(active?.isEmpty ?? true) && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-3 top-3 leading-7 text-muted-foreground/85"
+          >
+            {descriptionPlaceholder}
+          </span>
+        )}
+      </div>
     </Surface>
   )
 }

@@ -152,6 +152,7 @@ function ReviewProductForm({
               <FormSelect
                 startIcon={<StarIcon />}
                 disabled={isPending}
+                placeholder="Chọn mức độ hài lòng"
                 ref={field.ref}
                 name={field.name}
                 options={[

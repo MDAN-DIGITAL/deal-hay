@@ -167,6 +167,11 @@ export const shopOwnerUpgradeSchema = z.object({
     255,
     "Địa chỉ chi tiết không được vượt quá 255 ký tự."
   ),
+  shop_description: z
+    .string()
+    .trim()
+    .max(300, "Mô tả cửa hàng không được vượt quá 300 ký tự.")
+    .optional(),
   message: optionalMessageString,
 })
 

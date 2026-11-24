@@ -149,6 +149,7 @@ export function ResetPasswordForm({
                       startIcon={<MailIcon />}
                       autoComplete="email"
                       inputMode="email"
+                      placeholder="you@example.com"
                       type="text"
                       {...field}
                     />
@@ -170,6 +171,7 @@ export function ResetPasswordForm({
                       autoComplete="new-password"
                       maxLength={72}
                       minLength={6}
+                      placeholder="Nhập mật khẩu mới"
                       spellCheck={false}
                       {...field}
                     />
@@ -193,6 +195,7 @@ export function ResetPasswordForm({
                       autoComplete="new-password"
                       maxLength={72}
                       minLength={6}
+                      placeholder="Nhập lại mật khẩu mới"
                       spellCheck={false}
                       {...field}
                     />

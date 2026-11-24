@@ -26,6 +26,7 @@ export function ProductPricingForm({ product }: { product: ShopProduct }) {
     {
       name: "price",
       label: "Giá bán sản phẩm",
+      placeholder: "Nhập giá bán (đ)",
       type: "number",
       value: product.price,
       min: 1000,
@@ -35,6 +36,7 @@ export function ProductPricingForm({ product }: { product: ShopProduct }) {
     {
       name: "old_price",
       label: "Giá gốc (tùy chọn)",
+      placeholder: "Để trống nếu không có giá gốc",
       type: "number",
       value: product.old_price ?? "",
       min: 1000,
@@ -43,6 +45,7 @@ export function ProductPricingForm({ product }: { product: ShopProduct }) {
     {
       name: "video_url",
       label: "URL video sản phẩm (HTTPS)",
+      placeholder: "https://.../san-pham.mp4",
       type: "url",
       value: product.video_url ?? "",
     },
@@ -110,6 +113,7 @@ export function ProductPricingForm({ product }: { product: ShopProduct }) {
                 }
                 id={`${product.id}-${field.name}`}
                 name={field.name}
+                placeholder={field.placeholder}
                 type={field.type}
                 defaultValue={field.value}
                 min={field.min}

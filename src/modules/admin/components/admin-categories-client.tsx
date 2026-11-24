@@ -219,7 +219,7 @@ export function AdminCategoriesClient({
             aria-label="Trạng thái danh mục"
             className="w-full sm:w-48"
           >
-            <SelectValue />
+            <SelectValue placeholder="Chọn trạng thái danh mục" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả trạng thái</SelectItem>

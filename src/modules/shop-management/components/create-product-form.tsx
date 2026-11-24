@@ -420,6 +420,7 @@ export function CreateProductForm({
                       startIcon={<BanknoteIcon />}
                       min={1000}
                       inputMode="numeric"
+                      placeholder="Nhập giá bán (đ)"
                       type="number"
                       {...field}
                       value={Number.isFinite(field.value) ? field.value : ""}
@@ -757,6 +758,7 @@ export function CreateProductForm({
                       startIcon={<BoxesIcon />}
                       min={0}
                       inputMode="numeric"
+                      placeholder="Nhập số lượng tồn kho"
                       type="number"
                       {...field}
                       value={Number.isFinite(field.value) ? field.value : ""}
@@ -963,6 +965,7 @@ export function CreateProductForm({
                                       startIcon={<BoxesIcon />}
                                       min={0}
                                       inputMode="numeric"
+                                      placeholder="Nhập tồn kho của biến thể"
                                       type="number"
                                       {...field}
                                       value={

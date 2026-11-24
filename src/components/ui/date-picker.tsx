@@ -168,12 +168,14 @@ export function DatePicker({
                   {
                     part: "hour",
                     label: "Giờ",
+                    placeholder: "Chọn giờ",
                     options: hours,
                     selected: hour,
                   },
                   {
                     part: "minute",
                     label: "Phút",
+                    placeholder: "Chọn phút",
                     options: minutes,
                     selected: minute,
                   },
@@ -182,7 +184,7 @@ export function DatePicker({
                 <div key={time.part} className="space-y-1.5">
                   <Label htmlFor={`${prefix}-${time.part}`}>{time.label}</Label>
                   <Select
-                    value={time.selected}
+                    value={selected ? time.selected : null}
                     disabled={disabled || !selected}
                     onValueChange={(next) => {
                       if (next && selected)
@@ -195,7 +197,7 @@ export function DatePicker({
                       id={`${prefix}-${time.part}`}
                       className="w-full"
                     >
-                      <SelectValue />
+                      <SelectValue placeholder={time.placeholder} />
                     </SelectTrigger>
                     <SelectContent
                       className="max-h-60 min-w-(--anchor-width)"
