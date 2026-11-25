@@ -28,6 +28,7 @@ const guest: SessionResponse = {
   user: null,
   unreadCounts: { messages: 0, notifications: 0 },
 }
+const ACCOUNT_FOCUS_REVALIDATE_MS = 30_000
 function isRealtimePage(pathname: string): boolean {
   return (
     pathname === "/chats" ||
@@ -59,10 +60,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let disposed = false
     let revision = 0
-    const load = () => {
-      const request = ++revision
+    let lastAccountValidatedAt = 0
+    const load = (force = true) => {
       const account = getSessionId()
       const shouldLoadAccount = account !== null || hasAuthSessionHint()
+      const now = Date.now()
+      if (
+        !force &&
+        shouldLoadAccount &&
+        now - lastAccountValidatedAt < ACCOUNT_FOCUS_REVALIDATE_MS
+      )
+        return
+      const request = ++revision
       const current = () =>
         !disposed && request === revision && getSessionId() === account
       let accountResolved = false
@@ -114,6 +123,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         .then((data) => {
           accountResolved = true
           if (current()) {
+            lastAccountValidatedAt = Date.now()
             const changed = account !== data.session
             if (data.session === null) clearAuthSessionHint()
             setSessionId(data.session)
@@ -158,18 +168,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       load()
     }
     load()
+    const reloadAccount = () => load()
     window.addEventListener(SESSION_CHANGED, changeSession)
-    window.addEventListener(DATA_CHANGED, load)
+    window.addEventListener(DATA_CHANGED, reloadAccount)
     const stopWatching = watchBrowserSession()
-    window.addEventListener("focus", load)
-    window.addEventListener("pageshow", load)
+    const revalidateVisibleAccount = () => load(false)
+    window.addEventListener("focus", revalidateVisibleAccount)
+    window.addEventListener("pageshow", revalidateVisibleAccount)
     return () => {
       disposed = true
       stopWatching()
-      window.removeEventListener("focus", load)
-      window.removeEventListener("pageshow", load)
+      window.removeEventListener("focus", revalidateVisibleAccount)
+      window.removeEventListener("pageshow", revalidateVisibleAccount)
       window.removeEventListener(SESSION_CHANGED, changeSession)
-      window.removeEventListener(DATA_CHANGED, load)
+      window.removeEventListener(DATA_CHANGED, reloadAccount)
     }
   }, [chatPage])
   return (
