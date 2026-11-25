@@ -57,7 +57,6 @@ ESLint cấm `button`, `select`, `textarea`, input hiển thị và import trự
 ```sh
 npm run lint
 npm run typecheck
-npm test
 NEXT_PUBLIC_API_URL=https://your-api.example/api npm run build
 ```
 

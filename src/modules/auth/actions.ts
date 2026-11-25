@@ -54,7 +54,7 @@ export async function signInAction(
       remember: parsed.data.remember,
       admin_verification_code: parsed.data.admin_verification_code || undefined,
     })
-    setAuthSession(payload.session)
+    setAuthSession(payload.session, parsed.data.remember)
   } catch (error) {
     if (error instanceof ApiError) {
       return {

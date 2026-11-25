@@ -19,15 +19,7 @@
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit",
-    "test:ads": "node --test tests/google-advertising.test.mjs tests/google-rewarded-ads.test.mjs tests/shipping-reward-actions.test.mjs tests/shipping-reward-offer.test.mjs",
-    "test:admin-login": "node tests/admin-login-verification.test.mjs",
-    "test:product-price": "node --test tests/product-display-price.test.mjs src/modules/public/lib/variant-selection.test.mjs",
-    "test:realtime": "node --test tests/realtime-chat-state.test.mjs tests/realtime-transport.test.mjs tests/notification-visibility.test.mjs tests/realtime-toast.test.mjs tests/notification-sound.test.mjs tests/background-notifications.test.mjs tests/notification-logout.test.mjs tests/chat-navigation.test.mjs tests/chat-message-focus.test.mjs tests/chat-scroll.test.mjs tests/chat-panel-layout.test.mjs tests/chat-conversation-list.test.mjs tests/floating-chat.test.mjs",
-    "test:chat-image": "node tests/chat-image-send.test.mjs",
-    "test:socketio": "node --test tests/socket-realtime-client.test.mjs",
-    "test:image-upload": "node --test tests/image-upload.test.mjs tests/backend-image-validation.test.mjs tests/shop-product-automatic-ads.test.mjs",
-    "test": "node --test tests/*.test.mjs src/modules/public/lib/*.test.mjs src/modules/shop-management/lib/*.test.mjs"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

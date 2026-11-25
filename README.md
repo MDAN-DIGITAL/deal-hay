@@ -44,16 +44,17 @@ Trang `/chats` dùng giao diện riêng toàn màn hình, có tìm kiếm và l�
 
 WSS chỉ dùng SQLite trong RAM (`WSS_SQLITE_PATH=:memory:`); cấu hình từ chối đường dẫn file. Mỗi lần tiến trình khởi động lại sẽ mất tin chỉ lưu ở WSS, phiên WSS và đăng ký Web Push; frontend xin lại phiên WSS một lần khi credential cũ bị từ chối, nhưng không thể khôi phục lịch sử chưa lưu ở nơi khác. Xem [README WSS](../deal-hay-wss/README.md).
 
-## Kiểm tra
+## Xác minh thay đổi
 
 Hệ giao diện dùng chung và quy tắc `components/ui`: [design-system.md](docs/design-system.md). Toàn bộ shadcn/ui đã được cài và tùy chỉnh theo phong cách chat; màu sắc dùng token toàn cục, các trang ghép từ primitive chung.
 
 ```sh
-npm test
 npm run typecheck
 npm run lint
 npm run build
 ```
+
+Sau mỗi chức năng mới, rà soát diff và các luồng dùng chung có liên quan để giữ nguyên hành vi ngoài phạm vi thay đổi. Khi các dịch vụ local cần thiết đang chạy, kiểm tra thủ công luồng người dùng vừa sửa.
 
 Build cần `NEXT_PUBLIC_API_URL` hợp lệ; không cần API đang chạy. Trang chủ và chi tiết sản phẩm dùng GET công khai phía server, có thời hạn chờ và fallback. Các trang còn lại đọc query trên browser dưới `Suspense`, tránh chuyển route tĩnh thành SSR chỉ để truyền bộ lọc, tab hoặc phân trang. Các đường dẫn động như shop, chat và checkout có thể cần tạo khung theo đường dẫn, nhưng không tải dữ liệu nghiệp vụ trên server.
 

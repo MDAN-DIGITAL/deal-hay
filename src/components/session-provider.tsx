@@ -15,7 +15,9 @@ import { getAuthPageHref, getSafeAuthRedirect } from "@/lib/auth-redirect"
 import { DATA_CHANGED } from "@/lib/query-cache"
 import {
   SESSION_CHANGED,
+  clearAuthSessionHint,
   getSessionId,
+  hasAuthSessionHint,
   setSessionId,
   watchBrowserSession,
 } from "@/lib/session"
@@ -60,9 +62,42 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const load = () => {
       const request = ++revision
       const account = getSessionId()
+      const shouldLoadAccount = account !== null || hasAuthSessionHint()
       const current = () =>
         !disposed && request === revision && getSessionId() === account
       let accountResolved = false
+      if (!shouldLoadAccount) {
+        accountResolved = true
+        if (chatPage)
+          void getCachedChatSession()
+            .catch(() => null)
+            .then((fallback) => {
+              if (!current()) return
+              setSession(
+                fallback
+                  ? {
+                      ...fallback,
+                      loading: false,
+                      offlineChat: true,
+                      accountLoading: false,
+                    }
+                  : {
+                      ...guest,
+                      loading: false,
+                      offlineChat: false,
+                      accountLoading: false,
+                    }
+              )
+            })
+        else
+          setSession({
+            ...guest,
+            loading: false,
+            offlineChat: false,
+            accountLoading: false,
+          })
+        return
+      }
       if (chatPage)
         void getCachedChatSession()
           .catch(() => null)
@@ -80,6 +115,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           accountResolved = true
           if (current()) {
             const changed = account !== data.session
+            if (data.session === null) clearAuthSessionHint()
             setSessionId(data.session)
             setSession({
               ...data,
