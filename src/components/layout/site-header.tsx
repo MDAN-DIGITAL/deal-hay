@@ -27,6 +27,7 @@ import { StorefrontSearch } from "@/components/layout/storefront-search"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { UnreadNavigationLink } from "@/components/layout/unread-count-badge"
 import { Brand } from "@/components/ui/brand"
+import { SITE_CONTAINER_CLASS_NAME } from "@/components/layout/site-container"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -97,7 +98,8 @@ export function SiteHeader({
     <header className="sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur supports-backdrop-filter:bg-card/90">
       <div
         className={cn(
-          "mx-auto max-w-7xl items-center px-4 sm:px-6 lg:px-8",
+          SITE_CONTAINER_CLASS_NAME,
+          "items-center",
           storefront
             ? "grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-6"
             : "flex h-16 gap-4"

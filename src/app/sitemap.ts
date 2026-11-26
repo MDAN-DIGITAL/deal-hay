@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next"
 import { apiFetch } from "@/api/client"
 import type { HomeResponse, ShopResponse } from "@/api/catalog/types"
 import { SITE_URL } from "@/config/site"
+import { catalogCategorySlug } from "@/modules/public/lib/catalog-url"
 
 // Fetch anonymous, current catalog data when a crawler requests the sitemap.
 export const dynamic = "force-dynamic"
@@ -55,6 +56,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (shop && product) paths.add(`/shops/${shop}/products/${product}`)
   }
   function addHome(data: HomeResponse) {
+    for (const category of data.categories ?? []) {
+      const slug = catalogCategorySlug(category)
+      if (slug) paths.add(`/categories/${slug}`)
+    }
     for (const shop of data.featuredShops ?? []) addShop(shop.code)
     for (const product of data.products?.data ?? [])
       addProduct(product.shop?.code, product.slug)

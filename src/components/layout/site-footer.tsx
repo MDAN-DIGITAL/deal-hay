@@ -18,6 +18,8 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Brand } from "@/components/ui/brand"
 import { ChatPageLink } from "@/components/chat-page-link"
+import { SITE_CONTAINER_CLASS_NAME } from "@/components/layout/site-container"
+import { cn } from "@/lib/utils"
 
 const customerLinks = [
   {
@@ -83,7 +85,12 @@ function footerLinkGroup(title: string, links: typeof customerLinks) {
 export function SiteFooter() {
   return (
     <footer className="mt-10 border-t bg-card">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-9 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr] lg:px-8">
+      <div
+        className={cn(
+          SITE_CONTAINER_CLASS_NAME,
+          "grid gap-8 py-9 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr]"
+        )}
+      >
         <div className="space-y-3">
           <Link href="/" aria-label="Deal Hay - Trang chủ">
             <Brand />
@@ -98,7 +105,12 @@ export function SiteFooter() {
         {footerLinkGroup("Dành cho người bán", sellerLinks)}
       </div>
       <Separator />
-      <div className="mx-auto grid max-w-7xl gap-3 px-4 py-5 sm:px-6 md:grid-cols-3 lg:px-8">
+      <div
+        className={cn(
+          SITE_CONTAINER_CLASS_NAME,
+          "grid gap-3 py-5 md:grid-cols-3"
+        )}
+      >
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
           <ShieldCheckIcon className="size-4 text-primary" /> Bảo vệ thông tin
           tài khoản
@@ -113,7 +125,12 @@ export function SiteFooter() {
         </p>
       </div>
       <Separator />
-      <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+      <div
+        className={cn(
+          SITE_CONTAINER_CLASS_NAME,
+          "flex flex-col gap-2 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+        )}
+      >
         <p>© 2026 Deal Hay. All rights reserved.</p>
         <nav className="flex items-center gap-4" aria-label="Thông tin pháp lý">
           <Link

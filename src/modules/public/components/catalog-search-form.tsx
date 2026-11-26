@@ -10,14 +10,12 @@ export function CatalogSearchForm({
   search,
   label,
   placeholder,
-  category,
   compact = false,
 }: {
   action: string
   search: string
   label: string
   placeholder: string
-  category?: string
   compact?: boolean
 }) {
   return (
@@ -37,9 +35,6 @@ export function CatalogSearchForm({
         startIcon={<SearchIcon />}
         type="search"
       />
-      {category ? (
-        <Input name="category" type="hidden" value={category} />
-      ) : null}
       <Button
         aria-label="Tìm kiếm"
         type="submit"

@@ -373,7 +373,7 @@ export function CartPage() {
           action={
             <Button
               nativeButton={false}
-              render={<Link href="/#san-pham" />}
+              render={<Link href="/" />}
               startIcon={<ArrowRightIcon />}
             >
               Khám phá sản phẩm

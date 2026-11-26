@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
+import { permanentRedirect } from "next/navigation"
 
-import { getPublicHome, PUBLIC_CATALOG_ERROR } from "@/api/catalog/server"
 import {
   BRAND_OPEN_GRAPH_IMAGE,
   BRAND_TWITTER_IMAGE,
@@ -8,8 +8,12 @@ import {
   SITE_DESCRIPTION,
   siteStructuredData,
 } from "@/lib/seo"
-import { HomePageContainer } from "@/modules/public/containers/home-page-container"
-import { catalogPage, catalogSearch } from "@/modules/public/lib/catalog-query"
+import {
+  parsePublicCatalogQuery,
+  PublicCatalogPage,
+  type PublicCatalogSearchParams,
+} from "@/modules/public/containers/public-catalog-page"
+import { catalogUrl } from "@/modules/public/lib/catalog-url"
 
 export const metadata: Metadata = {
   title: { absolute: "Deal Hay – Săn deal tốt từ các shop uy tín" },
@@ -42,20 +46,24 @@ export const metadata: Metadata = {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{
-    category?: string | string[]
-    page?: string | string[]
-    q?: string | string[]
-  }>
+  searchParams: Promise<PublicCatalogSearchParams>
 }) {
   const query = await searchParams
-  const category =
+  const legacyCategory =
     typeof query.category === "string"
       ? query.category.trim().slice(0, 120) || undefined
       : undefined
-  const page = catalogPage(query.page)
-  const search = catalogSearch(query.q)
-  const result = await getPublicHome(category, page, search)
+  const parsed = parsePublicCatalogQuery(query)
+
+  if (legacyCategory || parsed.search)
+    permanentRedirect(
+      catalogUrl({
+        category: legacyCategory,
+        search: parsed.search,
+        filters: parsed.filters,
+      })
+    )
+
   return (
     <>
       <script
@@ -64,15 +72,7 @@ export default async function Page({
           __html: serializeJsonLd(siteStructuredData()),
         }}
       />
-      <HomePageContainer
-        category={category}
-        page={page}
-        search={search}
-        initialData={result.status === "ready" ? result.data : undefined}
-        initialError={
-          result.status === "ready" ? undefined : PUBLIC_CATALOG_ERROR
-        }
-      />
+      <PublicCatalogPage query={parsed} />
     </>
   )
 }

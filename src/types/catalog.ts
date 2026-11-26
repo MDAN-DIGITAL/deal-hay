@@ -141,4 +141,7 @@ export type FeaturedShop = {
   avatar_url: string | null
   address: string
   products_count: number
+  followers_count: number
+  likes_count: number
+  satisfaction_rate: number | null
 }

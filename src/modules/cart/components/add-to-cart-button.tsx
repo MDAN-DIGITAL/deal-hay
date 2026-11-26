@@ -2,7 +2,13 @@
 
 import { ShoppingCartIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useId, useRef, useState, useTransition } from "react"
+import {
+  type ComponentProps,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+} from "react"
 import { toast } from "sonner"
 
 import { ApiError } from "@/api/client"
@@ -97,6 +103,8 @@ export function AddToCartButton({
   variantId,
   disabled,
   className,
+  variant = "default",
+  size = "sm",
 }: {
   shopCode: string
   productSlug: string
@@ -104,6 +112,8 @@ export function AddToCartButton({
   variantId?: string
   disabled?: boolean
   className?: string
+  variant?: ComponentProps<typeof Button>["variant"]
+  size?: ComponentProps<typeof Button>["size"]
 }) {
   const router = useRouter()
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -157,8 +167,9 @@ export function AddToCartButton({
           pending ? <Spinner aria-hidden="true" /> : <ShoppingCartIcon />
         }
         className={className}
+        variant={variant}
         type="button"
-        size="sm"
+        size={size}
         aria-busy={pending}
         disabled={pending || disabled}
         onClick={() => checkAndAdd(variantId)}

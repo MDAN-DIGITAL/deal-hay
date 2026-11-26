@@ -66,7 +66,7 @@ export default async function PublicShopsPage({
         <CardContent>
           <CatalogSearchForm
             key={JSON.stringify([search, shops.current_page])}
-            action="/shops#danh-sach"
+            action="/shops"
             search={search}
             label="Tìm cửa hàng"
             placeholder="Tên hoặc mã cửa hàng"

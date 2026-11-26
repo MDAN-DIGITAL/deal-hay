@@ -9,17 +9,16 @@ import { catalogSearch } from "@/modules/public/lib/catalog-query"
 
 function ProductSearch({
   search = "",
-  category,
+  action = "/search",
 }: {
   search?: string
-  category?: string
+  action?: string
 }) {
   return (
     <CatalogSearchForm
       compact
-      action="/#san-pham"
+      action={action}
       search={search}
-      category={category}
       label="Tìm sản phẩm"
       placeholder="Tên hoặc mã sản phẩm"
     />
@@ -29,19 +28,19 @@ function ProductSearch({
 function CurrentProductSearch() {
   const pathname = usePathname()
   const params = useSearchParams()
-  const onCatalog = pathname === "/"
-  const search = onCatalog
-    ? catalogSearch(singleRouteQueryValue(params, "q"))
-    : undefined
-  const category = onCatalog
-    ? singleRouteQueryValue(params, "category")
-    : undefined
+  const onCategory = /^\/categories\/[^/]+$/.test(pathname)
+  const onSearch = pathname === "/search"
+  const search =
+    onCategory || onSearch
+      ? catalogSearch(singleRouteQueryValue(params, "q"))
+      : undefined
+  const action = onCategory ? pathname : "/search"
 
   return (
     <ProductSearch
-      key={JSON.stringify([pathname, search, category])}
+      key={JSON.stringify([pathname, search, action])}
       search={search}
-      category={category}
+      action={action}
     />
   )
 }

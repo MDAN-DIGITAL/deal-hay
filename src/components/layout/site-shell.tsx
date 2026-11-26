@@ -1,6 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
+import { SITE_CONTAINER_CLASS_NAME } from "@/components/layout/site-container"
 import { SiteHeader } from "@/components/layout/site-header"
 import { SiteFooter } from "@/components/layout/site-footer"
 import { cn } from "@/lib/utils"
@@ -29,7 +30,8 @@ export function SiteShell({
           chat
             ? "chat-surface h-dvh min-h-0 w-full overflow-hidden bg-background text-foreground"
             : cn(
-                "mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 lg:px-8",
+                SITE_CONTAINER_CLASS_NAME,
+                "flex-1",
                 storefront ? "py-4 sm:py-6" : "py-6 sm:py-8"
               )
         }

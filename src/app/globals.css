@@ -147,6 +147,15 @@
   }
 }
 
+/* Keep the catalog rail sticky only when its complete collapsed content fits.
+   Short desktop viewports use normal page scrolling so every filter remains reachable. */
+@media (min-width: 64rem) and (min-height: 56rem) {
+  .catalog-left-rail {
+    position: sticky;
+    top: 6rem;
+  }
+}
+
 /* Compatibility marker for the chat layout; its tokens are now shared globally. */
 .chat-surface {
   color: var(--foreground);

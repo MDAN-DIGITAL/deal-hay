@@ -2,19 +2,38 @@ import { apiFetch } from "@/api/client"
 import { catalogRoutes } from "@/api/catalog/routes"
 import type {
   CheckoutProductResponse,
+  HomeCatalogRequest,
   HomeResponse,
   ProductResponse,
   ShopResponse,
 } from "@/api/catalog/types"
 
-export function getHome(
-  category?: string,
-  page?: string,
-  q?: string
-): Promise<HomeResponse> {
+export function getHome({
+  category,
+  categorySlug,
+  page,
+  q,
+  sort,
+  minPrice,
+  maxPrice,
+  inStock,
+  onSale,
+  liked,
+}: HomeCatalogRequest = {}): Promise<HomeResponse> {
   return apiFetch({
     path: catalogRoutes.home,
-    searchParams: { category, page, ...(q ? { q } : {}) },
+    searchParams: {
+      category,
+      category_slug: categorySlug,
+      page,
+      q,
+      sort: sort === "recommended" ? undefined : sort,
+      min_price: minPrice,
+      max_price: maxPrice,
+      in_stock: inStock ? 1 : undefined,
+      on_sale: onSale ? 1 : undefined,
+      liked: liked ? 1 : undefined,
+    },
   })
 }
 
