@@ -10,7 +10,6 @@ import { RealtimeRoot } from "@/components/realtime-root"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { GOOGLE_ADSENSE_CLIENT } from "@/config/advertising"
 import { SITE_URL } from "@/config/site"
 import {
   BRAND_OPEN_GRAPH_IMAGE,
@@ -55,18 +54,13 @@ export const siteMetadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [BRAND_TWITTER_IMAGE],
   },
-  other: {
-    "google-adsense-account": GOOGLE_ADSENSE_CLIENT,
-  },
 }
 
 export function SiteDocument({
   children,
-  advertising,
   storefront,
 }: Readonly<{
   children: React.ReactNode
-  advertising?: React.ReactNode
   storefront?: boolean
 }>) {
   return (
@@ -83,7 +77,7 @@ export function SiteDocument({
                 <Suspense fallback={null}>
                   <NavigationScroll />
                 </Suspense>
-                <SiteShell advertising={advertising} storefront={storefront}>
+                <SiteShell storefront={storefront}>
                   {children}
                 </SiteShell>
                 <Toaster position="top-right" richColors />

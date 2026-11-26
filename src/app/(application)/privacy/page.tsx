@@ -6,7 +6,7 @@ import { BRAND_OPEN_GRAPH_IMAGE, BRAND_TWITTER_IMAGE } from "@/lib/seo"
 export const metadata: Metadata = {
   title: "Chính sách bảo mật",
   description:
-    "Chính sách về dữ liệu tài khoản, giao dịch, quảng cáo và quyền riêng tư khi sử dụng Deal Hay.",
+    "Chính sách về dữ liệu tài khoản, giao dịch và quyền riêng tư khi sử dụng Deal Hay.",
   alternates: { canonical: "/privacy" },
   robots: { index: true, follow: true },
   openGraph: {
@@ -16,14 +16,14 @@ export const metadata: Metadata = {
     siteName: "Deal Hay",
     title: "Chính sách bảo mật | Deal Hay",
     description:
-      "Chính sách về dữ liệu tài khoản, giao dịch, quảng cáo và quyền riêng tư khi sử dụng Deal Hay.",
+      "Chính sách về dữ liệu tài khoản, giao dịch và quyền riêng tư khi sử dụng Deal Hay.",
     images: [BRAND_OPEN_GRAPH_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: "Chính sách bảo mật | Deal Hay",
     description:
-      "Chính sách về dữ liệu tài khoản, giao dịch, quảng cáo và quyền riêng tư khi sử dụng Deal Hay.",
+      "Chính sách về dữ liệu tài khoản, giao dịch và quyền riêng tư khi sử dụng Deal Hay.",
     images: [BRAND_TWITTER_IMAGE],
   },
 }
@@ -42,8 +42,8 @@ export default function PrivacyPage() {
           tin nhắn, mã giảm giá đã lưu và tệp đính kèm. Deal Hay chỉ lưu mã
           phiên đăng nhập, không lưu mật khẩu. Phiên được lưu riêng trong tab
           hoặc trên trình duyệt này khi bạn chủ động chọn ghi nhớ đăng nhập. Các
-          nhà cung cấp bên thứ ba có thể sử dụng cookie theo nội dung được mô tả
-          dưới đây.
+          dịch vụ hạ tầng cần thiết có thể xử lý dữ liệu kỹ thuật để vận hành và
+          bảo vệ hệ thống.
         </p>
       </section>
       <section className="space-y-2">
@@ -73,50 +73,6 @@ export default function PrivacyPage() {
           Bạn có thể cập nhật thông tin cá nhân và đổi mật khẩu trong hồ sơ. Để
           yêu cầu hỗ trợ về dữ liệu tài khoản, hãy gửi yêu cầu qua chức năng hỗ
           trợ trong hệ thống, nêu rõ tài khoản và nội dung cần xử lý.
-        </p>
-      </section>
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold">5. Quảng cáo</h2>
-        <p>
-          Quảng cáo Google được bật mặc định trên các trang mua sắm có nội dung
-          phù hợp. Bạn có thể tự chọn xem quảng cáo có thưởng để nhận ưu đãi vận
-          chuyển theo điều kiện được hiển thị trước khi xem.
-        </p>
-        <p>
-          Adcash được sử dụng cho quảng cáo thông thường. Mã ưu đãi từ shop được
-          áp dụng độc lập với việc xem hoặc tương tác quảng cáo.
-        </p>
-        <p>
-          Google, Adcash và các đối tác quảng cáo có thể sử dụng cookie, địa chỉ
-          IP, thông tin thiết bị, trình duyệt và hoạt động tương tác để phân
-          phối, đo lường quảng cáo và phòng chống gian lận theo chính sách của
-          họ. Xem thêm tại{" "}
-          <a
-            className="text-primary underline"
-            href="https://policies.google.com/technologies/partner-sites"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Cách Google sử dụng thông tin từ các trang web đối tác
-          </a>{" "}
-          và{" "}
-          <a
-            className="text-primary underline"
-            href="https://policies.google.com/technologies/ads"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Chính sách công nghệ quảng cáo của Google
-          </a>
-          .
-        </p>
-        <p>
-          Deal Hay không hiển thị hộp hỏi cookie riêng và không ghi nhận việc
-          tải trang là một lần người dùng chủ động đồng ý. Bạn có thể quản lý
-          hoặc xóa cookie trong cài đặt trình duyệt và điều chỉnh tùy chọn quảng
-          cáo tại Google. Quảng cáo có thưởng chỉ bắt đầu khi bạn bấm nút xem;
-          bạn vẫn có thể đặt hàng với phí vận chuyển thông thường khi bỏ qua
-          quảng cáo.
         </p>
       </section>
       <Link className="inline-block text-primary underline" href="/sign-up">

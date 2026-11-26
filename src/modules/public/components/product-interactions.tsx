@@ -615,7 +615,7 @@ export function ProductInteractions({
               </Link>
               {hasOfferPrice ? (
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Ưu đãi từ shop không yêu cầu xem hoặc nhấp quảng cáo.
+                  Ưu đãi từ shop sẽ được kiểm tra lại khi thanh toán.
                 </p>
               ) : null}
             </div>

@@ -6,7 +6,6 @@ import {
   XIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
-  CirclePlayIcon,
   ShoppingBagIcon,
   TicketPercentIcon,
 } from "lucide-react"
@@ -30,7 +29,6 @@ import { Section } from "@/components/ui/section"
 import { Separator } from "@/components/ui/separator"
 import { useApiQuery, QueryPlaceholder } from "@/hooks/use-api-query"
 import { formatCurrency } from "@/lib/format"
-import { ProductAdvertisement } from "@/modules/public/components/product-advertisement"
 import { ShopOfferSelector } from "@/modules/public/components/shop-offers"
 import {
   productCheckoutHref,
@@ -310,8 +308,7 @@ function ProductOfferDetails({
               disabled={false}
             />
             <p className="text-xs leading-5 text-muted-foreground">
-              Ưu đãi do cửa hàng cung cấp, không yêu cầu xem hoặc tương tác
-              quảng cáo.
+              Ưu đãi do cửa hàng cung cấp và được kiểm tra lại khi thanh toán.
             </p>
           </Section>
         </section>
@@ -400,16 +397,6 @@ function ProductOfferDetails({
           </Section>
         </aside>
       </div>
-      <section aria-labelledby="offer-ad-title">
-        <Section
-          title={<h2 id="offer-ad-title">Quảng cáo</h2>}
-          icon={<CirclePlayIcon aria-hidden="true" />}
-        >
-          <ProductAdvertisement
-            key={`${product.id}:${variant?.id ?? "base"}`}
-          />
-        </Section>
-      </section>
     </div>
   )
 }

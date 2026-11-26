@@ -7,11 +7,9 @@ import { cn } from "@/lib/utils"
 
 export function SiteShell({
   children,
-  advertising,
   storefront,
 }: {
   children: React.ReactNode
-  advertising?: React.ReactNode
   storefront?: boolean
 }) {
   const pathname = usePathname()
@@ -37,7 +35,6 @@ export function SiteShell({
         }
       >
         {children}
-        {!chat ? advertising : null}
       </main>
       {!chat ? <SiteFooter /> : null}
     </div>

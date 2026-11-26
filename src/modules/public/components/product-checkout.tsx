@@ -48,7 +48,6 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Section } from "@/components/ui/section"
 import { Surface } from "@/components/ui/surface"
-import { ShippingRewardOffer } from "@/modules/public/components/shipping-reward-offer"
 import { ShopOfferSelector } from "@/modules/public/components/shop-offers"
 import { loadShopOffersAction } from "@/modules/public/shop-offer-actions"
 import {
@@ -80,12 +79,12 @@ import {
   saveDiscountCodeAction,
 } from "@/modules/discount-codes/actions"
 import { loadShippingQuoteAction } from "@/modules/public/shipping-actions"
-import { loadShippingDiscountCodeAction } from "@/modules/public/shipping-reward-actions"
+import { loadShippingDiscountCodeAction } from "@/modules/public/shipping-discount-actions"
 import { summarizeDiscountCodes } from "@/modules/discount-codes/lib/discount-codes"
 import { formatDiscountCodeValue } from "@/modules/discount-codes/lib/format-discount-code"
 import type { ProductDiscountCode } from "@/types/discount-code"
 import type { ShippingQuote } from "@/types/shipping"
-import type { ShippingDiscountCode } from "@/types/shipping-reward"
+import type { ShippingDiscountCode } from "@/types/shipping-discount-code"
 import type {
   CheckoutProduct,
   CheckoutShop,
@@ -143,7 +142,6 @@ export function ProductCheckout({
   const [shopOffersPending, startShopOffersTransition] = useTransition()
   const [reloadShopOffers, setReloadShopOffers] = useState(0)
   const [offerTime, setOfferTime] = useState(() => Date.now())
-  const [showShippingOffer, setShowShippingOffer] = useState(false)
   const [shippingCode, setShippingCode] = useState<ShippingDiscountCode | null>(
     null
   )
@@ -152,8 +150,6 @@ export function ProductCheckout({
     null
   )
   const [shippingCodePending, startShippingCodeTransition] = useTransition()
-  const [shippingRewardPending, setShippingRewardPending] = useState(false)
-  const [, setShippingAdVisible] = useState(false)
   const [reloadShippingCode, setReloadShippingCode] = useState(0)
   const shippingCodeRevision = useRef(0)
   const [shippingQuote, setShippingQuote] = useState<{
@@ -276,7 +272,6 @@ export function ProductCheckout({
     !validQuantity ||
     unconfirmedCodes ||
     shippingBlocked ||
-    shippingRewardPending ||
     shippingCodeUnconfirmed ||
     shopCouponUnconfirmed ||
     linkedShopOfferBlocksOrder(linkedShopOffer.status)
@@ -519,7 +514,7 @@ export function ProductCheckout({
         )
         return
       }
-      if (shippingRewardPending || shippingCodeUnconfirmed) {
+      if (shippingCodeUnconfirmed) {
         toast.error("Vui lòng chờ xác nhận mã vận chuyển trước khi đặt hàng.")
         return
       }
@@ -1312,7 +1307,7 @@ export function ProductCheckout({
                   >
                     <Checkbox
                       checked={useShippingCode}
-                      disabled={pending || shippingRewardPending}
+                      disabled={pending}
                       onCheckedChange={(checked) =>
                         setUseShippingCode(Boolean(checked))
                       }
@@ -1356,40 +1351,6 @@ export function ProductCheckout({
                   </div>
                 ) : null}
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-auto min-h-10 w-full py-2 whitespace-normal"
-                  aria-expanded={showShippingOffer}
-                  aria-controls="checkout-shipping-offer"
-                  disabled={pending || stock < 1 || shippingRewardPending}
-                  onClick={() => setShowShippingOffer((value) => !value)}
-                >
-                  <TruckIcon />{" "}
-                  {showShippingOffer
-                    ? "Thu gọn ưu đãi vận chuyển"
-                    : "Khám phá ưu đãi miễn phí vận chuyển"}
-                </Button>
-                {showShippingOffer ? (
-                  <div id="checkout-shipping-offer">
-                    <ShippingRewardOffer
-                      shopCode={shop.code}
-                      productSlug={product.slug}
-                      code={availableShippingCode}
-                      disabled={pending}
-                      returnTo={checkoutHref}
-                      onRedeemingChange={setShippingRewardPending}
-                      onAdVisibleChange={setShippingAdVisible}
-                      onCodeReceived={(code) => {
-                        shippingCodeRevision.current += 1
-                        setShippingCode(code)
-                        setShippingCodeError(null)
-                        setUseShippingCode(true)
-                        toast.success("Đã nhận mã miễn phí vận chuyển.")
-                      }}
-                    />
-                  </div>
-                ) : null}
               </Section>
             </section>
           </fieldset>
@@ -1498,11 +1459,6 @@ export function ProductCheckout({
                     Tải lại hoặc bỏ chọn ưu đãi từ shop không còn đủ điều kiện.
                   </p>
                 ) : null}
-                {shippingRewardPending ? (
-                  <p className="text-xs text-muted-foreground">
-                    Hoàn tất hoặc hủy xem quảng cáo trước khi xác nhận đơn.
-                  </p>
-                ) : null}
                 {!shippingConfirmed && !shippingBlocked ? (
                   <p className="text-xs leading-5 text-muted-foreground">
                     {shippingLocationSelected
@@ -1559,7 +1515,7 @@ export function ProductCheckout({
                 type="button"
                 variant="outline"
                 className="h-11 w-full"
-                disabled={pending || messagePending || shippingRewardPending}
+                disabled={pending || messagePending}
                 onClick={openProductChat}
               >
                 {messagePending ? (
