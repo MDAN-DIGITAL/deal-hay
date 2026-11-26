@@ -12,6 +12,7 @@ import type {
   HomeResponse,
   ProductResponse,
   PublicShopsResponse,
+  ShopResponse,
 } from "@/api/catalog/types"
 
 export type PublicCatalogResult<T> =
@@ -67,6 +68,15 @@ function isProduct(value: unknown): value is ProductResponse {
   )
 }
 
+function isShop(value: unknown): value is ShopResponse {
+  return (
+    object(value) &&
+    hasShop(value.shop) &&
+    Array.isArray(value.products) &&
+    Array.isArray(value.categories)
+  )
+}
+
 function isPublicShops(value: unknown): value is PublicShopsResponse {
   return (
     object(value) &&
@@ -117,6 +127,15 @@ export const getPublicShops = cache((q?: string, page?: string) =>
   readPublicCatalog(
     { path: catalogRoutes.shops, searchParams: { q, page } },
     isPublicShops
+  )
+)
+
+export const getPublicShop = cache((shopUserCode: string) =>
+  readPublicCatalog(
+    {
+      path: catalogRoutes.shop(encodeURIComponent(shopUserCode)),
+    },
+    isShop
   )
 )
 

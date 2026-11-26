@@ -223,7 +223,6 @@ export function HomePageContainer({
     <div
       className="min-w-0 space-y-6 sm:space-y-8"
       data-catalog-content="ready"
-      data-ad-eligible={products.data.length > 0 ? "true" : undefined}
     >
       {isFirstBrowsePage ? (
         <Card

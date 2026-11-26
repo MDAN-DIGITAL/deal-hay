@@ -1,6 +1,6 @@
 # Deal Hay frontend
 
-Next.js App Router dùng cho giao diện và điều hướng, deploy trên Vercel. Chỉ trang chủ và chi tiết sản phẩm tải dữ liệu công khai trên server để phục vụ SEO. Trang shop và các trang tài khoản/nghiệp vụ dùng khung tĩnh, đọc tham số URL và tải dữ liệu trực tiếp trên trình duyệt; các thao tác tương tác gọi `deal-hay-api` qua HTTP, chat dùng `deal-hay-wss` qua Socket.IO. Dự án không chứa Server Actions, proxy backend hoặc WebSocket server. `robots.txt` và `sitemap.xml` là metadata routes của Next.js.
+Next.js App Router dùng cho giao diện và điều hướng, deploy trên Vercel. Trang chủ, gian hàng và chi tiết sản phẩm tải snapshot công khai trên server để phục vụ SEO và tránh bắt người dùng chờ database ở xa; dữ liệu cá nhân hóa được kiểm tra lại trên trình duyệt sau khi đăng nhập. Các trang tài khoản/nghiệp vụ tải dữ liệu trực tiếp trên trình duyệt; các thao tác tương tác gọi `deal-hay-api` qua HTTP, chat dùng `deal-hay-wss` qua Socket.IO. Dự án không chứa Server Actions, proxy backend hoặc WebSocket server. `robots.txt` và `sitemap.xml` là metadata routes của Next.js.
 
 ## Phát triển
 

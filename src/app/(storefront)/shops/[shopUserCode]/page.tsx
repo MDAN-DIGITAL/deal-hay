@@ -1,20 +1,32 @@
 import type { Metadata } from "next"
-import { Suspense } from "react"
+import { notFound } from "next/navigation"
 
-import PageLoading from "@/components/layout/page-loading"
-import { ShopPageContent } from "./content"
+import {
+  getPublicShop,
+  PUBLIC_CATALOG_ERROR,
+} from "@/api/catalog/server"
+import { ShopPageContainer } from "@/modules/public/containers/shop-page-container"
 
-// Shop data intentionally loads in the browser. Product pages remain SSR for SEO.
 export const metadata: Metadata = { title: "Gian hàng" }
 
 export function generateStaticParams() {
   return []
 }
 
-export default function ShopPage() {
+export default async function ShopPage({
+  params,
+}: {
+  params: Promise<{ shopUserCode: string }>
+}) {
+  const { shopUserCode } = await params
+  const result = await getPublicShop(shopUserCode)
+  if (result.status === "not-found") notFound()
+
   return (
-    <Suspense fallback={<PageLoading />}>
-      <ShopPageContent />
-    </Suspense>
+    <ShopPageContainer
+      shopUserCode={shopUserCode}
+      initialData={result.status === "ready" ? result.data : undefined}
+      initialError={result.status === "ready" ? undefined : PUBLIC_CATALOG_ERROR}
+    />
   )
 }

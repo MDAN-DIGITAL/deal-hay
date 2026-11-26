@@ -68,15 +68,7 @@ export function ProductPageContainer({
   if (!data) return <QueryPlaceholder error={error} />
 
   return (
-    <div
-      className="min-w-0 space-y-10"
-      data-catalog-content="ready"
-      data-ad-eligible={
-        data.product.name.trim() && data.product.description?.trim()
-          ? "true"
-          : undefined
-      }
-    >
+    <div className="min-w-0 space-y-10" data-catalog-content="ready">
       <Breadcrumb>
         <BreadcrumbList className="min-w-0">
           <BreadcrumbItem>
