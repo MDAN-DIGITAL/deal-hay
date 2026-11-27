@@ -93,18 +93,18 @@ export const ticketSourceOptions = [
 ]
 
 export function adminSourceHref(value?: string | null): string | null {
-  if (!value) return null
+  if (
+    !value ||
+    value.length > 2048 ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    /[\\\u0000-\u0020\u007f]/.test(value)
+  )
+    return null
   try {
     const url = new URL(value, "https://dealhay.invalid")
-    if (
-      !["http:", "https:"].includes(url.protocol) ||
-      url.username ||
-      url.password
-    )
-      return null
-    return url.origin === "https://dealhay.invalid"
-      ? `${url.pathname}${url.search}${url.hash}`
-      : url.href
+    if (url.origin !== "https://dealhay.invalid") return null
+    return `${url.pathname}${url.search}${url.hash}`
   } catch {
     return null
   }

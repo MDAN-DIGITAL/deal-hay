@@ -5,8 +5,8 @@ export function newPasswordSchema(label = "Mật khẩu") {
   return z
     .string()
     .refine(
-      (value) => [...value].length >= 6,
-      `${label} phải có ít nhất 6 ký tự.`
+      (value) => [...value].length >= 8,
+      `${label} phải có ít nhất 8 ký tự.`
     )
     .max(72, `${label} không được vượt quá 72 ký tự.`)
     .regex(/\p{L}/u, `${label} phải có ít nhất một chữ cái.`)
