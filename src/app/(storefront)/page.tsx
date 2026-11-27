@@ -8,12 +8,12 @@ import {
   SITE_DESCRIPTION,
   siteStructuredData,
 } from "@/lib/seo"
+import { PublicCatalogPage } from "@/modules/public/containers/public-catalog-page"
+import { catalogUrl } from "@/modules/public/lib/catalog-url"
 import {
   parsePublicCatalogQuery,
-  PublicCatalogPage,
   type PublicCatalogSearchParams,
-} from "@/modules/public/containers/public-catalog-page"
-import { catalogUrl } from "@/modules/public/lib/catalog-url"
+} from "@/modules/public/lib/public-catalog-query"
 
 export const metadata: Metadata = {
   title: { absolute: "Deal Hay – Săn deal tốt từ các shop uy tín" },

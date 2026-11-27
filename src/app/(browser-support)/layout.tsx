@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 
 import "@/app/globals.css"
+import { ClientRenderBoundary } from "@/components/layout/client-render-boundary"
 import { siteFontVariables } from "@/components/layout/site-fonts"
 
 export default function BrowserSupportLayout({
@@ -10,7 +11,9 @@ export default function BrowserSupportLayout({
 }) {
   return (
     <html lang="vi" className={siteFontVariables}>
-      <body>{children}</body>
+      <body>
+        <ClientRenderBoundary>{children}</ClientRenderBoundary>
+      </body>
     </html>
   )
 }

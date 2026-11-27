@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 
 import "@/app/globals.css"
+import { ClientRenderBoundary } from "@/components/layout/client-render-boundary"
 import { SiteShell } from "@/components/layout/site-shell"
 import { siteFontVariables } from "@/components/layout/site-fonts"
 import { NavigationScroll } from "@/components/layout/navigation-scroll"
@@ -59,9 +60,11 @@ export const siteMetadata: Metadata = {
 export function SiteDocument({
   children,
   storefront,
+  serverRenderedPaths,
 }: Readonly<{
   children: React.ReactNode
   storefront?: boolean
+  serverRenderedPaths?: readonly string[]
 }>) {
   return (
     <html
@@ -77,9 +80,9 @@ export function SiteDocument({
                 <Suspense fallback={null}>
                   <NavigationScroll />
                 </Suspense>
-                <SiteShell storefront={storefront}>
-                  {children}
-                </SiteShell>
+                <ClientRenderBoundary serverRenderedPaths={serverRenderedPaths}>
+                  <SiteShell storefront={storefront}>{children}</SiteShell>
+                </ClientRenderBoundary>
                 <Toaster position="top-right" richColors />
               </RealtimeRoot>
             </SessionProvider>

@@ -1,19 +1,13 @@
 import type { Metadata } from "next"
-import { notFound, permanentRedirect } from "next/navigation"
+import { notFound } from "next/navigation"
+import { Suspense } from "react"
 
-import {
-  parsePublicCatalogQuery,
-  PublicCatalogPage,
-  type PublicCatalogSearchParams,
-} from "@/modules/public/containers/public-catalog-page"
-import {
-  catalogCategorySlug,
-  catalogUrl,
-} from "@/modules/public/lib/catalog-url"
+import PageLoading from "@/components/layout/page-loading"
+import { PublicCatalogClientPage } from "@/modules/public/containers/public-catalog-client-page"
+import { catalogCategorySlug } from "@/modules/public/lib/catalog-url"
 
 type CategoryPageProps = {
   params: Promise<{ categorySlug: string }>
-  searchParams: Promise<PublicCatalogSearchParams>
 }
 
 export async function generateMetadata({
@@ -29,23 +23,14 @@ export async function generateMetadata({
   }
 }
 
-export default async function CategoryPage({
-  params,
-  searchParams,
-}: CategoryPageProps) {
-  const [{ categorySlug }, rawQuery] = await Promise.all([params, searchParams])
+export default async function CategoryPage({ params }: CategoryPageProps) {
+  const { categorySlug } = await params
   const normalizedSlug = catalogCategorySlug(categorySlug)
   if (!normalizedSlug) notFound()
 
-  const query = parsePublicCatalogQuery(rawQuery)
-  if (categorySlug !== normalizedSlug)
-    permanentRedirect(
-      catalogUrl({
-        category: normalizedSlug,
-        search: query.search,
-        filters: query.filters,
-      })
-    )
-
-  return <PublicCatalogPage query={query} categorySlug={normalizedSlug} />
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <PublicCatalogClientPage categorySlug={normalizedSlug} />
+    </Suspense>
+  )
 }

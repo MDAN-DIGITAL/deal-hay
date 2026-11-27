@@ -147,12 +147,22 @@
   }
 }
 
-/* Keep the catalog rail sticky only when its complete collapsed content fits.
-   Short desktop viewports use normal page scrolling so every filter remains reachable. */
-@media (min-width: 64rem) and (min-height: 56rem) {
+/* Keep the complete catalog rail available while products continue scrolling.
+   On short desktop viewports the rail scrolls internally without exposing a
+   second scrollbar, so the filters remain reachable instead of disabling
+   sticky positioning altogether. */
+@media (min-width: 64rem) {
   .catalog-left-rail {
     position: sticky;
     top: 6rem;
+    max-height: calc(100svh - 7rem);
+    overflow-x: clip;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .catalog-left-rail::-webkit-scrollbar {
+    display: none;
   }
 }
 

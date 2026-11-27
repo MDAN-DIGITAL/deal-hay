@@ -14,7 +14,6 @@ import {
 } from "lucide-react"
 
 import { getShop } from "@/api/catalog/queries"
-import type { ShopResponse } from "@/api/catalog/types"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -33,23 +32,11 @@ import { ShopCategoryFilter } from "@/modules/public/components/shop-category-fi
 import { ShopOffers } from "@/modules/public/components/shop-offers"
 import { ShopEngagement } from "@/modules/public/components/shop-engagement"
 
-export function ShopPageContainer({
-  shopUserCode,
-  initialData,
-  initialError,
-}: {
-  shopUserCode: string
-  initialData?: ShopResponse
-  initialError?: string
-}) {
+export function ShopPageContainer({ shopUserCode }: { shopUserCode: string }) {
   const { data, error } = useApiQuery(
     JSON.stringify(["shop", shopUserCode]),
     () => getShop(shopUserCode),
-    {
-      initialData,
-      initialError,
-      revalidateOnMount: "authenticated",
-    }
+    { revalidateOnMount: false }
   )
   if (!data) return <QueryPlaceholder error={error} />
 

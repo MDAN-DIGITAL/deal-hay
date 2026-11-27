@@ -5,6 +5,7 @@ import type {
   HomeCatalogRequest,
   HomeResponse,
   ProductResponse,
+  PublicShopsResponse,
   ShopResponse,
 } from "@/api/catalog/types"
 
@@ -33,6 +34,7 @@ export function getHome({
       in_stock: inStock ? 1 : undefined,
       on_sale: onSale ? 1 : undefined,
       liked: liked ? 1 : undefined,
+      catalog_schema: 5,
     },
   })
 }
@@ -45,6 +47,16 @@ export function getShop(
   return apiFetch({
     path: catalogRoutes.shop(shopUserCode),
     searchParams: { category, page },
+  })
+}
+
+export function getShops(
+  q?: string,
+  page?: string
+): Promise<PublicShopsResponse> {
+  return apiFetch({
+    path: catalogRoutes.shops,
+    searchParams: { q, page, catalog_schema: 3 },
   })
 }
 

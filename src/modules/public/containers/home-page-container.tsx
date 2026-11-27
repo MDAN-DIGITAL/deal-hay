@@ -35,6 +35,7 @@ import type {
 } from "@/api/catalog/types"
 import { AppSelect } from "@/components/app-select"
 import { EmptyState } from "@/components/layout/empty-state"
+import NotFound from "@/components/layout/page-not-found"
 import {
   Accordion,
   AccordionContent,
@@ -864,6 +865,7 @@ export function HomePageContainer({
 
   const data = query.data ?? initialData
   if (!data) return <QueryPlaceholder error={query.error} />
+  if (categorySlug && data.filters.category === "") return <NotFound />
 
   const activeCategory = data.filters.category
   const activeSearch = data.filters.q ?? search ?? ""

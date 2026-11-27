@@ -4,6 +4,8 @@ export default function StorefrontLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <SiteDocument storefront>{children}</SiteDocument>
+    <SiteDocument storefront serverRenderedPaths={["/"]}>
+      {children}
+    </SiteDocument>
   )
 }

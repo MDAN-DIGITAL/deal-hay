@@ -9,7 +9,6 @@ import {
 } from "lucide-react"
 
 import { getProduct } from "@/api/catalog/queries"
-import type { ProductResponse } from "@/api/catalog/types"
 import { ImagePreview } from "@/components/image-preview"
 import { EmptyState } from "@/components/layout/empty-state"
 import { Badge } from "@/components/ui/badge"
@@ -32,6 +31,12 @@ import { Separator } from "@/components/ui/separator"
 import { Surface } from "@/components/ui/surface"
 import { UserAvatar } from "@/components/user-avatar"
 import { formatDate } from "@/lib/format"
+import {
+  absoluteSiteUrl,
+  productPath,
+  productStructuredData,
+  serializeJsonLd,
+} from "@/lib/seo"
 import { ProductCard } from "@/modules/public/components/product-card"
 import { ProductDescriptionContent } from "@/modules/public/components/product-description-content"
 import { ProductGallery } from "@/modules/public/components/product-gallery"
@@ -43,32 +48,30 @@ export function ProductPageContainer({
   initialDiscountCode,
   initialShopCouponCode,
   initialVariantId,
-  initialData,
-  initialError,
 }: {
   shopUserCode: string
   productSlug: string
   initialDiscountCode?: string
   initialShopCouponCode?: string
   initialVariantId?: string
-  initialData?: ProductResponse
-  initialError?: string
 }) {
   const { data, error } = useApiQuery(
     JSON.stringify(["product", shopUserCode, productSlug]),
     () => getProduct(shopUserCode, productSlug),
-    {
-      initialData,
-      initialError,
-      // The server snapshot is complete for guests. Only signed-in viewers
-      // need the personalized review/follow state from a browser request.
-      revalidateOnMount: "authenticated",
-    }
+    { revalidateOnMount: false }
   )
   if (!data) return <QueryPlaceholder error={error} />
 
+  const canonical = absoluteSiteUrl(productPath(shopUserCode, productSlug))
+
   return (
     <div className="min-w-0 space-y-10" data-catalog-content="ready">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd(productStructuredData(data, canonical)),
+        }}
+      />
       <Breadcrumb>
         <BreadcrumbList className="min-w-0">
           <BreadcrumbItem>

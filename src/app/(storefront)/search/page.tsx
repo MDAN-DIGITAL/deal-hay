@@ -1,12 +1,8 @@
 import type { Metadata } from "next"
-import { permanentRedirect } from "next/navigation"
+import { Suspense } from "react"
 
-import {
-  parsePublicCatalogQuery,
-  PublicCatalogPage,
-  type PublicCatalogSearchParams,
-} from "@/modules/public/containers/public-catalog-page"
-import { catalogUrl } from "@/modules/public/lib/catalog-url"
+import PageLoading from "@/components/layout/page-loading"
+import { PublicCatalogClientPage } from "@/modules/public/containers/public-catalog-client-page"
 
 export const metadata: Metadata = {
   title: "Tìm kiếm sản phẩm",
@@ -14,14 +10,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 }
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<PublicCatalogSearchParams>
-}) {
-  const query = parsePublicCatalogQuery(await searchParams)
-
-  if (!query.search) permanentRedirect(catalogUrl({ filters: query.filters }))
-
-  return <PublicCatalogPage query={query} />
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <PublicCatalogClientPage requireSearch />
+    </Suspense>
+  )
 }

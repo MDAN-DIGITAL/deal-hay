@@ -10,5 +10,5 @@ export const metadata: Metadata = {
 export default function ApplicationLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return <SiteDocument>{children}</SiteDocument>
+  return <SiteDocument serverRenderedPaths={[]}>{children}</SiteDocument>
 }

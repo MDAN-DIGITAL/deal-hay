@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import "@/app/globals.css"
+import { ClientRenderBoundary } from "@/components/layout/client-render-boundary"
 import NotFound from "@/components/layout/page-not-found"
 import { SITE_URL } from "@/config/site"
 
@@ -14,9 +15,11 @@ export default function GlobalNotFound() {
   return (
     <html lang="vi">
       <body className="bg-background text-foreground">
-        <main className="mx-auto max-w-3xl px-4 py-10">
-          <NotFound />
-        </main>
+        <ClientRenderBoundary>
+          <main className="mx-auto max-w-3xl px-4 py-10">
+            <NotFound />
+          </main>
+        </ClientRenderBoundary>
       </body>
     </html>
   )

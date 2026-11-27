@@ -8,13 +8,7 @@ import {
   type ApiRequestOptions,
 } from "@/api/client"
 import { catalogRoutes } from "@/api/catalog/routes"
-import type {
-  HomeResponse,
-  HomeCatalogRequest,
-  ProductResponse,
-  PublicShopsResponse,
-  ShopResponse,
-} from "@/api/catalog/types"
+import type { HomeResponse, HomeCatalogRequest } from "@/api/catalog/types"
 
 export type PublicCatalogResult<T> =
   | { status: "ready"; data: T }
@@ -29,16 +23,6 @@ function object(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
 }
 
-function hasShop(value: unknown): boolean {
-  return (
-    object(value) &&
-    typeof value.code === "string" &&
-    typeof value.name === "string" &&
-    typeof value.address === "string" &&
-    object(value.viewer)
-  )
-}
-
 function isHome(value: unknown): value is HomeResponse {
   return (
     object(value) &&
@@ -49,43 +33,6 @@ function isHome(value: unknown): value is HomeResponse {
     Array.isArray(value.categories) &&
     object(value.filters) &&
     typeof value.filters.category === "string"
-  )
-}
-
-function isProduct(value: unknown): value is ProductResponse {
-  return (
-    object(value) &&
-    hasShop(value.shop) &&
-    object(value.product) &&
-    typeof value.product.name === "string" &&
-    (value.product.description === null ||
-      typeof value.product.description === "string") &&
-    Array.isArray(value.product.images) &&
-    Array.isArray(value.product.options) &&
-    Array.isArray(value.product.variants) &&
-    Array.isArray(value.relatedProducts) &&
-    Array.isArray(value.reviews) &&
-    object(value.reviewSummary)
-  )
-}
-
-function isShop(value: unknown): value is ShopResponse {
-  return (
-    object(value) &&
-    hasShop(value.shop) &&
-    Array.isArray(value.products) &&
-    Array.isArray(value.categories)
-  )
-}
-
-function isPublicShops(value: unknown): value is PublicShopsResponse {
-  return (
-    object(value) &&
-    object(value.shops) &&
-    Array.isArray(value.shops.data) &&
-    typeof value.shops.total === "number" &&
-    object(value.filters) &&
-    typeof value.filters.q === "string"
   )
 }
 
@@ -144,37 +91,5 @@ export const getPublicHome = cache(
         },
       },
       isHome
-    )
-)
-
-export const getPublicShops = cache((q?: string, page?: string) =>
-  readPublicCatalog(
-    {
-      path: catalogRoutes.shops,
-      searchParams: { q, page, catalog_schema: 3 },
-    },
-    isPublicShops
-  )
-)
-
-export const getPublicShop = cache((shopUserCode: string) =>
-  readPublicCatalog(
-    {
-      path: catalogRoutes.shop(encodeURIComponent(shopUserCode)),
-    },
-    isShop
-  )
-)
-
-export const getPublicProduct = cache(
-  (shopUserCode: string, productSlug: string) =>
-    readPublicCatalog(
-      {
-        path: catalogRoutes.product(
-          encodeURIComponent(shopUserCode),
-          encodeURIComponent(productSlug)
-        ),
-      },
-      isProduct
     )
 )
