@@ -95,8 +95,10 @@ export function PublicShopCard({
       )}
       <div
         className={cn(
-          "mt-auto grid grid-cols-2 border-t",
-          compact ? "gap-x-2 gap-y-1.5 pt-2" : "gap-x-3 gap-y-2 pt-3"
+          "border-t",
+          compact
+            ? "flex flex-wrap gap-x-2 gap-y-1.5 pt-2 [&>*]:basis-[calc(50%-0.25rem)]"
+            : "mt-auto grid grid-cols-2 gap-x-3 gap-y-2 pt-3"
         )}
       >
         <ShopMetric
